@@ -1,15 +1,14 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { LinearGradient } from 'expo-linear-gradient';
-import { useLocalSearchParams, router } from 'expo-router';
 import * as Clipboard from 'expo-clipboard';
+import { LinearGradient } from 'expo-linear-gradient';
+import { router, useLocalSearchParams } from 'expo-router';
 import { Bookmark, ChevronDown, ChevronLeft, Highlighter, NotebookPen } from 'lucide-react-native';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Alert,
-  Animated,
+  FlatList,
   KeyboardAvoidingView,
   Modal,
-  PanResponder,
   Platform,
   Pressable,
   ScrollView,
@@ -22,10 +21,24 @@ import {
   useWindowDimensions,
   View,
 } from 'react-native';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import Reanimated, {
+  cancelAnimation,
+  Easing,
+  interpolate,
+  runOnJS,
+  useAnimatedScrollHandler,
+  useAnimatedStyle,
+  useSharedValue,
+  withRepeat,
+  withSpring,
+  withTiming,
+} from 'react-native-reanimated';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { saveDanielProgress, useDanielProgress } from '../../lib/daniel-progress';
+import ChapterCompleteModal from '../../components/ChapterCompleteModal';
+import { trackActivity } from '../../lib/activity-tracker';
 import { loadDanielCrossReferences } from '../../lib/daniel-cross-references';
-import ChapterCompleteModal from './ChapterCompleteModal';
+import { saveDanielProgress, useDanielProgress } from '../../lib/daniel-progress';
 
 const API_ROOT = 'https://bible-api.com/data';
 const DEFAULT_TRANSLATION_ID = 'kjv';
@@ -86,28 +99,24 @@ async function fetchJson(url, signal) {
 }
 
 function LoadingSkeleton({ bibleChapterCount, colors, dark }) {
-  const shimmer = useRef(new Animated.Value(0)).current;
+  const shimmer = useSharedValue(0);
 
   useEffect(() => {
-    const animation = Animated.loop(
-      Animated.timing(shimmer, {
-        toValue: 1,
+    shimmer.value = withRepeat(
+      withTiming(1, {
         duration: 1400,
-        useNativeDriver: true,
-      })
+        easing: Easing.linear,
+      }),
+      -1,
+      false
     );
 
-    animation.start();
-
-    return () => {
-      animation.stop();
-    };
+    return () => cancelAnimation(shimmer);
   }, [shimmer]);
 
-  const shimmerTranslateX = shimmer.interpolate({
-    inputRange: [0, 1],
-    outputRange: [-220, 220],
-  });
+  const shimmerAnimatedStyle = useAnimatedStyle(() => ({
+    transform: [{ translateX: interpolate(shimmer.value, [0, 1], [-220, 220]) }, { rotate: '18deg' }],
+  }));
 
   return (
     <View style={styles.loadingShell}>
@@ -156,13 +165,11 @@ function LoadingSkeleton({ bibleChapterCount, colors, dark }) {
         </View>
       </View>
 
-      <Animated.View
+      <Reanimated.View
         pointerEvents="none"
         style={[
           styles.loadingShimmer,
-          {
-            transform: [{ translateX: shimmerTranslateX }, { rotate: '18deg' }],
-          },
+          shimmerAnimatedStyle,
         ]}>
         <LinearGradient
           colors={['transparent', dark ? 'rgba(255,255,255,0.14)' : 'rgba(255,255,255,0.5)', 'transparent']}
@@ -170,7 +177,7 @@ function LoadingSkeleton({ bibleChapterCount, colors, dark }) {
           end={{ x: 1, y: 0.5 }}
           style={StyleSheet.absoluteFillObject}
         />
-      </Animated.View>
+      </Reanimated.View>
     </View>
   );
 }
@@ -249,24 +256,19 @@ function BibleReaderScreen({
   const insets = useSafeAreaInsets();
   const scheme = useColorScheme();
   const dark = scheme === 'dark';
-  const colors = useMemo(() => getColors(dark), [dark]);
+  const colors = getColors(dark);
   const { width: screenWidth, height: screenHeight } = useWindowDimensions();
 
   const longPressTriggeredRef = useRef(false);
   const readingAreaYRef = useRef(0);
   const verseListYRef = useRef(0);
-  const toolbarAnim = useRef(new Animated.Value(0)).current;
-  const dragAnim = useRef(new Animated.Value(0)).current;
-  const scrollY = useRef(new Animated.Value(0)).current;
-  const lastScrollY = useRef(0);
-  const headerHeight = useRef(new Animated.Value(1)).current;
-  const isToolbarCollapsedRef = useRef(false);
+  const sheetDragY = useSharedValue(0);
+  const headerVisible = useSharedValue(1);
+  const lastScrollY = useSharedValue(0);
 
-  const [isToolbarCollapsed, setIsToolbarCollapsed] = useState(false);
   const [selectorModal, setSelectorModal] = useState(null);
   const [longPressMenu, setLongPressMenu] = useState(null);
   const [selectedVerseRange, setSelectedVerseRange] = useState(null);
-  const [, setSheetDragY] = useState(0);
 
   const updateMeasuredVersePositions = useCallback(() => {
     Object.values(verseRefs.current).forEach((entry) => {
@@ -278,40 +280,44 @@ function BibleReaderScreen({
     });
   }, [verseRefs]);
 
-  const toolbarPadding = toolbarAnim.interpolate({
-    inputRange: [0, 1],
-    outputRange: [12, 8],
+  const handleScroll = useAnimatedScrollHandler((event) => {
+    const currentY = event.contentOffset.y;
+    const delta = currentY - lastScrollY.value;
+
+    if (currentY <= 8) {
+      headerVisible.value = withTiming(1, {
+        duration: 180,
+        easing: Easing.out(Easing.cubic),
+      });
+    } else if (delta > 5 && headerVisible.value !== 0) {
+      headerVisible.value = withTiming(0, {
+        duration: 180,
+        easing: Easing.out(Easing.cubic),
+      });
+    } else if (delta < -5 && headerVisible.value !== 1) {
+      headerVisible.value = withTiming(1, {
+        duration: 180,
+        easing: Easing.out(Easing.cubic),
+      });
+    }
+
+    lastScrollY.value = currentY;
   });
 
-  const handleScroll = useMemo(
-    () => Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], {
-      useNativeDriver: false,
-      listener: (event) => {
-        const currentY = event.nativeEvent.contentOffset.y;
-        if (currentY > lastScrollY.current + 5) {
-          Animated.timing(headerHeight, {
-            toValue: 0,
-            duration: 200,
-            useNativeDriver: false,
-          }).start();
-        } else if (currentY < lastScrollY.current - 5) {
-          Animated.timing(headerHeight, {
-            toValue: 1,
-            duration: 200,
-            useNativeDriver: false,
-          }).start();
-        }
-        lastScrollY.current = currentY;
+  const headerAnimatedStyle = useAnimatedStyle(() => ({
+    maxHeight: interpolate(headerVisible.value, [0, 1], [0, 110]),
+    opacity: headerVisible.value,
+    transform: [{ translateY: interpolate(headerVisible.value, [0, 1], [-18, 0]) }],
+  }));
 
-        const collapsed = currentY > 24;
-        if (collapsed !== isToolbarCollapsedRef.current) {
-          isToolbarCollapsedRef.current = collapsed;
-          setIsToolbarCollapsed(collapsed);
-        }
-      },
-    }),
-    [headerHeight, scrollY]
-  );
+  const toolbarRowAnimatedStyle = useAnimatedStyle(() => ({
+    paddingTop: interpolate(headerVisible.value, [0, 1], [8, 12]),
+    paddingBottom: interpolate(headerVisible.value, [0, 1], [8, 12]),
+  }));
+
+  const sheetAnimatedStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: sheetDragY.value }],
+  }));
 
   const chapterNumbers = useMemo(
     () => Array.from({ length: bibleChapterCount }, (_, i) => i + 1),
@@ -372,9 +378,8 @@ function BibleReaderScreen({
     setSelectedVerse(null);
     setSelectedVerseRange(null);
     setVerseNote('');
-    setSheetDragY(0);
-    dragAnim.setValue(0);
-  }, [dragAnim, setSelectedVerse, setVerseNote]);
+    sheetDragY.value = 0;
+  }, [setSelectedVerse, setVerseNote, sheetDragY]);
 
   const handleBookChange = useCallback(
     async (nextBookName) => {
@@ -563,6 +568,16 @@ function BibleReaderScreen({
 
     setHighlightedVerses((current) => {
       const allHighlighted = verseKeys.every((key) => current.includes(key));
+      if (!allHighlighted) {
+        const verseLabel = rangeStart === rangeEnd
+          ? `${rangeStart}`
+          : `${Math.min(rangeStart, rangeEnd)}-${Math.max(rangeStart, rangeEnd)}`;
+        void trackActivity('verse_highlighted', `Highlighted ${bibleBook} ${bibleChapter}:${verseLabel}`, {
+          book: bibleBook, chapter: bibleChapter,
+          verseStart: Math.min(rangeStart, rangeEnd),
+          verseEnd: Math.max(rangeStart, rangeEnd),
+        });
+      }
       return allHighlighted
         ? current.filter((key) => !verseKeys.includes(key))
         : Array.from(new Set([...current, ...verseKeys]));
@@ -588,6 +603,9 @@ function BibleReaderScreen({
     }
 
     const key = getNoteKey(bibleBook, bibleChapter, longPressMenu.verseNumber);
+    void trackActivity('bookmark_added', `Bookmarked ${bibleBook} ${bibleChapter}:${longPressMenu.verseNumber}`, {
+      book: bibleBook, chapter: bibleChapter, verse: longPressMenu.verseNumber,
+    });
     setBookmarks((current) => (current.includes(key) ? current : [...current, key]));
     closeLongPressMenu();
   }, [bibleBook, bibleChapter, closeLongPressMenu, getNoteKey, longPressMenu, setBookmarks]);
@@ -600,10 +618,16 @@ function BibleReaderScreen({
       return;
     }
 
+    if (!isBookmarked) {
+      void trackActivity('bookmark_added', `Bookmarked ${bibleBook} ${bibleChapter}:${selectedVerse?.verse}`, {
+        book: bibleBook, chapter: bibleChapter, verse: selectedVerse?.verse,
+      });
+    }
+
     setBookmarks((current) =>
       current.includes(bookmarkKey) ? current.filter((item) => item !== bookmarkKey) : [...current, bookmarkKey]
     );
-  }, [bookmarkKey, setBookmarks]);
+  }, [bibleBook, bibleChapter, bookmarkKey, isBookmarked, selectedVerse, setBookmarks]);
 
   const copySelectedVerse = useCallback(async () => {
     if (!selectedVerse) {
@@ -644,47 +668,39 @@ function BibleReaderScreen({
     closeLongPressMenu();
   }, [clearRangeSelection, closeLongPressMenu, selectionEnd, selectionStart]);
 
-  const panResponder = useMemo(
+  const sheetPanGesture = useMemo(
     () =>
-      PanResponder.create({
-        onMoveShouldSetPanResponder: (_, gestureState) => gestureState.dy > 5,
-        onPanResponderMove: (_, gestureState) => {
-          if (gestureState.dy > 0) {
-            setSheetDragY(gestureState.dy);
-            dragAnim.setValue(gestureState.dy);
+      Gesture.Pan()
+        .activeOffsetY(5)
+        .onUpdate((event) => {
+          if (event.translationY > 0) {
+            sheetDragY.value = event.translationY;
           }
-        },
-        onPanResponderRelease: (_, gestureState) => {
-          if (gestureState.dy > 120) {
-            clearSelectionState();
-          } else {
-            setSheetDragY(0);
-            Animated.spring(dragAnim, { toValue: 0, useNativeDriver: true }).start();
+        })
+        .onEnd((event) => {
+          if (event.translationY > 120) {
+            runOnJS(clearSelectionState)();
+            return;
           }
-        },
-      }),
-    [clearSelectionState, dragAnim]
-  );
 
-  useEffect(() => {
-    Animated.timing(toolbarAnim, {
-      toValue: isToolbarCollapsed ? 1 : 0,
-      duration: 180,
-      useNativeDriver: false,
-    }).start();
-  }, [isToolbarCollapsed, toolbarAnim]);
+          sheetDragY.value = withSpring(0, {
+            damping: 20,
+            stiffness: 220,
+          });
+        }),
+    [clearSelectionState, sheetDragY]
+  );
 
   const selectedReference = selectedVerse
     ? selectedVerseRange && selectedVerseRange.length > 1
-      ? `${bibleBook} ${bibleChapter}:${selectedVerseRange[0].verse}-${
-          selectedVerseRange[selectedVerseRange.length - 1].verse
-        }`
+      ? `${bibleBook} ${bibleChapter}:${selectedVerseRange[0].verse}-${selectedVerseRange[selectedVerseRange.length - 1].verse
+      }`
       : `${bibleBook} ${bibleChapter}:${selectedVerse.verse}`
     : '';
 
   return (
     <SafeAreaView style={[styles.root, { backgroundColor: colors.bg }]}>
-      <Animated.View
+      <Reanimated.View
         style={[
           styles.headerShell,
           {
@@ -693,22 +709,11 @@ function BibleReaderScreen({
             shadowColor: dark ? '#000000' : '#94a3b8',
           },
         ]}>
-        <Animated.View
-          style={{
-            overflow: 'hidden',
-            maxHeight: headerHeight.interpolate({
-              inputRange: [0, 1],
-              outputRange: [0, 110],
-            }),
-            opacity: headerHeight,
-          }}>
-          <Animated.View
+        <Reanimated.View style={[styles.collapsibleHeader, headerAnimatedStyle]}>
+          <Reanimated.View
             style={[
               styles.headerRow,
-              {
-                paddingTop: toolbarPadding,
-                paddingBottom: toolbarPadding,
-              },
+              toolbarRowAnimatedStyle,
             ]}>
             <Pressable
               accessibilityRole="button"
@@ -752,7 +757,7 @@ function BibleReaderScreen({
                     borderColor: colors.border,
                   },
                 ]}>
-              <Text style={[styles.versionButtonText, { color: colors.text }]}>{scriptureVersion.toUpperCase()}</Text>
+                <Text style={[styles.versionButtonText, { color: colors.text }]}>{scriptureVersion.toUpperCase()}</Text>
                 <ChevronDown size={14} color={colors.subtext} strokeWidth={2.5} />
               </Pressable>
 
@@ -760,7 +765,7 @@ function BibleReaderScreen({
                 accessibilityRole="button"
                 accessibilityLabel="Text settings"
                 hitSlop={10}
-                onPress={() => {}}
+                onPress={() => { }}
                 style={({ pressed }) => [
                   styles.textButton,
                   {
@@ -770,19 +775,20 @@ function BibleReaderScreen({
                 <Text style={[styles.textButtonLabel, { color: colors.text }]}>Aa</Text>
               </Pressable>
             </View>
-          </Animated.View>
+          </Reanimated.View>
 
-          <ScrollView
+          <FlatList
             horizontal
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={styles.chapterStrip}
-            keyboardShouldPersistTaps="handled">
-            {chapterNumbers.map((chapter) => {
+            keyboardShouldPersistTaps="handled"
+            data={chapterNumbers}
+            keyExtractor={(chapter) => String(chapter)}
+            renderItem={({ item: chapter }) => {
               const active = chapter === bibleChapter;
 
               return (
                 <Pressable
-                  key={chapter}
                   accessibilityRole="button"
                   accessibilityLabel={`Go to chapter ${chapter}`}
                   onPress={() => handleChapterChipPress(chapter)}
@@ -805,10 +811,10 @@ function BibleReaderScreen({
                   </Text>
                 </Pressable>
               );
-            })}
-          </ScrollView>
-        </Animated.View>
-      </Animated.View>
+            }}
+          />
+        </Reanimated.View>
+      </Reanimated.View>
 
       <Modal visible={selectorModal !== null} transparent animationType="fade" onRequestClose={closeSelectorModal}>
         <Pressable style={styles.selectorOverlay} onPress={closeSelectorModal}>
@@ -849,7 +855,7 @@ function BibleReaderScreen({
       </Modal>
 
       <View style={styles.body}>
-        <ScrollView
+        <Reanimated.ScrollView
           ref={scrollViewRef}
           style={styles.scroll}
           contentContainerStyle={[styles.scrollContent, { paddingBottom: screenWidth >= 768 ? 40 : 96 }]}
@@ -994,7 +1000,7 @@ function BibleReaderScreen({
               </View>
             ) : null}
           </Pressable>
-        </ScrollView>
+        </Reanimated.ScrollView>
 
         {longPressMenu ? (
           <View style={[styles.longPressOverlay, styles.pointerEventsBoxNone]}>
@@ -1033,7 +1039,7 @@ function BibleReaderScreen({
               behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
               style={styles.sheetKeyboardView}>
               <TouchableWithoutFeedback>
-                <Animated.View
+                <Reanimated.View
                   style={[
                     styles.sheetCard,
                     {
@@ -1041,12 +1047,14 @@ function BibleReaderScreen({
                       paddingBottom: 16 + insets.bottom,
                       backgroundColor: colors.cardBg,
                       borderColor: colors.sheetBorder,
-                      transform: [{ translateY: dragAnim }],
                     },
+                    sheetAnimatedStyle,
                   ]}>
-                  <View {...panResponder.panHandlers} style={styles.sheetHandleArea}>
-                    <View style={[styles.sheetHandle, { backgroundColor: dark ? '#475569' : '#cbd5e1' }]} />
-                  </View>
+                  <GestureDetector gesture={sheetPanGesture}>
+                    <View style={styles.sheetHandleArea}>
+                      <View style={[styles.sheetHandle, { backgroundColor: dark ? '#475569' : '#cbd5e1' }]} />
+                    </View>
+                  </GestureDetector>
 
                   <ScrollView
                     showsVerticalScrollIndicator
@@ -1121,7 +1129,7 @@ function BibleReaderScreen({
                             {crossReferences.map((reference) => {
                               const verseRange =
                                 reference.target_verse_end &&
-                                reference.target_verse_end !== reference.target_verse_start
+                                  reference.target_verse_end !== reference.target_verse_start
                                   ? `${reference.target_verse_start}-${reference.target_verse_end}`
                                   : `${reference.target_verse_start}`;
 
@@ -1150,7 +1158,7 @@ function BibleReaderScreen({
                       </View>
                     ) : null}
                   </ScrollView>
-                </Animated.View>
+                </Reanimated.View>
               </TouchableWithoutFeedback>
             </KeyboardAvoidingView>
           </View>
@@ -1217,9 +1225,9 @@ export default function BiblePage() {
     () =>
       translations.length
         ? translations.map((translation) => ({
-            value: translation.identifier,
-            label: translation.name ?? translation.identifier.toUpperCase(),
-          }))
+          value: translation.identifier,
+          label: translation.name ?? translation.identifier.toUpperCase(),
+        }))
         : [{ value: DEFAULT_TRANSLATION_ID, label: 'King James Version' }],
     [translations]
   );
@@ -1260,9 +1268,9 @@ export default function BiblePage() {
       const data = await fetchJson(`${API_ROOT}/${translationId}/${bookId}/${chapterNumber}`, controller.signal);
       const nextVerses = Array.isArray(data.verses)
         ? data.verses.map((verse) => ({
-            verse: verse.verse,
-            text: normalizeVerseText(verse.text),
-          }))
+          verse: verse.verse,
+          text: normalizeVerseText(verse.text),
+        }))
         : [];
 
       versesCacheRef.current[cacheKey] = nextVerses;
@@ -1308,14 +1316,14 @@ export default function BiblePage() {
         const data = await fetchJson(`${API_ROOT}/${translationId}/${bookId}`, controller.signal);
         const nextChapters = Array.isArray(data.chapters)
           ? data.chapters.reduce((acc, chapter) => {
-              const value = chapter?.chapter;
+            const value = chapter?.chapter;
 
-              if (Number.isFinite(value)) {
-                acc.push(value);
-              }
+            if (Number.isFinite(value)) {
+              acc.push(value);
+            }
 
-              return acc;
-            }, [])
+            return acc;
+          }, [])
           : [];
 
         chaptersCacheRef.current[cacheKey] = nextChapters;
@@ -1412,11 +1420,14 @@ export default function BiblePage() {
       clearChapterState();
       setBibleChapterState(nextChapter);
       void loadVerses(scriptureVersion, selectedBookId, nextChapter);
+      void trackActivity('chapter_opened', `Opened ${bibleBook} ${nextChapter}`, {
+        book: bibleBook, chapter: nextChapter,
+      });
     },
-    [clearChapterState, loadVerses, scriptureVersion, selectedBookId]
+    [bibleBook, clearChapterState, loadVerses, scriptureVersion, selectedBookId]
   );
 
-  const setChapter = useCallback(() => {}, []);
+  const setChapter = useCallback(() => { }, []);
 
   const navigateToReference = useCallback(
     (bookName, chapter, startVerse = null, endVerse = startVerse) => {
@@ -1457,6 +1468,9 @@ export default function BiblePage() {
       void saveDanielProgress(nextChapters);
       if (!isCurrentlyComplete) {
         setShowCompleteModal(true);
+        void trackActivity('chapter_completed', `Completed Daniel ${chapter}`, {
+          book: 'Daniel', chapter,
+        });
       }
     },
     [completedDanielChapters]
@@ -1472,6 +1486,9 @@ export default function BiblePage() {
       ...current,
       [key]: verseNote.trim(),
     }));
+    void trackActivity('note_saved', `Added note on ${bibleBook} ${bibleChapter}:${selectedVerse.verse}`, {
+      book: bibleBook, chapter: bibleChapter, verse: selectedVerse.verse,
+    });
   }, [bibleBook, bibleChapter, getNoteKey, selectedVerse, verseNote]);
 
   const returnToCrossReferenceOrigin = useCallback(() => {
@@ -1727,60 +1744,60 @@ export default function BiblePage() {
 
   return (
     <>
-    <BibleReaderScreen
-      scrollViewRef={scrollViewRef}
-      scriptureVersion={scriptureVersion}
-      setScriptureVersion={handleScriptureVersionChange}
-      bibleBook={bibleBook || DANIEL_BOOK_NAME}
-      setBibleBook={setBibleBook}
-      bibleChapter={bibleChapter}
-      setBibleChapter={setBibleChapter}
-      setChapter={setChapter}
-      selectableBibleBooks={books.map((book) => ({ name: book.name }))}
-      bibleChapterCount={chapters.length || 1}
-      loading={loading}
-      error={error}
-      bibleText={bibleText}
-      verseRefs={verseRefs}
-      selectionStart={selectionStart}
-      selectionEnd={selectionEnd}
-      setSelectionStart={setSelectionStart}
-      setSelectionEnd={setSelectionEnd}
-      selectedVerse={selectedVerse}
-      setSelectedVerse={setSelectedVerse}
-      verseNote={verseNote}
-      setVerseNote={setVerseNote}
-      savedNotes={savedNotes}
-      getNoteKey={getNoteKey}
-      isDanielBibleView={selectedBook?.name === DANIEL_BOOK_NAME || bibleBook === DANIEL_BOOK_NAME}
-      completedChapters={completedDanielChapters}
-      toggleChapterCompletion={toggleChapterCompletion}
-      saveNote={saveNote}
-      bookmarks={bookmarks}
-      setBookmarks={setBookmarks}
-      highlightedVerses={highlightedVerses}
-      setHighlightedVerses={setHighlightedVerses}
-      navigationHighlight={navigationHighlight}
-      crossReferenceOrigin={crossReferenceOrigin}
-      returnToCrossReferenceOrigin={returnToCrossReferenceOrigin}
-      selectedScriptureVersionLabel={selectedTranslation?.name ?? translationName}
-      crossReferences={crossReferences}
-      crossReferencesLoading={crossReferencesLoading}
-      crossReferencesLoaded={crossReferencesLoaded}
-      openCrossReference={openCrossReference}
-      DANIEL_BOOK_NAME={DANIEL_BOOK_NAME}
-      SCRIPTURE_VERSIONS={SCRIPTURE_VERSIONS}
-    />
-    <ChapterCompleteModal
-      visible={showCompleteModal}
-      chapter={bibleChapter}
-      totalChapters={12}
-      onClose={() => setShowCompleteModal(false)}
-      onNextChapter={() => {
-        setShowCompleteModal(false);
-        setBibleChapter(bibleChapter + 1);
-      }}
-    />
+      <BibleReaderScreen
+        scrollViewRef={scrollViewRef}
+        scriptureVersion={scriptureVersion}
+        setScriptureVersion={handleScriptureVersionChange}
+        bibleBook={bibleBook || DANIEL_BOOK_NAME}
+        setBibleBook={setBibleBook}
+        bibleChapter={bibleChapter}
+        setBibleChapter={setBibleChapter}
+        setChapter={setChapter}
+        selectableBibleBooks={books.map((book) => ({ name: book.name }))}
+        bibleChapterCount={chapters.length || 1}
+        loading={loading}
+        error={error}
+        bibleText={bibleText}
+        verseRefs={verseRefs}
+        selectionStart={selectionStart}
+        selectionEnd={selectionEnd}
+        setSelectionStart={setSelectionStart}
+        setSelectionEnd={setSelectionEnd}
+        selectedVerse={selectedVerse}
+        setSelectedVerse={setSelectedVerse}
+        verseNote={verseNote}
+        setVerseNote={setVerseNote}
+        savedNotes={savedNotes}
+        getNoteKey={getNoteKey}
+        isDanielBibleView={selectedBook?.name === DANIEL_BOOK_NAME || bibleBook === DANIEL_BOOK_NAME}
+        completedChapters={completedDanielChapters}
+        toggleChapterCompletion={toggleChapterCompletion}
+        saveNote={saveNote}
+        bookmarks={bookmarks}
+        setBookmarks={setBookmarks}
+        highlightedVerses={highlightedVerses}
+        setHighlightedVerses={setHighlightedVerses}
+        navigationHighlight={navigationHighlight}
+        crossReferenceOrigin={crossReferenceOrigin}
+        returnToCrossReferenceOrigin={returnToCrossReferenceOrigin}
+        selectedScriptureVersionLabel={selectedTranslation?.name ?? translationName}
+        crossReferences={crossReferences}
+        crossReferencesLoading={crossReferencesLoading}
+        crossReferencesLoaded={crossReferencesLoaded}
+        openCrossReference={openCrossReference}
+        DANIEL_BOOK_NAME={DANIEL_BOOK_NAME}
+        SCRIPTURE_VERSIONS={SCRIPTURE_VERSIONS}
+      />
+      <ChapterCompleteModal
+        visible={showCompleteModal}
+        chapter={bibleChapter}
+        totalChapters={12}
+        onClose={() => setShowCompleteModal(false)}
+        onNextChapter={() => {
+          setShowCompleteModal(false);
+          setBibleChapter(bibleChapter + 1);
+        }}
+      />
     </>
   );
 }
@@ -1807,6 +1824,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 10,
     paddingHorizontal: 10,
+  },
+  collapsibleHeader: {
+    overflow: 'hidden',
   },
   backButton: {
     alignItems: 'center',

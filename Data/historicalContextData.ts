@@ -1,0 +1,290 @@
+// Data/historicalContextData.ts
+
+export interface TimelineEvent {
+  id: string;
+  title: string;
+  date: string;
+  subtitle: string;
+  description: string; // 2-3 paragraph theological description
+  scriptureReferences: string[];
+  danielConnection: string;
+}
+
+export interface Era {
+  id: string;
+  name: string;
+  dateRange: string;
+  events: TimelineEvent[];
+}
+
+export const HISTORICAL_ERAS: Era[] = [
+  {
+    id: 'pre-exilic',
+    name: 'Pre-Exilic',
+    dateRange: '931–605 BC',
+    events: [
+      {
+        id: '931-bc-kingdom-divides',
+        title: 'The kingdom divides',
+        date: '931 BC',
+        subtitle: "Solomon's death splits Israel and Judah",
+        description: `Following the death of King Solomon, the United Kingdom of Israel fractured into two separate nations. Solomon's later years had been marked by spiritual compromise, heavy taxation, and forced labor. When his son Rehoboam arrogantly rejected the people's plea for relief, ten northern tribes rebelled and crowned Jeroboam as their king, forming the northern kingdom of Israel. Only the tribes of Judah and Benjamin remained loyal to the house of David in the south, forming the kingdom of Judah.\n\nThe division was a direct fulfillment of God's judgment declared through the prophet Ahijah due to Solomon's idolatry. Jeroboam quickly established rival golden calf shrines in Bethel and Dan to prevent his subjects from worshiping in Jerusalem, cementing a state religion of idolatry that would plague the northern kingdom throughout its entire existence.\n\nJudah, while retaining the temple and the Davidic line, also fell into cycles of spiritual unfaithfulness. The division weakened both kingdoms politically, making them vulnerable to rising Mesopotamian and Egyptian empires and setting them on a slow, tragic trajectory toward exile.`,
+        scriptureReferences: ['1 Kings 11:31-33', '1 Kings 12:16-20', '2 Chronicles 10:16-19'],
+        danielConnection: 'The division of the kingdom demonstrates the inherent instability and corruption of human dynasties. In Daniel, we see empires rise and break apart under the weight of pride (like the four-way split of Greece). This historic division highlights the necessity of the stone cut without hands—the unified and eternal kingdom established by God that will never be fractured or destroyed.',
+      },
+      {
+        id: '722-bc-northern-kingdom-falls',
+        title: 'Northern kingdom falls',
+        date: '722 BC',
+        subtitle: "Assyria scatters the ten tribes — Judah's final warning",
+        description: `In 722 BC, the neo-Assyrian Empire under Shalmaneser V and his successor Sargon II conquered Samaria, the capital of Israel. The northern kingdom had endured two centuries of spiritual rebellion, characterized by idolatry, social injustice, and the rejection of numerous prophets like Elijah, Elisha, Hosea, and Amos. Assyria executed its standard policy of mass deportation, scattering the ten northern tribes throughout the Assyrian empire and importing foreign captives to resettle Samaria.\n\nThis catastrophic event represented the covenant curses of Deuteronomy coming to fruition. The northern tribes lost their national identity and became known as the "lost tribes of Israel." The Assyrian policy of forced assimilation created a syncretistic population in Samaria, later known in New Testament times as Samaritans.\n\nThe fall of Samaria served as a sobering warning to the southern kingdom of Judah. Though spared under the righteous King Hezekiah through divine intervention, Judah was left isolated and surrounded by powerful foes, knowing that the same judgment awaited them if they followed Israel's spiritual rebellion.`,
+        scriptureReferences: ['2 Kings 17:5-8', '2 Kings 17:21-23', 'Hosea 11:5-7'],
+        danielConnection: 'The Assyrian exile established a terrifying precedent of imperial domination. In the book of Daniel, the reality of captivity in Babylon is the continuation of this prophetic judgment. Daniel and his companions lived under the shadow of these events, understanding that the exile was not a failure of God\'s power, but a precise execution of His covenant warnings against a rebellious nation.',
+      },
+      {
+        id: '697-bc-manassehs-reign-begins',
+        title: "Manasseh's reign begins",
+        date: '697 BC',
+        subtitle: "The king who sealed Judah's fate",
+        description: `Manasseh began his fifty-five year reign as the most wicked king in Judah's history, systematically undoing the righteous reforms of his father Hezekiah. He rebuilt the pagan high places, erected altars to Baal, introduced astral worship into the temple courts, practiced sorcery, and sacrificed his own sons in the fire. Scripture records that Manasseh shed so much innocent blood that he filled Jerusalem from one end to another.\n\nManasseh's sins went far beyond simple personal wickedness; he actively led the covenant nation into spiritual darkness, making them act more wickedly than the Canaanite nations whom God had destroyed. Although the Chronicler records that Manasseh repented later in life after being taken in chains to Babylon, the spiritual poison had already infected the fabric of the nation.\n\nDespite the righteous reforms of his grandson Josiah, God declared that the judgment against Jerusalem could not be reversed because of the deep provocation of Manasseh's sins. The stage was set for the Babylonian invasions as the only means to cleanse the land of its spiritual defilement.`,
+        scriptureReferences: ['2 Kings 21:1-6', '2 Kings 21:11-15', '2 Chronicles 33:10-13'],
+        danielConnection: "The spiritual corruption under Manasseh made the exile an absolute necessity. Daniel's prayer of confession in chapter 9 reflects this dark heritage, acknowledging that 'all Israel has transgressed your law' and that the curse and oath written in the Law of Moses had been poured out upon them. Manasseh's captivity in Babylon also served as a small historical preview of the nation's coming exile.",
+      },
+      {
+        id: '640-bc-josiahs-reformation',
+        title: "Josiah's reformation",
+        date: '640 BC',
+        subtitle: 'The last righteous king; too late to reverse the tide',
+        description: `Josiah was crowned king at the young age of eight and went on to initiate the greatest religious reformation in Judah's history. Prompted by the discovery of the Book of the Law in the temple during renovations, Josiah wept and tore his clothes in repentance when he realized how far the nation had drifted from God's commands. He read the law to the people, renewed the covenant, and began a systematic purging of idolatry.\n\nJosiah destroyed the high places, burned the Asherah poles, desecrated pagan altars, and put to death the idolatrous priests. He even extended his purge into the ruins of the northern kingdom, fulfilling a prophecy spoken 300 years earlier by destroying Jeroboam's altar at Bethel. He celebrated a Passover of such spiritual purity and adherence to Scripture that nothing like it had been seen since the days of Samuel.\n\nHowever, while Josiah's genuine devotion delayed the judgment, it could not change the hearts of the general population, who returned to idolatry immediately after his untimely death in battle at Megiddo. Josiah was the last righteous king; his death removed the final restraint against Babylonian wrath.`,
+        scriptureReferences: ['2 Kings 22:1-2', '2 Kings 23:21-25', '2 Chronicles 34:1-3'],
+        danielConnection: 'Daniel was born and raised during or immediately following Josiah\'s reformation. He would have witnessed both the high water mark of spiritual revival and the rapid moral collapse that followed. The spiritual training and knowledge of the Law that Daniel possessed, which allowed him to stand firm in Babylon, was likely fostered during this reformational era.',
+      },
+      {
+        id: '627-bc-jeremiah-begins-prophesying',
+        title: 'Jeremiah begins prophesying',
+        date: '627 BC',
+        subtitle: '"Before I formed you in the womb I knew you"',
+        description: `Jeremiah was called to his prophetic ministry in the thirteenth year of King Josiah's reign. Known as the "weeping prophet," his calling was one of the most difficult in Israel's history: he was commanded to preach messages of warning, repentance, and inevitable judgment to a stubborn and hostile nation. He spent forty years warning Judah that Babylon would destroy Jerusalem and the temple.\n\nJeremiah faced constant persecution, beating, imprisonment in a muddy cistern, and accusations of treason. Despite this, he remained faithful, delivering detailed prophecies about the fall of nations and the specific seventy-year duration of the Babylonian exile. He also offered profound hope, prophesying the New Covenant where God's law would be written on human hearts.\n\nJeremiah lived through the three sieges of Jerusalem, witnessing the fulfillment of his warnings. He chose to remain with the poor remnant in the ruins of the land rather than accept a life of comfort in Babylon, eventually being forced to flee to Egypt by a rebellious group of Judeans.`,
+        scriptureReferences: ['Jeremiah 1:4-10', 'Jeremiah 25:11-12', 'Jeremiah 29:10-14'],
+        danielConnection: 'Jeremiah\'s writings directly shaped Daniel\'s prophetic understanding. In Daniel 9:2, Daniel states that he understood from the books the number of years for the desolation of Jerusalem, specifically referencing the seventy years prophesied by Jeremiah. This study of Jeremiah\'s prophecy prompted Daniel\'s historic prayer of intercession and subsequent revelation of the Seventy Weeks.',
+      },
+      {
+        id: '605-bc-daniel-taken-to-babylon',
+        title: 'Daniel taken to Babylon',
+        date: '605 BC',
+        subtitle: "Nebuchadnezzar's first siege; Daniel deported",
+        description: `In 605 BC, Nebuchadnezzar, the crown prince of Babylon, defeated the Egyptian forces at the Battle of Carchemish, establishing Babylon as the dominant superpower. He marched south to Jerusalem, forcing King Jehoiakim to submit as a vassal. To ensure Judah's loyalty, Nebuchadnezzar took hostages back to Babylon, selecting noble and royal youths who were intelligent, handsome, and capable of serving in the imperial palace.\n\nDaniel, along with his companions Hananiah, Mishael, and Azariah, was among this first group of deportees. They were stripped of their Judean names, given names honoring Babylonian gods, and enrolled in a rigorous three-year training program in the literature and language of the Chaldeans. This was a calculated strategy of cultural assimilation designed to erase their identity.\n\nThis deportation marked the beginning of the seventy-year exile. Though separated from their home, temple, and families, these young men resolved not to defile themselves, setting a standard of unwavering faithfulness in a hostile pagan culture.`,
+        scriptureReferences: ['Daniel 1:1-4', '2 Kings 24:1', '2 Chronicles 36:5-7'],
+        danielConnection: 'This is the opening scene of the book of Daniel. It provides the historical and cultural setting for the entire narrative. Daniel\'s resolution to stay faithful regarding the king\'s food (Daniel 1:8) serves as the first test of his character, proving that God\'s covenant people could maintain their identity and thrive even in the heart of the Babylonian Empire.',
+      },
+    ],
+  },
+  {
+    id: 'babylonian-exile',
+    name: 'Babylonian Exile',
+    dateRange: '605–539 BC',
+    events: [
+      {
+        id: '605-bc-babylonian-exile-begins',
+        title: 'Babylonian exile begins',
+        date: '605 BC',
+        subtitle: 'Judah falls; the temple is burned',
+        description: `With the first deportation in 605 BC, the Babylonian exile began. Judah ceased to be an independent kingdom, becoming a vassal state subject to Nebuchadnezzar's empire. Along with the young captives, Nebuchadnezzar carried off some of the sacred vessels from the house of God, placing them in the treasure house of his god Marduk in Babylon.\n\nThis relocation of the temple vessels was a powerful cultural and religious statement of Babylonian supremacy, suggesting that their gods had defeated the God of Israel. For the Jews, it was a devastating spiritual blow, reflecting the departure of God's presence and protection due to their persistent idolatry.\n\nThis initial stage of exile marked the start of the seventy-year countdown prophesied by Jeremiah. While the temple was not yet burned, the core of Judah's political and spiritual independence had been broken, beginning a long period of foreign domination.`,
+        scriptureReferences: ['2 Chronicles 36:6-7', 'Daniel 1:1-2', '2 Kings 24:1-2'],
+        danielConnection: 'The removal of the temple vessels to Babylon is a key thread throughout Daniel. It sets up the dramatic conflict in Daniel 5, where King Belshazzar sacrilegiously drinks from these same vessels during his pagan feast, leading to the handwriting on the wall and the immediate fall of the Babylonian Empire.',
+      },
+      {
+        id: '597-bc-second-deportation',
+        title: 'Second deportation',
+        date: '597 BC',
+        subtitle: 'Ezekiel taken to Babylon',
+        description: `After Jehoiakim rebelled against Babylon and subsequently died, his son Jehoiachin reigned for only three months before Nebuchadnezzar besieged Jerusalem a second time. Jehoiachin surrendered, and Nebuchadnezzar initiated a massive second wave of deportations. He carried away the king, the royal court, ten thousand soldiers, and all the craftsmen and smiths, leaving behind only the poorest people of the land.\n\nAmong the captives in this second wave was the priest and prophet Ezekiel. He was resettled among the Jewish communities by the River Chebar, outside the city of Babylon. Ezekiel was called to prophesy to the exiles, correcting their false hopes of a quick return and explaining the spiritual necessity of the exile.\n\nNebuchadnezzar installed Jehoiachin's uncle, Zedekiah, as a puppet king on the throne of Judah, demand a strict oath of loyalty. This second deportation severely weakened Judah's leadership and social structure, leaving the nation on the brink of total collapse.`,
+        scriptureReferences: ['2 Kings 24:10-16', 'Ezekiel 1:1-3', '2 Chronicles 36:10'],
+        danielConnection: "Ezekiel's and Daniel's ministries were completely parallel but addressed different audiences. While Daniel served in the absolute heights of the pagan government, Ezekiel served among the common exiles in the labor camps. Ezekiel recognized Daniel's great wisdom and righteousness, mentioning him alongside Noah and Job in Ezekiel 14:14.",
+      },
+      {
+        id: '587-bc-jerusalem-destroyed',
+        title: 'Jerusalem destroyed',
+        date: '587 BC',
+        subtitle: 'The temple burns; the city falls',
+        description: `In defiance of Jeremiah's warnings, King Zedekiah rebelled against Babylon. Nebuchadnezzar responded with a brutal siege of Jerusalem that lasted eighteen months. The resulting famine was so severe that mothers resorted to eating their own children, and disease ran rampant. Finally, in the summer of 587 BC (some chronologies suggest 586 BC), the Babylonian army breached the city walls.\n\nZedekiah attempted to escape but was captured, forced to watch his sons executed, and then blinded before being carried in chains to Babylon. Nebuchadnezzar's forces systematically burned the temple of Solomon, the royal palace, and all the houses of Jerusalem, before leveling the city's protective walls. The remaining population was deported, leaving only a few poor vine-dressers and laborers.\n\nThis event marked the absolute end of the Davidic monarchy in Jerusalem and the cessation of the temple sacrifices. The destruction of God's sanctuary was the ultimate theological crisis for Israel, demonstrating that God had abandoned His dwelling place because of the nation's spiritual apostasy.`,
+        scriptureReferences: ['2 Kings 25:8-12', 'Jeremiah 52:12-14', '2 Chronicles 36:17-21'],
+        danielConnection: 'The desolation of the temple is the focal point of Daniel\'s deepest grief and prayers. In Daniel 9:17, he begs God to \'cause your face to shine upon your sanctuary, which is desolate.\' The destruction of Jerusalem sets the stage for Daniel\'s visions regarding the restoration of the sanctuary and the prophetic timeline leading to the Messiah.',
+      },
+      {
+        id: '586-bc-lamentations-written',
+        title: 'Lamentations written',
+        date: '586 BC',
+        subtitle: 'Jeremiah mourns the ruins of Jerusalem',
+        description: `Following the destruction of Jerusalem, the prophet Jeremiah sat in the ruins of the city and penned the Book of Lamentations. Written in a series of five acrostic poems, the book is a gut-wrenching expression of grief over the fall of Zion, the suffering of the children, the starvation of the people, and the physical ruin of the temple.\n\nDespite the intense grief, Lamentations contains profound theological truths. Jeremiah confesses that the judgment is entirely righteous, acknowledging that God warned them for centuries. Amid the ashes, he writes the famous declaration of hope: "The steadfast love of the Lord never ceases; his mercies never come to an end... great is your faithfulness."\n\nThe book served as a liturgical mourning text for the exiles, helping them process their grief, confess their national sins, and cling to the promise of eventual restoration.`,
+        scriptureReferences: ['Lamentations 1:1-5', 'Lamentations 3:22-26', 'Lamentations 5:19-21'],
+        danielConnection: "The themes of confession, covenant righteousness, and divine mercy found in Lamentations are mirrored in Daniel's great prayer of chapter 9. Both prophets write not as detached observers, but as members of the covenant community who bear the shame and suffering of their nation's sins, looking to God's mercy as their only hope.",
+      },
+      {
+        id: '539-bc-fall-of-babylon',
+        title: 'Fall of Babylon',
+        date: '539 BC',
+        subtitle: 'Daniel witnesses the writing on the wall',
+        description: `By 539 BC, the Babylonian Empire had declined under Nabonidus and his son Belshazzar. The rising power of Persia under Cyrus the Great marched on Babylon. Secure behind their massive walls, the Babylonians laughed at the siege, believing their city was impregnable. Belshazzar held a great feast for a thousand of his lords, drinking wine from the gold vessels taken from the temple in Jerusalem.\n\nDuring this sacrilegious feast, a disembodied hand appeared, writing a mysterious message on the plaster of the palace wall: MENE, MENE, TEKEL, PARSIN. Terrified, the king called for Daniel, who interpreted the message: Babylon had been weighed in the balances and found wanting; its kingdom was divided and given to the Medes and Persians.\n\nThat very night, the Persian army diverted the waters of the Euphrates river into a canal, allowing soldiers to march under the city gates along the dry riverbed. The city was captured without a fight. Belshazzar was slain, and the Babylonian empire collapsed in a single night.`,
+        scriptureReferences: ['Daniel 5:1-6', 'Daniel 5:25-31', 'Isaiah 45:1-3'],
+        danielConnection: 'This is the historical climax of Daniel 5. The fall of Babylon marks the transition from the golden head of Nebuchadnezzar\'s dream to the silver chest and arms (Medo-Persia). It validates Daniel\'s prophetic interpretations, showing that God removes kings and sets up kings, and that no human empire is secure against His judgment.',
+      },
+    ],
+  },
+  {
+    id: 'persian-period',
+    name: 'Persian Period',
+    dateRange: '539–331 BC',
+    events: [
+      {
+        id: '539-bc-cyrus-conquers-babylon',
+        title: 'Cyrus conquers Babylon',
+        date: '539 BC',
+        subtitle: 'The world empire shifts overnight',
+        description: `Cyrus the Great, founder of the Achaemenid Persian Empire, entered Babylon as a conqueror but chose to present himself as a liberator. Unlike the Assyrian and Babylonian kings who ruled through terror and deportation, Cyrus practiced a policy of religious tolerance and local autonomy, seeking the goodwill of the local gods and populations.\n\nCyrus's conquest established Medo-Persia as the absolute superpower of the ancient world. His empire stretched from the Aegean Sea to the Indus River, bringing a long period of peace and trade known as the Pax Persica. Under Persian administration, regions like Judah (now the province of Yehud) were allowed to be governed by local leaders under a satrap.\n\nThis shift in world empires was foretold by Hebrew prophets. Isaiah had prophesied about Cyrus by name over 150 years before his birth, calling him God's "anointed" shepherd who would perform all His pleasure, specifically rebuilding Jerusalem and setting the exiles free.`,
+        scriptureReferences: ['Isaiah 44:28', 'Isaiah 45:1', '2 Chronicles 36:20-23'],
+        danielConnection: 'Daniel remained active in public service into the reign of Cyrus (Daniel 1:21, 6:28, 10:1). He witnessed first-hand the transition from Babylonian to Persian rule, proving the truth of the visions he interpreted. In Daniel 6, he was appointed one of the chief administrators under the new regime, experiencing both persecution (the lions\' den) and divine protection.',
+      },
+      {
+        id: '538-bc-cyrus-issues-his-decree',
+        title: 'Cyrus issues his decree',
+        date: '538 BC',
+        subtitle: "God's people are free to return",
+        description: `In his first year of rule over Babylon, Cyrus issued a royal decree (recorded on the famous archeological artifact, the Cyrus Cylinder, and preserved in the book of Ezra) allowing all exiled peoples to return to their ancestral homelands. For the Jews, the decree specifically authorized the return to Jerusalem to rebuild the temple of Yahweh.\n\nFurthermore, Cyrus ordered that the reconstruction be financed from the royal treasury and commanded neighbors to assist the returning Jews with gold, silver, and goods. Crucially, Cyrus returned the sacred gold and silver vessels that Nebuchadnezzar had looted from Jerusalem\'s temple, putting them in the charge of the Judean prince Sheshbazzar.\n\nThis decree marked the formal end of the seventy-year Babylonian captivity, demonstrating God\'s sovereign control over the hearts of pagan rulers to fulfill His promises of restoration.`,
+        scriptureReferences: ['Ezra 1:1-4', 'Ezra 6:3-5', '2 Chronicles 36:22-23'],
+        danielConnection: "Cyrus's decree was the answer to Daniel's fervent prayers in chapter 9. Having studied Jeremiah's seventy-year prophecy, Daniel interceded for Jerusalem. Cyrus's decree in 538 BC is the primary starting point for the historical fulfillment of the restoration of Jerusalem and the beginning of the prophetic countdown to the Messiah.",
+      },
+      {
+        id: '537-bc-first-exiles-return',
+        title: 'First exiles return',
+        date: '537 BC',
+        subtitle: 'Zerubbabel leads the first wave home',
+        description: `Following Cyrus's decree, the first wave of approximately 50,000 Jews set out from Babylon to Judah. They were led by Zerubbabel, a grandson of King Jehoiachin and descendant of David, who was appointed governor, and Joshua, the high priest. Upon arriving in the ruins of Jerusalem, their first act was to rebuild the altar of burnt offering to restore the daily sacrifices.\n\nIn the second year of their return, they laid the foundation of the second temple. The event was marked by both joy and sorrow; while the younger generation shouted for joy, the older priests and Levites who remembered Solomon\'s magnificent temple wept aloud, seeing how modest this new foundation was.\n\nThe work soon faced severe opposition. Local Samaritan populations and neighboring governors threatened the builders and wrote letters of accusation to the Persian court, successfully halting the construction for several years.`,
+        scriptureReferences: ['Ezra 2:1-2', 'Ezra 3:1-3', 'Ezra 3:8-13'],
+        danielConnection: "Though Daniel was too old to make the arduous journey back to Jerusalem, he supported the effort from the capital. In Daniel 10:1-3, in the third year of Cyrus (536 BC), Daniel fasted and mourned for three weeks. This spiritual distress was likely connected to the early reports of opposition and halts in the rebuilding of the temple.",
+      },
+      {
+        id: '515-bc-second-temple-completed',
+        title: 'Second temple completed',
+        date: '515 BC',
+        subtitle: 'The house of God rebuilt after 70 years',
+        description: `After years of spiritual apathy and political opposition, the prophets Haggai and Zechariah began preaching in 520 BC, challenging the returned exiles to prioritize the house of God over their own paneled houses. Inspired by their messages, the people resumed construction under Zerubbabel and Joshua.\n\nWhen local Persian officials questioned their authority, King Darius I searched the royal archives, found Cyrus's original decree, and ordered that the construction proceed without interference, using royal tax revenues. The temple was completed in the sixth year of Darius (515 BC) and dedicated with great celebration and sacrifice.\n\nWhile the Second Temple (often called Zerubbabel's Temple) lacked the Ark of the Covenant, the Shekinah glory cloud, and the physical grandeur of Solomon's temple, Haggai prophesied that the future glory of this house would be greater than the former, pointing forward to the arrival of the Messiah.`,
+        scriptureReferences: ['Ezra 6:14-16', 'Haggai 1:2-4', 'Haggai 2:7-9'],
+        danielConnection: "The dedication of the Second Temple represents a key milestone in Daniel's Seventy Weeks prophecy (Daniel 9:25), which links the decree to restore and rebuild Jerusalem to the coming of the Prince. The restoration of the daily sacrifices in this temple set the stage for later prophecies regarding the sanctuary's desecration and ultimate cleansing.",
+      },
+      {
+        id: '458-bc-ezra-returns',
+        title: 'Ezra returns',
+        date: '458 BC',
+        subtitle: 'The law is restored to the people',
+        description: `In 458 BC, during the seventh year of the Persian King Artaxerxes I, Ezra the priest and scribe led a second wave of exiles back to Jerusalem. Ezra was a brilliant scholar of the Law of Moses, and he secured a royal decree granting him authority to appoint magistrates, teach the law, and enforce spiritual order in Judah.\n\nUpon arrival, Ezra was devastated to find that the returned remnant had compromised spiritually, intermarrying with the idolatrous local populations. He sat in sackcloth and ashes before the temple, offering a public prayer of confession that led to a national movement of repentance and covenant renewal.\n\nEzra's ministry established a firm biblical foundation for post-exilic Judaism. He is historically credited with collecting and editing the Hebrew Scriptures, establishing the Great Synagogue, and instituting public Torah reading, ensuring that the nation would never return to the idolatry that caused the exile.`,
+        scriptureReferences: ['Ezra 7:6-10', 'Ezra 9:1-5', 'Ezra 10:1-4'],
+        danielConnection: "Ezra's return in 458 BC under Artaxerxes I is considered by many scholars to be the starting point of the 490-year prophecy of Daniel 9. The decree of Artaxerxes granted political and administrative authority to restore the civil and religious life of Jerusalem, initiating the timeline leading directly to the baptism and crucifixion of Christ.",
+      },
+    ],
+  },
+  {
+    id: 'greek-period',
+    name: 'Greek Period',
+    dateRange: '331–167 BC',
+    events: [
+      {
+        id: '331-bc-alexander-conquers-persia',
+        title: 'Alexander conquers Persia',
+        date: '331 BC',
+        subtitle: "Daniel's goat vision fulfilled",
+        description: `Alexander the Great, the young king of Macedon, launched a swift campaign against the Persian Empire. Following key victories at Granicus and Issus, Alexander decisively defeated Darius III at the Battle of Gaugamela in 331 BC, bringing an end to the Persian Empire and establishing Greek rule over the Near East.\n\nAlexander's conquest brought Hellenistic culture, language, and philosophy to the entire region. The Greek language became the lingua franca of the ancient world, facilitating trade, communication, and eventually the spread of the Christian gospel. Judah came under Alexander's control but was spared destruction when the high priest met him outside Jerusalem, showing him the prophecies of Daniel regarding his victory.\n\nAlexander marched further east into India before his soldiers refused to go on. His empire was the largest the world had yet seen, characterized by the rapid and unstoppable speed of his military conquests.`,
+        scriptureReferences: ['Zechariah 9:1-4', 'Zechariah 9:8'],
+        danielConnection: "This event is the dramatic fulfillment of Daniel's vision of the swift four-winged leopard (Daniel 7:6) and the male goat from the west with a conspicuous horn between its eyes (Daniel 8:5-7). The goat ran with furious rage, shattered the two horns of the ram (Medo-Persia), and cast it down to the ground, exactly matching Alexander's swift conquest.",
+      },
+      {
+        id: '323-bc-alexander-dies',
+        title: 'Alexander dies',
+        date: '323 BC',
+        subtitle: 'His kingdom divided into four — exactly as Daniel prophesied',
+        description: `At the absolute height of his power, having conquered the known world, Alexander the Great contracted a sudden fever and died in the palace of Nebuchadnezzar in Babylon at the age of thirty-two. Lacking a capable heir, Alexander's death plunged his empire into decades of civil war among his top generals, known as the Diadochi.\n\nEventually, the empire was carved into four major Greek kingdoms: Cassander ruled Macedonia and Greece; Lysimachus ruled Thrace and Asia Minor; Seleucus ruled Syria and Mesopotamia (the Seleucid Empire); and Ptolemy ruled Egypt and Palestine (the Ptolemaic Empire).\n\nFor the next two centuries, the Seleucids (kings of the North) and the Ptolemies (kings of the South) fought repeatedly for control of Palestine, leaving the Jewish people caught in the crossfire of perpetual Greek warfare.`,
+        scriptureReferences: ['Daniel 8:8', 'Daniel 11:3-4'],
+        danielConnection: "Alexander's sudden death and the subsequent partition of his empire was prophesied with startling accuracy. Daniel 8:8 states that 'when the goat became strong, the great horn was broken, and in its place there came up four conspicuous horns.' Daniel 11:4 likewise details that his kingdom would be broken and divided toward the 'four winds of heaven,' but not to his posterity.",
+      },
+      {
+        id: '175-bc-antiochus-iv-rises',
+        title: 'Antiochus IV rises',
+        date: '175 BC',
+        subtitle: 'The little horn of Daniel 8 takes power',
+        description: `Antiochus IV Epiphanes seized the throne of the Seleucid Empire in 175 BC. A ruthless and eccentric ruler, he styled himself "Epiphanes" (God Manifest), though his critics called him "Epimanes" (The Madman). Antiochus was obsessed with Hellenization, believing that cultural unity under Greek religion and customs was necessary to secure his unstable empire.\n\nHe exploited political rivalries in Jerusalem, selling the high priesthood to Hellenizing Jews who were willing to betray their heritage. Under his influence, a Greek gymnasium was built next to the temple, and many Jews abandoned the covenant, hiding their circumcision to blend in with the Greeks.\n\nAntiochus's ultimate goal was the complete eradication of the Jewish religion, viewing traditional monotheism as a threat to his authority. His rise initiated one of the darkest periods of persecution in Jewish history.`,
+        scriptureReferences: ['Daniel 8:9-10', 'Daniel 11:21-23'],
+        danielConnection: "Antiochus IV is the historical 'little horn' arising from one of the four horns in Daniel 8:9, and the 'contemptible person' of Daniel 11:21. He represents the ultimate archetype of the anti-God world ruler. Daniel's prophecies details his political intrigues, his flattery, and his initial successes against the covenant people.",
+      },
+      {
+        id: '168-bc-temple-desecrated',
+        title: 'Temple desecrated',
+        date: '168 BC',
+        subtitle: 'The abomination of desolation — Daniel 11:31 fulfilled',
+        description: `Frustrated by a failed military campaign in Egypt due to Roman intervention, Antiochus IV vented his rage on Jerusalem. In 168 BC, his forces attacked the city on the Sabbath, slaughtering thousands of citizens and enslaving women and children. He then issued a royal decree banning the Jewish religion on pain of death.\n\nAntiochus banned the daily sacrifices, outlawed circumcision, and ordered all copies of the Torah to be burned. He erected an altar to Zeus over the altar of burnt offering in the temple court and sacrificed swine upon it, forcing Jewish priests to eat unclean meat. He also desecrated the temple chambers, turning the house of God into a pagan brothel.\n\nThis horrific event represented the complete suspension of the Levitical system and the absolute defilement of Zion, leaving the faithful remnant with a choice between martyrdom or apostasy.`,
+        scriptureReferences: ['Daniel 11:31', 'Daniel 12:11', '1 Maccabees 1:41-50'],
+        danielConnection: "This event is the literal fulfillment of the 'abomination of desolation' prophesied in Daniel 11:31 and 12:11, where the sanctuary is defiled and the regular burnt offering is taken away. Jesus later quotes this phrase in Matthew 24:15, applying Daniel's prophecy of Antiochus as an archetype for the Roman destruction of the temple in AD 70.",
+      },
+      {
+        id: '165-bc-maccabean-revolt',
+        title: 'Maccabean revolt',
+        date: '165 BC',
+        subtitle: 'The faithful resist; the temple is rededicated',
+        description: `The rebellion began in the village of Modein when an elderly priest named Mattathias refused to sacrifice to pagan gods, killing a royal officer and a compromising Jew instead. Mattathias and his five sons fled to the wilderness, launching a guerrilla war against the Seleucid empire. Upon Mattathias's death, his son Judas, nicknamed "Maccabeus" (The Hammer), took command.\n\nAgainst overwhelming military odds, the Maccabean forces defeated several Seleucid armies through superior tactics, faith, and knowledge of the terrain. In 165 BC, they retook Jerusalem, cleansed the defiled temple, shattered the pagan altars, and dedicated a new altar of burnt offering, celebrating a seven-day festival of rededication (Hanukkah).\n\nThe revolt secured religious freedom and established the Hasmonean dynasty, bringing a century of semi-independence to Judea until the Roman conquest.`,
+        scriptureReferences: ['Daniel 11:32-35', '1 Maccabees 4:36-41'],
+        danielConnection: "This resistance is detailed in Daniel 11:32: 'the people who know their God shall stand firm and take action.' The prophecy notes that they would receive 'a little help' (the Maccabees) and that some of the wise would fall to refine and purify the remnant until the time of the end.",
+      },
+    ],
+  },
+  {
+    id: 'new-testament',
+    name: 'New Testament',
+    dateRange: '4 BC–AD 100',
+    events: [
+      {
+        id: '4-bc-jesus-is-born',
+        title: 'Jesus is born',
+        date: '4 BC',
+        subtitle: 'The Son of Man Daniel saw arrives',
+        description: `Jesus Christ was born in Bethlehem during the reign of Herod the Great, Caesar Augustus being the Roman Emperor. His birth represents the incarnation of the eternal Son of God, entering human history to redeem His people and fulfill the ancient covenants made with Abraham and David.\n\nThough born in humility—wrapped in swaddling cloths and laid in a manger—His birth was heralded by angels and recognized by foreign magi who followed a star. The magi (likely scholars from Persia/Babylon) were familiar with the Hebrew scriptures and Daniel's prophecies regarding the timeline of the Messiah's arrival.\n\nJesus's birth initiated the invasion of the Kingdom of God into the kingdoms of the world. He was the long-awaited King who would rule not by military force, but by the power of truth, love, and sacrificial redemption.`,
+        scriptureReferences: ['Luke 2:1-7', 'Matthew 2:1-2', 'Galatians 4:4'],
+        danielConnection: "Jesus's birth marks the arrival of the 'stone cut out by no human hand' (Daniel 2:34, 44-45). This stone strikes the feet of the great statue representing earthly empires and will eventually grow to fill the entire earth, establishing a kingdom that will stand forever.",
+      },
+      {
+        id: 'ad-27-jesus-begins-ministry',
+        title: 'Jesus begins ministry',
+        date: 'AD 27',
+        subtitle: "Quotes Daniel's Son of Man as his own title",
+        description: `Following His baptism by John the Baptist and His temptation in the wilderness, Jesus began His public ministry in Galilee. He went about preaching, "The time is fulfilled, and the kingdom of God is at hand; repent and believe in the gospel."\n\nThroughout His ministry, Jesus consistently referred to Himself as the "Son of Man," a term used over eighty times in the Gospels. While the title was subtle enough to avoid immediate arrest by Roman authorities, it carried profound messianic and divine weight to those who knew the Hebrew scriptures, claiming authority to forgive sins and rule over the Sabbath.\n\nAt His trial before the Sanhedrin, when asked if He was the Messiah, Jesus explicitly quoted Daniel's vision of the Son of Man coming on the clouds of heaven, leading to His immediate condemnation for blasphemy.`,
+        scriptureReferences: ['Mark 1:14-15', 'Matthew 26:63-65', 'Luke 19:10'],
+        danielConnection: "By adopting the title 'Son of Man,' Jesus directly identified Himself as the glorious heavenly figure of Daniel 7:13-14, who approaches the Ancient of Days and receives everlasting dominion, glory, and a kingdom where all peoples, nations, and languages should serve Him.",
+      },
+      {
+        id: 'ad-30-crucifixion-and-resurrection',
+        title: 'Crucifixion and resurrection',
+        date: 'AD 30',
+        subtitle: 'The stone cut without hands strikes the kingdoms',
+        description: `At the Passover in AD 30 (some chronologies suggest AD 33), Jesus was betrayed, arrested, and condemned by Jewish and Roman authorities. He was crucified outside Jerusalem, bearing the sins of the world, and was buried in a sealed tomb. On the third day, He rose bodily from the dead, defeating the powers of sin, death, and Satan.\n\nHis resurrection was the ultimate turning point of cosmic history. Through His death, He established a new covenant, making reconciliation for iniquity and bringing in everlasting righteousness. Forty days later, He ascended to the right hand of the Father, being crowned as King of kings and Lord of lords.\n\nThe resurrection vindicated Jesus's claims and demonstrated that the Kingdom of God had broken decisively into the present age, offering eternal life and transformation to all who believe.`,
+        scriptureReferences: ['Luke 24:1-7', 'Acts 1:9-11', 'Romans 1:3-4'],
+        danielConnection: "This event is the precise fulfillment of Daniel 9:24-26, which prophesied that the 'Messiah shall be cut off, but not for himself' to 'finish the transgression, to make an end of sins, to make reconciliation for iniquity, and to bring in everlasting righteousness.' This work was completed exactly within the prophetic timeline of the Seventy Weeks.",
+      },
+      {
+        id: 'ad-70-jerusalem-destroyed',
+        title: 'Jerusalem destroyed',
+        date: 'AD 70',
+        subtitle: "Jesus's Daniel-quoting prophecy fulfilled by Rome",
+        description: `Following a major Jewish revolt against Roman rule in AD 66, Roman legions under the command of Titus besieged Jerusalem in AD 70. The siege resulted in unspeakable suffering and starvation for the millions trapped inside. The Roman forces eventually breached the walls and set fire to the Second Temple, completely leveling the sanctuary and the city walls.\n\nOver a million Jews were killed, and nearly a hundred thousand were sold into slavery. The sacrificial system ceased and has never been restored. This catastrophic event marked the end of the Second Temple period and the diaspora of the Jewish nation across the Roman world.\n\nFor the early Christians, the destruction was a direct verification of Jesus's warnings in His Olivet Discourse, where He told them to flee to the mountains when they saw Jerusalem surrounded by armies.`,
+        scriptureReferences: ['Matthew 24:1-2', 'Matthew 24:15-21', 'Luke 21:20-24'],
+        danielConnection: "In Matthew 24:15, Jesus warned His followers: 'So when you see the abomination of desolation spoken of by the prophet Daniel, standing in the holy place... flee.' The destruction of AD 70 is the primary fulfillment of Daniel 9:26-27, which declared that 'the people of the prince who is to come shall destroy the city and the sanctuary' and make it desolate.",
+      },
+      {
+        id: 'ad-95-revelation-written',
+        title: 'Revelation written',
+        date: 'AD 95',
+        subtitle: 'John expands and fulfils Daniel\'s visions',
+        description: `Around AD 95, during the reign of the Roman Emperor Domitian, the Apostle John was exiled to the rocky island of Patmos for preaching the Gospel. There, he was caught up in the Spirit and received a series of apocalyptic visions regarding Christ, the spiritual conflict behind history, the final judgment, and the creation of the New Heavens and New Earth.\n\nJohn was commanded to write these visions in a book to the seven churches of Asia Minor, encouraging them to stand firm under intense Roman persecution. The resulting Book of Revelation is the only apocalyptic book in the New Testament.\n\nUnlike Daniel, who was told to seal up his visions because the end was far off, John was told not to seal the words of his prophecy because the time is near, representing the open and active stage of Christ's reigning kingdom.`,
+        scriptureReferences: ['Revelation 1:1-3', 'Revelation 13:1-4', 'Revelation 21:1-4'],
+        danielConnection: 'Revelation is the sister book and thematic completion of Daniel. John uses Daniel\'s exact symbolism—beasts with multiple heads, ten horns, the timeline of \'a time, times, and half a time,\' and the court scene of the Ancient of Days—to reveal the final victory of Christ\'s kingdom over the beastly empires of the world.',
+      },
+    ],
+  },
+];

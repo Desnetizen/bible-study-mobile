@@ -1,8 +1,9 @@
+import { Image, ImageBackground } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Link, router } from 'expo-router';
-import { BookOpen, CalendarDays } from 'lucide-react-native';
-import { ComponentProps, ComponentType, useEffect, useMemo, useState } from 'react';
-import { Image, ImageBackground, Pressable, StatusBar, StyleSheet, Text, View } from 'react-native';
+import { Href, Link, router } from 'expo-router';
+import { ArrowRight, BookOpen, CalendarDays, Gift, NotebookPen, Bookmark, Compass } from 'lucide-react-native';
+import { ComponentProps, ComponentType, useCallback, useEffect, useMemo, useState } from 'react';
+import { Pressable, StatusBar, StyleSheet, Text, View } from 'react-native';
 import Animated, {
   Extrapolation,
   FadeInDown,
@@ -16,11 +17,15 @@ import Animated, {
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Circle } from 'react-native-svg';
-import { DANIEL_CHAPTERS, formatDisplayDate } from '../../constants/bible-connection';
+import { StreakBadge } from '../../components/StreakBadge';
+import { ImageSkeleton, Skeleton, TextSkeleton } from '../../components/ui/Skeleton';
+import { DANIEL_CHAPTERS, formatDisplayDate, RECENT_ACTIVITY } from '../../constants/bible-connection';
+import { useRecentActivity, formatActivityTime } from '../../lib/activity-tracker';
 import { KEY_VERSES } from '../../constants/key-verses';
 import { useDanielProgress } from '../../lib/daniel-progress';
+import { useStreak } from '../../lib/useStreak';
 
-const AnimatedImageBackground = Animated.createAnimatedComponent(ImageBackground);
+// expo-image doesn't need Animated wrapping — we wrap in Animated.View instead
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 const SharedAnimatedView = Animated.View as ComponentType<
   ComponentProps<typeof Animated.View> & { sharedTransitionTag?: string }
@@ -29,9 +34,18 @@ const SharedAnimatedText = Animated.Text as ComponentType<
   ComponentProps<typeof Animated.Text> & { sharedTransitionTag?: string }
 >;
 
-const quickAccessItems = [
-  { title: 'Daniel Study', subtitle: 'Explore the book of Daniel chapter by chapter with interactive tools.', icon: require('../../assets/Icons/crown.png'), buttonText: 'Open', color: '#2463ff' },
-  { title: 'Historical Context', subtitle: 'Discover the historical background from Prophets and Kings.', icon: require('../../assets/Icons/Building.png'), buttonText: 'Open', color: '#ff9500' },
+type QuickAccessItem = {
+  title: string;
+  subtitle: string;
+  icon: any;
+  buttonText: string;
+  color: string;
+  href?: Href;
+};
+
+const quickAccessItems: QuickAccessItem[] = [
+  { title: 'Daniel Study', subtitle: 'Explore the book of Daniel chapter by chapter with interactive tools.', icon: require('../../assets/Icons/crown.png'), buttonText: 'Open', color: '#2463ff', href: '/daniel-study' },
+  { title: 'Historical Context', subtitle: 'Discover the historical background from Prophets and Kings.', icon: require('../../assets/Icons/Building.png'), buttonText: 'Open', color: '#ff9500', href: '/historical-context' },
   { title: 'Connections', subtitle: 'See how verses, events, and themes connect across Scripture.', icon: require('../../assets/Icons/Connection.png'), buttonText: 'Explore', color: '#10b981' },
   { title: 'Timeline', subtitle: 'Walk through biblical history from Babylon to Medo-Persia and beyond.', icon: require('../../assets/Icons/Timeline.png'), buttonText: 'View Timeline', color: '#a855f7' },
   { title: 'Patterns', subtitle: 'Discover recurring themes and prophetic patterns in Daniel.', icon: require('../../assets/Icons/Patterns.png'), buttonText: 'Discover', color: '#06b6d4' },
@@ -164,7 +178,7 @@ function QuickAccessCard({ item, index }: { item: typeof quickAccessItems[number
       style={styles.quickAccessCardWrapper}
     >
       <AnimatedPressable
-        onPress={() => router.push('/bible')}
+        onPress={() => router.push(item.href ?? '/bible')}
         onPressIn={() => {
           scale.set(withSpring(0.96));
         }}
@@ -178,7 +192,7 @@ function QuickAccessCard({ item, index }: { item: typeof quickAccessItems[number
             sharedTransitionTag={`quickaccess-icon-${index}`}
             style={[styles.quickAccessIconLarge, { backgroundColor: item.color }]}
           >
-            <Image source={item.icon} style={styles.quickAccessCardIcon} resizeMode="contain" />
+            <Image source={item.icon} style={styles.quickAccessCardIcon} contentFit="contain" cachePolicy="memory-disk" />
           </SharedAnimatedView>
           <SharedAnimatedText sharedTransitionTag={`quickaccess-title-${index}`} style={styles.quickAccessCardTitle}>
             {item.title}
@@ -235,6 +249,32 @@ function ProgressRing({ progress }: { progress: number }) {
   );
 }
 
+function SegmentedProgressBar({
+  total,
+  completed,
+}: {
+  total: number;
+  completed: number[];
+}) {
+  return (
+    <View style={styles.segmentedBar}>
+      {Array.from({ length: total }, (_, i) => {
+        const chapterNum = i + 1;
+        const isFilled = completed.includes(chapterNum);
+        return (
+          <View
+            key={chapterNum}
+            style={[
+              styles.segment,
+              { backgroundColor: isFilled ? '#2463ff' : 'rgba(255,255,255,0.15)' },
+            ]}
+          />
+        );
+      })}
+    </View>
+  );
+}
+
 export default function HomeTabScreen() {
   const insets = useSafeAreaInsets();
   const placeImages = useMemo(
@@ -258,7 +298,15 @@ export default function HomeTabScreen() {
   const scrollY = useSharedValue(0);
   const [currentPlaceImageIndex, setCurrentPlaceImageIndex] = useState(1);
   const [previousPlaceImageIndex, setPreviousPlaceImageIndex] = useState(1);
+  const [heroImageLoaded, setHeroImageLoaded] = useState(false);
+  const [studyImageLoaded, setStudyImageLoaded] = useState(false);
+  const [verseImageLoaded, setVerseImageLoaded] = useState(false);
+  const heroLoadedOpacity = useSharedValue(0);
+  const studyLoadedOpacity = useSharedValue(0);
+  const verseLoadedOpacity = useSharedValue(0);
   const completedChapters = useDanielProgress();
+  const { streakCount, recordToday } = useStreak();
+  const recentActivities = useRecentActivity(3);
   const initialVerseIndex = useMemo(() => {
     const start = Date.UTC(new Date().getFullYear(), 0, 0);
     const today = Date.UTC(new Date().getFullYear(), new Date().getMonth(), new Date().getDate());
@@ -272,6 +320,7 @@ export default function HomeTabScreen() {
 
   const completedCount = completedChapters.length;
   const progressPercent = Math.round((completedCount / STUDY_TOTAL_CHAPTERS) * 100);
+  const milestoneChapter = [3, 6, 9, 12].find((m) => m > completedCount) ?? STUDY_TOTAL_CHAPTERS;
   const nextChapter =
     Array.from({ length: STUDY_TOTAL_CHAPTERS }, (_, index) => index + 1).find(
       (chapterNumber) => !completedChapters.includes(chapterNumber)
@@ -310,6 +359,32 @@ export default function HomeTabScreen() {
     heroImageOpacity.set(withTiming(1, { duration: 1000 }));
   }, [currentPlaceImageIndex, heroImageOpacity]);
 
+  // Fade in once images finish loading
+  const onHeroImageLoad = useCallback(() => {
+    setHeroImageLoaded(true);
+    heroLoadedOpacity.set(withTiming(1, { duration: 500 }));
+  }, [heroLoadedOpacity]);
+
+  const onStudyImageLoad = useCallback(() => {
+    setStudyImageLoaded(true);
+    studyLoadedOpacity.set(withTiming(1, { duration: 500 }));
+  }, [studyLoadedOpacity]);
+
+  const onVerseImageLoad = useCallback(() => {
+    setVerseImageLoaded(true);
+    verseLoadedOpacity.set(withTiming(1, { duration: 500 }));
+  }, [verseLoadedOpacity]);
+
+  const heroLoadedAnimStyle = useAnimatedStyle(() => ({
+    opacity: heroLoadedOpacity.get(),
+  }));
+  const studyLoadedAnimStyle = useAnimatedStyle(() => ({
+    opacity: studyLoadedOpacity.get(),
+  }));
+  const verseLoadedAnimStyle = useAnimatedStyle(() => ({
+    opacity: verseLoadedOpacity.get(),
+  }));
+
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor="#040f2d" />
@@ -322,23 +397,42 @@ export default function HomeTabScreen() {
         {/* Hero Banner */}
         <Animated.View entering={FadeInDown.delay(80).springify()} style={styles.heroRow}>
           <View style={styles.heroCard}>
-            <Animated.View style={[styles.heroBackgroundLayer, heroParallax]}>
-              <AnimatedImageBackground
+            {/* Skeleton placeholder while hero image loads */}
+            {!heroImageLoaded && (
+              <View style={[styles.heroBackgroundLayer, { zIndex: 0 }]}>
+                <ImageSkeleton
+                  width="100%"
+                  height="100%"
+                  borderRadius={0}
+                  style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
+                />
+              </View>
+            )}
+            <Animated.View style={[styles.heroBackgroundLayer, heroParallax, heroLoadedAnimStyle]}>
+              <ImageBackground
                 source={placeImages[previousPlaceImageIndex]}
-                resizeMode="cover"
+                contentFit="cover"
+                cachePolicy="memory-disk"
+                transition={300}
                 imageStyle={styles.heroImage}
                 style={styles.heroBackgroundImage}
+                onLoad={onHeroImageLoad}
               />
-              <AnimatedImageBackground
-                source={placeImages[currentPlaceImageIndex]}
-                resizeMode="cover"
-                imageStyle={styles.heroImage}
-                style={[styles.heroBackgroundImage, currentHeroImageStyle]}
-              />
+              <Animated.View style={[styles.heroBackgroundImage, currentHeroImageStyle]}>
+                <ImageBackground
+                  source={placeImages[currentPlaceImageIndex]}
+                  contentFit="cover"
+                  cachePolicy="memory-disk"
+                  transition={300}
+                  imageStyle={styles.heroImage}
+                  style={styles.heroBackgroundImageInner}
+                  onLoad={onHeroImageLoad}
+                />
+              </Animated.View>
             </Animated.View>
             <View style={styles.heroShadeStrong} />
             <View style={styles.heroShadeSoft} />
-            
+
             {/* Fade overlays at edges */}
             <LinearGradient
               colors={['rgba(4,15,45,0.9)', 'transparent']}
@@ -367,7 +461,7 @@ export default function HomeTabScreen() {
 
             <View style={[styles.heroContent, { paddingTop: insets.top + 14 }]}>
               <Animated.View entering={FadeInDown.delay(100).springify()} style={styles.heroBrandRow}>
-                <Image source={heroLogoImage} style={styles.heroLogo} resizeMode="contain" />
+                <Image source={heroLogoImage} style={styles.heroLogo} contentFit="contain" cachePolicy="memory-disk" />
               </Animated.View>
               <Animated.View entering={FadeInDown.delay(140).springify()} style={styles.heroTextBlock}>
                 <Text style={styles.heroKicker}>Welcome back,</Text>
@@ -380,36 +474,101 @@ export default function HomeTabScreen() {
 
         {/* Continue Study */}
         <Animated.View entering={FadeInDown.delay(200).springify()} style={styles.studyCard}>
-          <View style={styles.studyHeaderRow}>
-            <BookOpen size={18} color="#2f8cff" fill="#2f8cff" strokeWidth={2.4} />
-            <Text style={styles.studyLabel}>Continue Study</Text>
-          </View>
+          {/* Skeleton placeholder while chapter artwork loads */}
+          {!studyImageLoaded && (
+            <View style={styles.studySkeletonWrap}>
+              <ImageSkeleton width="100%" height="100%" borderRadius={0} />
+              <View style={styles.studySkeletonContent}>
+                <Skeleton width={90} height={14} borderRadius={4} />
+                <Skeleton width={180} height={28} borderRadius={6} style={{ marginTop: 8 }} />
+                <TextSkeleton width="70%" height={12} style={{ marginTop: 6 }} />
+                <TextSkeleton width="55%" height={12} style={{ marginTop: 4 }} />
+                <View style={{ marginTop: 'auto', gap: 8 }}>
+                  <Skeleton width="100%" height={4} borderRadius={2} />
+                  <Skeleton width="100%" height={44} borderRadius={8} />
+                </View>
+              </View>
+            </View>
+          )}
+          {/* Full-bleed chapter artwork background */}
+          <Animated.View style={[{ flex: 1 }, studyLoadedAnimStyle]}>
+          <ImageBackground
+            source={chapterArtwork ?? undefined}
+            contentFit="cover"
+            cachePolicy="memory-disk"
+            transition={300}
+            imageStyle={styles.studyBgImage}
+            style={styles.studyBgFill}
+            onLoad={onStudyImageLoad}
+          >
+            {/* Left-to-right dark gradient overlay (dark on the left for text readability, transparent on the right for artwork visibility) */}
+            <LinearGradient
+              colors={['rgba(3,10,28,0.95)', 'rgba(3,10,28,0.6)', 'rgba(3,10,28,0.15)']}
+              start={{ x: 0, y: 0.5 }}
+              end={{ x: 1, y: 0.5 }}
+              style={StyleSheet.absoluteFillObject}
+            />
+            {/* Bottom navy fade */}
+            <LinearGradient
+              colors={['transparent', 'rgba(3,10,28,0.85)', 'rgba(3,10,28,0.98)']}
+              locations={[0, 0.55, 1]}
+              start={{ x: 0.5, y: 0 }}
+              end={{ x: 0.5, y: 1 }}
+              style={StyleSheet.absoluteFillObject}
+            />
 
-          <View style={styles.studyCardRow}>
-            <View style={styles.studyArtworkPanel} pointerEvents="none">
-              {chapterArtwork ? (
-                <ImageBackground source={chapterArtwork} resizeMode="cover" imageStyle={styles.studyArtworkImage} style={styles.studyArtworkFill} />
-              ) : (
-                <LinearGradient colors={chapterGradient} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.studyArtworkFill} />
-              )}
-              <LinearGradient
-                colors={['rgba(3,12,32,0)', 'rgba(3,12,32,0.12)', 'rgba(3,12,32,0.58)']}
-                locations={[0, 0.58, 1]}
-                start={{ x: 0.5, y: 0 }}
-                end={{ x: 0.5, y: 1 }}
-                style={styles.studyArtworkFade}
-              />
+            {/* ProgressRing - top-right corner */}
+            <View style={styles.studyProgressRingWrap}>
+              <ProgressRing progress={progressPercent} />
             </View>
 
-            <View style={styles.studyCopyColumn}>
-              <SharedAnimatedText
-                sharedTransitionTag={`open-chapter-daniel-${nextChapter}-title`}
-                style={styles.studyChapter}
-              >
-                {`Daniel ${nextChapter}`}
-              </SharedAnimatedText>
-              <Text style={styles.studyTitle}>{nextChapterData.title}</Text>
-              <Text style={styles.studyDescription}>{nextChapterData.description}</Text>
+            {/* Content overlay */}
+            <View style={styles.studyContent}>
+              {/* Top row: label + streak (spans full width, parallel streak float) */}
+              <View style={styles.studyHeaderRow}>
+                <BookOpen size={16} color="#2f8cff" fill="#2f8cff" strokeWidth={2.4} />
+                <Text style={styles.studyLabel}>Continue Study</Text>
+                <StreakBadge count={streakCount} />
+              </View>
+
+              {/* Restrict width of the upper text content to avoid overlapping the ProgressRing */}
+              <View style={styles.studyUpperContent}>
+                {/* Chapter info */}
+                <SharedAnimatedText
+                  sharedTransitionTag={`open-chapter-daniel-${nextChapter}-title`}
+                  style={styles.studyChapter}
+                >
+                  {`DANIEL ${nextChapter}`}
+                </SharedAnimatedText>
+                <Text style={styles.studyTitle}>{nextChapterData.title}</Text>
+                <Text style={styles.studyDescription} numberOfLines={2}>
+                  {nextChapterData.description}
+                </Text>
+              </View>
+
+              {/* Dot separator */}
+              <Text style={styles.studyDotSeparator}>·</Text>
+
+              {/* Chapters completed count */}
+              <View style={styles.studyCompletedRow}>
+                <BookOpen size={12} color="#ffffff" strokeWidth={2} />
+                <Text style={styles.studyCompletedText}>
+                  {`${completedCount} of ${STUDY_TOTAL_CHAPTERS} Chapters Completed`}
+                </Text>
+              </View>
+
+              {/* Segmented progress bar */}
+              <SegmentedProgressBar total={STUDY_TOTAL_CHAPTERS} completed={completedChapters} />
+
+              {/* Milestone */}
+              <View style={styles.studyMilestoneRow}>
+                <Gift size={13} color="#2463ff" strokeWidth={2.2} />
+                <Text style={styles.studyMilestoneText}>
+                  {`Next Milestone: Chapter ${milestoneChapter}`}
+                </Text>
+              </View>
+
+              {/* Continue button */}
               <Link
                 href={{
                   pathname: '/bible',
@@ -420,31 +579,51 @@ export default function HomeTabScreen() {
                 }}
                 asChild
               >
-                <Pressable style={styles.openButton}>
-                  <Text style={styles.openButtonText}>Open Chapter</Text>
+                <Pressable style={styles.studyContinueButton} onPress={() => recordToday()}>
+                  <BookOpen size={16} color="#ffffff" strokeWidth={2.4} />
+                  <Text style={styles.studyContinueButtonText}>Continue Chapter</Text>
+                  <ArrowRight size={16} color="#ffffff" strokeWidth={2.4} />
                 </Pressable>
               </Link>
             </View>
-
-            <View style={styles.studyProgressColumn}>
-              <ProgressRing progress={progressPercent} />
-              <Text style={styles.studyProgressLabel}>Overall Progress</Text>
-              <Text style={styles.studyCompletedText}>{`${completedCount} of ${STUDY_TOTAL_CHAPTERS} Chapters\nCompleted`}</Text>
-            </View>
-          </View>
+          </ImageBackground>
+          </Animated.View>
         </Animated.View>
 
         {/* Key Verse */}
         <Animated.View entering={FadeInUp.delay(260).duration(500)} style={styles.verseCard}>
+          {/* Skeleton placeholder for verse card image */}
+          {!verseImageLoaded && (
+            <View style={styles.verseSkeletonWrap}>
+              <View style={styles.verseSkeletonContent}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                  <Skeleton width={32} height={32} borderRadius={16} />
+                  <View style={{ gap: 4 }}>
+                    <TextSkeleton width={50} height={12} />
+                    <TextSkeleton width={80} height={10} />
+                  </View>
+                </View>
+                <TextSkeleton width="90%" height={11} />
+                <TextSkeleton width="70%" height={11} />
+                <TextSkeleton width={60} height={11} />
+              </View>
+              <View style={styles.verseSkeletonArt}>
+                <ImageSkeleton width="100%" height="100%" borderRadius={0} />
+              </View>
+            </View>
+          )}
           {/* Full bleed artwork on right */}
-          <View style={styles.verseArtworkWrap} pointerEvents="none">
+          <Animated.View style={[styles.verseArtworkWrap, verseLoadedAnimStyle]} pointerEvents="none">
             <ImageBackground
               source={require('../../assets/Aesthetics/Bible.jpg')}
-              resizeMode="cover"
+              contentFit="cover"
+              cachePolicy="memory-disk"
+              transition={300}
               imageStyle={styles.verseBgImage}
               style={styles.verseBackground}
+              onLoad={onVerseImageLoad}
             />
-          </View>
+          </Animated.View>
           {/* Single gradient: dark left -> transparent right */}
           <LinearGradient
             colors={['#011634', '#011634', 'rgba(1,22,52,0.92)', 'rgba(1,22,52,0.4)', 'transparent']}
@@ -501,6 +680,70 @@ export default function HomeTabScreen() {
           </View>
         </Animated.View>
 
+        {/* Recent Activity */}
+        <Animated.View entering={FadeInDown.delay(380).springify()} style={styles.recentActivitySection}>
+          <View style={styles.sectionHeader}>
+            <View style={[styles.sectionIconPlaceholder, { backgroundColor: '#10b981' }]} />
+            <Text style={styles.sectionTitle}>Recent Activity</Text>
+          </View>
+          <View style={styles.activityList}>
+            {(recentActivities.length > 0
+              ? recentActivities.slice(0, 3).map((item) => ({
+                  label: item.label,
+                  time: formatActivityTime(item),
+                }))
+              : RECENT_ACTIVITY.slice(0, 3)
+            ).map((item, index) => {
+              const lower = item.label.toLowerCase();
+              let ActIcon = Compass;
+              let actColor = '#06b6d4';
+              let actBg = 'rgba(6, 182, 212, 0.12)';
+
+              if (lower.includes('completed')) {
+                ActIcon = BookOpen;
+                actColor = '#10b981';
+                actBg = 'rgba(16, 185, 129, 0.12)';
+              } else if (lower.includes('note')) {
+                ActIcon = NotebookPen;
+                actColor = '#ff9500';
+                actBg = 'rgba(255, 149, 0, 0.12)';
+              } else if (lower.includes('bookmark') || lower.includes('highlighted')) {
+                ActIcon = Bookmark;
+                actColor = '#a855f7';
+                actBg = 'rgba(168, 85, 247, 0.12)';
+              } else if (lower.includes('explored')) {
+                ActIcon = Compass;
+                actColor = '#06b6d4';
+                actBg = 'rgba(6, 182, 212, 0.12)';
+              }
+
+              return (
+                <View key={index} style={[styles.activityRow, index === 2 && { borderBottomWidth: 0 }]}>
+                  <View style={[styles.activityIconCircle, { backgroundColor: actBg }]}>
+                    <ActIcon size={14} color={actColor} strokeWidth={2.4} />
+                  </View>
+                  <View style={styles.activityRowTextContent}>
+                    <Text style={styles.activityRowLabel} numberOfLines={1}>
+                      {item.label}
+                    </Text>
+                    <Text style={styles.activityRowTime}>{item.time}</Text>
+                  </View>
+                </View>
+              );
+            })}
+          </View>
+          <Pressable
+            onPress={() => router.push('/recent-activity')}
+            style={({ pressed }) => [
+              styles.viewAllButton,
+              pressed && styles.viewAllButtonPressed
+            ]}
+          >
+            <Text style={styles.viewAllButtonText}>View All Activity</Text>
+            <ArrowRight size={14} color="#8b96a8" strokeWidth={2.2} />
+          </Pressable>
+        </Animated.View>
+
       </Animated.ScrollView>
     </View>
   );
@@ -511,7 +754,7 @@ const styles = StyleSheet.create({
   // Line Heights: body 1.6 (24px), headings 1.2 (29px), display 1.1 (53px)
   // Spacing (8px multiples): 8 / 12 / 16 / 24 / 32 / 48
   // Colors: Primary #2463ff, Text #ffffff/#e5efff, Surface #1a2947, Background #040f2d
-  
+
   container: { flex: 1, backgroundColor: '#040f2d' },
   statusPartition: {
     backgroundColor: '#040f2d',
@@ -535,6 +778,9 @@ const styles = StyleSheet.create({
   },
   heroBackgroundImage: {
     ...StyleSheet.absoluteFillObject,
+  },
+  heroBackgroundImageInner: {
+    flex: 1,
   },
   heroImage: { borderRadius: 0, opacity: 0.98 },
   heroShadeStrong: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,11,38,0.08)' },
@@ -693,81 +939,135 @@ const styles = StyleSheet.create({
   // Continue Study
   studyCard: {
     marginBottom: 12,
-    backgroundColor: '#071d3a',
-    borderRadius: 12,
-    padding: 12,
+    borderRadius: 16,
     overflow: 'hidden',
     position: 'relative',
     borderWidth: 1,
     borderColor: 'rgba(55, 139, 255, 0.28)',
+    minHeight: 240,
   },
-  studyCardRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-  },
-  studyCopyColumn: {
+  studyBgFill: {
     flex: 1,
-    justifyContent: 'center',
-    gap: 2,
-    minWidth: 0,
+    minHeight: 240,
   },
-  studyArtworkPanel: {
-    width: 122,
-    height: 120,
-    borderRadius: 8,
-    overflow: 'hidden',
-    backgroundColor: '#102844',
+  studyBgImage: {
+    opacity: 0.95,
   },
-  studyArtworkFill: {
-    ...StyleSheet.absoluteFillObject,
+  studyUpperContent: {
+    marginRight: 96, // Leave room for ProgressRing (82px ring + 14px padding)
   },
-  studyArtworkImage: {
-    opacity: 0.96,
+  studyProgressRingWrap: {
+    position: 'absolute',
+    top: 56,
+    right: 14,
+    zIndex: 2,
   },
-  studyArtworkFade: {
-    ...StyleSheet.absoluteFillObject,
+  studyContent: {
+    flex: 1,
+    padding: 14,
+    zIndex: 1,
+    justifyContent: 'flex-end',
   },
   studyHeaderRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 7,
-    marginBottom: 10,
+    marginBottom: 8,
   },
   studyLabel: {
     color: '#ffffff',
-    fontSize: 15,
-    lineHeight: 19,
+    fontSize: 14,
+    lineHeight: 18,
     fontWeight: '700',
     fontFamily: 'Inter',
   },
   studyChapter: {
     color: '#f1a23a',
-    fontSize: 23,
-    fontWeight: '700',
+    fontSize: 32,
+    fontWeight: '800',
     fontFamily: 'Inter',
-    lineHeight: 27,
+    lineHeight: 38,
+    letterSpacing: 1,
+    textTransform: 'uppercase',
   },
   studyTitle: {
     color: '#ffffff',
-    fontSize: 15,
+    fontSize: 16,
     fontWeight: '600',
     fontFamily: 'Inter',
-    lineHeight: 19,
+    lineHeight: 21,
+    marginTop: 2,
   },
   studyDescription: {
-    color: '#d8e5ff',
+    color: '#c8deff',
     fontSize: 12,
     lineHeight: 17,
     fontFamily: 'Inter',
-    fontWeight: '500',
-    marginTop: 5,
+    fontWeight: '400',
+    marginTop: 4,
   },
-  studyProgressColumn: {
-    width: 88,
+  studyDotSeparator: {
+    color: 'rgba(255,255,255,0.4)',
+    fontSize: 20,
+    lineHeight: 24,
+    textAlign: 'center',
+    marginVertical: 4,
+  },
+  studyCompletedRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 6,
+  },
+  studyCompletedText: {
+    color: '#ffffff',
+    fontSize: 11,
+    lineHeight: 14,
+    fontWeight: '500',
+    fontFamily: 'Inter',
+  },
+  segmentedBar: {
+    flexDirection: 'row',
+    gap: 3,
+    marginBottom: 6,
+  },
+  segment: {
+    flex: 1,
+    height: 4,
+    borderRadius: 2,
+  },
+  studyMilestoneRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    marginBottom: 10,
+  },
+  studyMilestoneText: {
+    color: '#2463ff',
+    fontSize: 11,
+    lineHeight: 14,
+    fontWeight: '600',
+    fontFamily: 'Inter',
+  },
+  studyContinueButton: {
+    backgroundColor: '#2463ff',
+    borderRadius: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 7,
+    gap: 8,
+    minHeight: 44,
+  },
+  studyContinueButtonText: {
+    color: '#ffffff',
+    fontSize: 14,
+    lineHeight: 18,
+    fontWeight: '700',
+    fontFamily: 'Inter',
+    flex: 1,
+    textAlign: 'center',
   },
   progressRing: {
     width: PROGRESS_RING_SIZE,
@@ -785,7 +1085,7 @@ const styles = StyleSheet.create({
     width: PROGRESS_RING_SIZE - PROGRESS_RING_STROKE * 2 - 6,
     height: PROGRESS_RING_SIZE - PROGRESS_RING_STROKE * 2 - 6,
     borderRadius: (PROGRESS_RING_SIZE - PROGRESS_RING_STROKE * 2 - 6) / 2,
-    backgroundColor: '#0c2445',
+    backgroundColor: 'rgba(5,15,40,0.7)',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -797,34 +1097,6 @@ const styles = StyleSheet.create({
     fontFamily: 'Inter',
     fontVariant: ['tabular-nums'],
   },
-  studyProgressLabel: {
-    color: '#91a8c9',
-    fontSize: 10,
-    lineHeight: 12,
-    fontFamily: 'Inter',
-    fontWeight: '600',
-  },
-  studyCompletedText: {
-    color: '#ffffff',
-    fontSize: 11,
-    lineHeight: 15,
-    fontWeight: '700',
-    textAlign: 'center',
-    fontFamily: 'Inter',
-  },
-  openButton: {
-    backgroundColor: '#2463ff',
-    paddingHorizontal: 22,
-    paddingVertical: 10,
-    borderRadius: 6,
-    alignItems: 'center',
-    alignSelf: 'flex-start',
-    minHeight: 38,
-    minWidth: 112,
-    justifyContent: 'center',
-    marginTop: 12,
-  },
-  openButtonText: { color: '#ffffff', fontSize: 13, lineHeight: 16, fontWeight: '700', fontFamily: 'Inter' },
 
   // Quick Access
   quickAccessSection: {
@@ -896,5 +1168,101 @@ const styles = StyleSheet.create({
   sectionHeader: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 16 },
   sectionTitle: { color: '#ffffff', fontSize: 18, fontWeight: '600', fontFamily: 'Cinzel', lineHeight: 22 },
   sectionIconPlaceholder: { width: 20, height: 20, borderRadius: 4, backgroundColor: '#5fa5ff' },
+
+  // Skeleton Loading Overlays
+  studySkeletonWrap: {
+    ...StyleSheet.absoluteFillObject,
+    zIndex: 2,
+    borderRadius: 16,
+    overflow: 'hidden',
+  },
+  studySkeletonContent: {
+    ...StyleSheet.absoluteFillObject,
+    padding: 14,
+    justifyContent: 'flex-end',
+    zIndex: 3,
+  },
+  verseSkeletonWrap: {
+    ...StyleSheet.absoluteFillObject,
+    zIndex: 2,
+    flexDirection: 'row',
+  },
+  verseSkeletonContent: {
+    flex: 1,
+    padding: 12,
+    gap: 7,
+    justifyContent: 'center',
+  },
+  verseSkeletonArt: {
+    width: '40%',
+    height: '100%',
+  },
+  recentActivitySection: {
+    marginBottom: 24,
+  },
+  activityList: {
+    backgroundColor: '#1a2947',
+    borderRadius: 24,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(55, 139, 255, 0.12)',
+  },
+  activityRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255, 255, 255, 0.06)',
+  },
+  activityIconCircle: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  activityRowTextContent: {
+    flex: 1,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    gap: 8,
+  },
+  activityRowLabel: {
+    color: '#ffffff',
+    fontSize: 13,
+    fontWeight: '500',
+    fontFamily: 'Inter',
+    flex: 1,
+  },
+  activityRowTime: {
+    color: '#8b96a8',
+    fontSize: 10,
+    fontFamily: 'Inter',
+  },
+  viewAllButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    backgroundColor: 'rgba(255,255,255,0.03)',
+    borderRadius: 12,
+    paddingVertical: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)',
+    minHeight: 44,
+  },
+  viewAllButtonPressed: {
+    backgroundColor: 'rgba(255,255,255,0.08)',
+  },
+  viewAllButtonText: {
+    color: '#b6c9ea',
+    fontSize: 13,
+    fontWeight: '600',
+    fontFamily: 'Inter',
+  },
 
 });

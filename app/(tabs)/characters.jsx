@@ -1,13 +1,15 @@
-import { LinearGradient } from 'expo-linear-gradient';
 import { Image } from 'expo-image';
+import { ImageSkeleton } from '../../components/ui/Skeleton';
+import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import {
   ArrowLeft,
   BookOpenText,
   Search,
 } from 'lucide-react-native';
-import { useMemo, useState } from 'react';
+import { useCallback, useState } from 'react';
 import {
+  FlatList,
   Pressable,
   ScrollView,
   StatusBar,
@@ -19,6 +21,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { characterProfiles } from '../../Data/characterProfile';
+import { trackActivity } from '../../lib/activity-tracker';
 
 const ICONS = {
   bible: require('../../assets/Icons/Bible.png'),
@@ -54,18 +57,18 @@ const CHARACTER_REGIMES = {
 };
 
 const PORTRAIT_POSITIONS = {
-  Daniel: { card: '50% 0%', profile: '50% 8%' },
-  Hananiah: { card: '50% 0%', profile: '50% 8%' },
-  Mishael: { card: '50% 3%', profile: '50% 10%' },
-  Azariah: { card: '50% 0%', profile: '50% 8%' },
-  'Nebuchadnezzar II': { card: '50% 8%', profile: '50% 14%' },
-  Belshazzar: { card: '50% 8%', profile: '50% 14%' },
-  'Darius the Mede': { card: '50% 24%', profile: '50% 25%' },
-  'Cyrus the Great': { card: '50% 8%', profile: '50% 14%' },
-  Gabriel: { card: '50% 6%', profile: '50% 12%' },
-  Michael: { card: '50% 4%', profile: '50% 10%' },
-  Ashpenaz: { card: '50% 6%', profile: '50% 12%' },
-  Arioch: { card: '50% 16%', profile: '50% 18%' },
+  Daniel: { card: { left: '50%', top: '0%' }, profile: { left: '50%', top: '8%' } },
+  Hananiah: { card: { left: '50%', top: '0%' }, profile: { left: '50%', top: '8%' } },
+  Mishael: { card: { left: '50%', top: '3%' }, profile: { left: '50%', top: '10%' } },
+  Azariah: { card: { left: '50%', top: '0%' }, profile: { left: '50%', top: '8%' } },
+  'Nebuchadnezzar II': { card: { left: '50%', top: '8%' }, profile: { left: '50%', top: '14%' } },
+  Belshazzar: { card: { left: '50%', top: '8%' }, profile: { left: '50%', top: '14%' } },
+  'Darius the Mede': { card: { left: '50%', top: '24%' }, profile: { left: '50%', top: '25%' } },
+  'Cyrus the Great': { card: { left: '50%', top: '8%' }, profile: { left: '50%', top: '14%' } },
+  Gabriel: { card: { left: '50%', top: '6%' }, profile: { left: '50%', top: '12%' } },
+  Michael: { card: { left: '50%', top: '4%' }, profile: { left: '50%', top: '10%' } },
+  Ashpenaz: { card: { left: '50%', top: '6%' }, profile: { left: '50%', top: '12%' } },
+  Arioch: { card: { left: '50%', top: '16%' }, profile: { left: '50%', top: '18%' } },
 };
 
 const CONTAINED_CARD_PORTRAITS = new Set([
@@ -154,7 +157,7 @@ function getPortraitPosition(character, large = false) {
     return large ? position.profile : position.card;
   }
 
-  return large ? '50% 24%' : '50% 22%';
+  return large ? { left: '50%', top: '24%' } : { left: '50%', top: '22%' };
 }
 
 function CharacterArtwork({ character, large = false }) {
@@ -163,16 +166,33 @@ function CharacterArtwork({ character, large = false }) {
   const containerStyle = [styles.artwork, large && styles.profileArtwork];
   const iconStyle = large ? styles.roleArtworkIconLarge : styles.roleArtworkIcon;
   const useContainedPortrait = !large && CONTAINED_CARD_PORTRAITS.has(character.name);
+  const [imageLoaded, setImageLoaded] = useState(false);
+
+  const onImageLoad = useCallback(() => {
+    setImageLoaded(true);
+  }, []);
 
   if (image) {
     return (
       <View style={containerStyle}>
+        {/* Skeleton placeholder while portrait loads */}
+        {!imageLoaded && (
+          <View style={StyleSheet.absoluteFillObject}>
+            <ImageSkeleton
+              width="100%"
+              height="100%"
+              borderRadius={0}
+              style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
+            />
+          </View>
+        )}
         <Image
           source={image}
           style={StyleSheet.absoluteFillObject}
           contentFit="cover"
           contentPosition={getPortraitPosition(character, large)}
           transition={250}
+          onLoad={onImageLoad}
         />
         {useContainedPortrait ? (
           <>
@@ -248,6 +268,23 @@ function Section({ title, children }) {
   );
 }
 
+const openScripture = (ref) => {
+  const parsed = parseBibleReference(ref);
+
+  if (!parsed) {
+    return;
+  }
+
+  router.push({
+    pathname: '/bible',
+    params: {
+      book: parsed.book,
+      chapter: String(parsed.chapter),
+      ...(parsed.verse ? { verse: String(parsed.verse) } : {}),
+    },
+  });
+};
+
 export default function CharactersTabScreen() {
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
@@ -256,7 +293,7 @@ export default function CharactersTabScreen() {
   const [selectedCharacter, setSelectedCharacter] = useState(null);
   const compactCards = width < 720;
 
-  const filteredCharacters = useMemo(() => {
+  const filteredCharacters = (() => {
     const query = searchTerm.trim().toLowerCase();
 
     return characterProfiles.filter((character) => {
@@ -269,24 +306,7 @@ export default function CharactersTabScreen() {
 
       return matchesSearch && matchesFilter;
     });
-  }, [activeFilter, searchTerm]);
-
-  const openScripture = (ref) => {
-    const parsed = parseBibleReference(ref);
-
-    if (!parsed) {
-      return;
-    }
-
-    router.push({
-      pathname: '/bible',
-      params: {
-        book: parsed.book,
-        chapter: String(parsed.chapter),
-        ...(parsed.verse ? { verse: String(parsed.verse) } : {}),
-      },
-    });
-  };
+  })();
 
   if (selectedCharacter) {
     const selectedRegime = getServedRegime(selectedCharacter);
@@ -417,14 +437,18 @@ export default function CharactersTabScreen() {
           />
         </View>
 
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterStrip}>
-          {FILTERS.map((filter) => {
+        <FlatList
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.filterStrip}
+          data={FILTERS}
+          keyExtractor={(filter) => filter.id}
+          renderItem={({ item: filter }) => {
             const iconSource = filter.icon;
             const active = activeFilter === filter.id;
 
             return (
               <Pressable
-                key={filter.id}
                 onPress={() => setActiveFilter(filter.id)}
                 style={[styles.filterChip, active && styles.filterChipActive]}
               >
@@ -437,8 +461,8 @@ export default function CharactersTabScreen() {
                 <Text style={[styles.filterText, active && styles.filterTextActive]}>{filter.label}</Text>
               </Pressable>
             );
-          })}
-        </ScrollView>
+          }}
+        />
 
         <View style={styles.summaryRow}>
           <View style={styles.summaryCard}>
@@ -457,7 +481,12 @@ export default function CharactersTabScreen() {
               key={character.name}
               character={character}
               compact={compactCards}
-              onPress={() => setSelectedCharacter(character)}
+              onPress={() => {
+                setSelectedCharacter(character);
+                void trackActivity('character_explored', `Explored ${character.name}`, {
+                  character: character.name, role: character.role,
+                });
+              }}
             />
           ))}
         </View>

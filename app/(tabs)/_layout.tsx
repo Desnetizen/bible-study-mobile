@@ -1,8 +1,9 @@
 import { Tabs } from 'expo-router';
-import { Image } from 'react-native';
+import { Image } from 'expo-image';
 
 import { HapticTab } from '@/components/haptic-tab';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { CastleIcon } from '@/components/CastleIcon';
 
 export default function TabLayout() {
   const colorScheme = useColorScheme();
@@ -31,8 +32,9 @@ export default function TabLayout() {
           tabBarIcon: ({ color }) => (
             <Image
               source={require('../../assets/Icons/Home.png')}
-              style={{ width: 24, height: 24, tintColor: color }}
-              resizeMode="contain"
+              style={{ width: 24, height: 24 }}
+              tintColor={color}
+              contentFit="contain"
             />
           ),
         }}
@@ -44,8 +46,23 @@ export default function TabLayout() {
           tabBarIcon: ({ color }) => (
             <Image
               source={require('../../assets/Icons/Bible.png')}
-              style={{ width: 24, height: 24, tintColor: color }}
-              resizeMode="contain"
+              style={{ width: 24, height: 24 }}
+              tintColor={color}
+              contentFit="contain"
+            />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="daniel-study"
+        options={{
+          title: 'Study',
+          tabBarIcon: ({ color }) => (
+            <Image
+              source={require('../../assets/Icons/crown.png')}
+              style={{ width: 24, height: 24 }}
+              tintColor={color}
+              contentFit="contain"
             />
           ),
         }}
@@ -57,9 +74,21 @@ export default function TabLayout() {
           tabBarIcon: ({ color }) => (
             <Image
               source={require('../../assets/Icons/Companions.png')}
-              style={{ width: 24, height: 24, tintColor: color }}
-              resizeMode="contain"
+              style={{ width: 24, height: 24 }}
+              tintColor={color}
+              contentFit="contain"
             />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="historical-context"
+        options={{
+          title: 'Historical Context',
+          tabBarActiveTintColor: '#C9A84C',
+          tabBarInactiveTintColor: '#9A9A8A',
+          tabBarIcon: ({ color }) => (
+            <CastleIcon color={color} size={24} />
           ),
         }}
       />

@@ -2,10 +2,10 @@ import 'expo-sqlite/localStorage/install';
 
 import { useEffect, useSyncExternalStore } from 'react';
 
+import { getOrCreateDeviceId } from './device-id';
 import { supabase } from './supabase';
 
 const STORAGE_KEY = 'bible-connection:daniel-progress:v1';
-const DEVICE_ID_KEY = 'bible-connection:device-id:v1';
 const PROGRESS_TABLE = 'daniel_progress';
 
 type ProgressListener = () => void;
@@ -66,24 +66,6 @@ function persistCachedProgress(chapters: number[]) {
   }
 }
 
-function getOrCreateDeviceId() {
-  if (typeof localStorage === 'undefined') {
-    return 'device';
-  }
-
-  try {
-    const existing = localStorage.getItem(DEVICE_ID_KEY);
-    if (existing) {
-      return existing;
-    }
-
-    const nextId = globalThis.crypto?.randomUUID?.() ?? `device-${Date.now()}-${Math.random().toString(16).slice(2)}`;
-    localStorage.setItem(DEVICE_ID_KEY, nextId);
-    return nextId;
-  } catch {
-    return 'device';
-  }
-}
 
 function emitChange() {
   listeners.forEach((listener) => listener());
@@ -159,10 +141,10 @@ export async function saveDanielProgress(chapters: number[]) {
     );
 
     if (error) {
-      console.error('Failed to save Daniel progress to Supabase:', error.message);
+      console.warn('Failed to save Daniel progress to Supabase:', error.message);
     }
-  } catch {
-    console.error('Unexpected error while saving Daniel progress to Supabase.');
+  } catch (err: any) {
+    console.warn('Unexpected error while saving Daniel progress to Supabase:', err.message || err.toString());
   }
 
   return nextChapters;

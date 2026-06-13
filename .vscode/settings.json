@@ -3,5 +3,15 @@
     "source.fixAll": "explicit",
     "source.organizeImports": "explicit",
     "source.sortMembers": "explicit"
-  }
+  },
+  "typescript.tsdk": "node_modules/typescript/lib",
+  "json.schemas": [
+    {
+      "fileMatch": ["app.json"],
+      "schema": {
+        "allowComments": true,
+        "additionalProperties": true
+      }
+    }
+  ]
 }

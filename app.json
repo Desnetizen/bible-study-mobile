@@ -19,7 +19,8 @@
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "package": "com.anonymous.biblestudymobile"
     },
     "web": {
       "output": "static",
@@ -30,21 +31,19 @@
       [
         "expo-splash-screen",
         {
-          "image": "./assets/images/splash-icon.png",
+          "image": "./assets/bible-connection/splash-bg.png",
           "imageWidth": 200,
-          "resizeMode": "contain",
-          "backgroundColor": "#07111F",
+          "resizeMode": "cover",
+          "backgroundColor": "#060e1f",
           "dark": {
-            "backgroundColor": "#07111F"
+            "backgroundColor": "#060e1f"
           }
         }
-      ],
-      "expo-sqlite",
-      "expo-font"
+      ]
     ],
     "experiments": {
-      "typedRoutes": true,
-      "reactCompiler": true
+      "typedRoutes": true
     }
   }
 }
+
