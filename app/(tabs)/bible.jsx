@@ -36,9 +36,13 @@ import Reanimated, {
 } from 'react-native-reanimated';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import ChapterCompleteModal from '../../components/ChapterCompleteModal';
+import { BadgeEarnedToast } from '../../components/BadgeEarnedToast';
+import { BadgePreviewModal } from '../../components/BadgePreviewModal';
 import { trackActivity } from '../../lib/activity-tracker';
 import { loadDanielCrossReferences } from '../../lib/daniel-cross-references';
 import { saveDanielProgress, useDanielProgress } from '../../lib/daniel-progress';
+import { getEarnedBadges } from '../../lib/badges';
+import type { Badge } from '../../lib/badges';
 
 const API_ROOT = 'https://bible-api.com/data';
 const DEFAULT_TRANSLATION_ID = 'kjv';
@@ -1231,7 +1235,10 @@ export default function BiblePage() {
   const [crossReferencesLoaded, setCrossReferencesLoaded] = useState(false);
   const [storageReady, setStorageReady] = useState(false);
   const [showCompleteModal, setShowCompleteModal] = useState(false);
+  const [selectedBadge, setSelectedBadge] = useState<Badge | null>(null);
+  const [toastBadges, setToastBadges] = useState<Badge[]>([]);
   const crossReferencesCacheRef = useRef({});
+  const prevCompletedRef = useRef<number[]>([]);
 
   const selectedTranslation = useMemo(
     () => translations.find((translation) => translation.identifier === scriptureVersion) ?? null,
@@ -1490,6 +1497,18 @@ export default function BiblePage() {
     },
     [completedDanielChapters]
   );
+
+  useEffect(() => {
+    const prev = prevCompletedRef.current;
+    if (prev.length > 0 && completedDanielChapters.length > prev.length) {
+      const newlyCompleted = completedDanielChapters.filter((ch) => !prev.includes(ch));
+      const earned = getEarnedBadges(newlyCompleted);
+      if (earned.length > 0) {
+        setToastBadges(earned);
+      }
+    }
+    prevCompletedRef.current = [...completedDanielChapters];
+  }, [completedDanielChapters]);
 
   const saveNote = useCallback(() => {
     if (!selectedVerse) {
@@ -1815,6 +1834,17 @@ export default function BiblePage() {
             setBibleChapter(bibleChapter + 1);
           }
         }}
+      />
+      <View style={StyleSheet.absoluteFill} pointerEvents="box-none">
+        <BadgeEarnedToast
+          badges={toastBadges}
+          onComplete={() => setToastBadges([])}
+          onPress={(badge) => setSelectedBadge(badge)}
+        />
+      </View>
+      <BadgePreviewModal
+        badge={selectedBadge}
+        onClose={() => setSelectedBadge(null)}
       />
     </>
   );

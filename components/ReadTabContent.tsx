@@ -1,4 +1,4 @@
-import { useRef, useEffect, useCallback, useMemo, useState } from 'react';
+import { useRef, useEffect, useCallback, useMemo, useState, createContext, useContext } from 'react';
 import {
   View,
   Text,
@@ -19,16 +19,23 @@ import {
   Scroll,
   List,
 } from 'lucide-react-native';
-import { preExileContext } from '../Data/preExileContext';
+import type { ContextData, Section as ContextSection } from '@/types/context';
 
 export type ReadTabContentProps = {
+  contextData: ContextData;
+  accentColor?: string;
+  headerEyebrow: string;
   scrollRef?: React.RefObject<RNScrollView | null>;
 };
 
+type AccentColorCtx = { color: string; rgb: { r: number; g: number; b: number } };
+const AccentColorContext = createContext<AccentColorCtx>({
+  color: '#D5A748',
+  rgb: { r: 213, g: 167, b: 72 },
+});
+
 const SCREEN_WIDTH = Dimensions.get('window').width;
 const IS_WIDE = SCREEN_WIDTH >= 768;
-
-const GOLD = '#D5A748';
 const DARK_CARD = '#0C1420';
 const QUOTE_BG = '#0A1628';
 const BODY_TEXT = 'rgba(255,255,255,0.78)';
@@ -54,31 +61,34 @@ function extractQuotes(content: string): { paragraphs: string[]; quotes: { text:
 }
 
 function GoldDivider({ double: isDouble = false }: { double?: boolean }) {
+  const { rgb } = useContext(AccentColorContext);
+  const borderColor = `rgba(${rgb.r},${rgb.g},${rgb.b},0.35)`;
   return (
     <View style={dividerStyles.wrapper}>
-      <View style={dividerStyles.line} />
-      {isDouble && <View style={[dividerStyles.line, { marginTop: 3 }]} />}
+      <View style={[dividerStyles.line, { backgroundColor: borderColor }]} />
+      {isDouble && <View style={[dividerStyles.line, { backgroundColor: borderColor, marginTop: 3 }]} />}
     </View>
   );
 }
 
 const dividerStyles = StyleSheet.create({
   wrapper: { paddingVertical: 12 },
-  line: { height: 1, backgroundColor: 'rgba(213,167,72,0.35)', borderRadius: 1 },
+  line: { height: 1, borderRadius: 1 },
 });
 
 function QuoteCard({ text, reference }: { text: string; reference?: string }) {
+  const { color: accentColor, rgb } = useContext(AccentColorContext);
   return (
     <View style={quoteStyles.card}>
-      <View style={quoteStyles.borderOuter}>
-        <View style={quoteStyles.borderInner}>
+      <View style={[quoteStyles.borderOuter, { borderColor: accentColor }]}>
+        <View style={[quoteStyles.borderInner, { borderColor: `rgba(${rgb.r},${rgb.g},${rgb.b},0.4)` }, { backgroundColor: QUOTE_BG }]}>
           <View style={quoteStyles.content}>
-            <Text style={quoteStyles.markerOpen}>{"\u201C"}</Text>
+            <Text style={[quoteStyles.markerOpen, { color: accentColor }]}>{"\u201C"}</Text>
             <Text style={quoteStyles.text}>{text}</Text>
             {reference && (
               <View style={quoteStyles.refRow}>
-                <View style={quoteStyles.refDash} />
-                <Text style={quoteStyles.refText}>{reference}</Text>
+                <View style={[quoteStyles.refDash, { backgroundColor: accentColor }]} />
+                <Text style={[quoteStyles.refText, { color: accentColor }]}>{reference}</Text>
               </View>
             )}
           </View>
@@ -94,15 +104,12 @@ const quoteStyles = StyleSheet.create({
   },
   borderOuter: {
     borderWidth: 1.5,
-    borderColor: GOLD,
     borderRadius: 4,
     padding: 3,
   },
   borderInner: {
     borderWidth: 1,
-    borderColor: 'rgba(213,167,72,0.4)',
     borderRadius: 2,
-    backgroundColor: QUOTE_BG,
   },
   content: {
     padding: 20,
@@ -110,7 +117,6 @@ const quoteStyles = StyleSheet.create({
   markerOpen: {
     fontFamily: BODY_SERIF,
     fontSize: 40,
-    color: GOLD,
     opacity: 0.6,
     lineHeight: 32,
     marginBottom: 6,
@@ -132,19 +138,18 @@ const quoteStyles = StyleSheet.create({
   refDash: {
     width: 20,
     height: 1,
-    backgroundColor: GOLD,
     opacity: 0.5,
   },
   refText: {
     fontFamily: BODY_SERIF,
     fontSize: 12,
-    color: GOLD,
     fontWeight: '600',
     letterSpacing: 0.3,
   },
 });
 
 function SubsectionView({ title, content }: { title: string; content: string }) {
+  const { color: accentColor, rgb } = useContext(AccentColorContext);
   const { paragraphs, quotes } = extractQuotes(content);
   const numMatch = title.match(/^(\d+\.\d+)\s*/);
   const subNum = numMatch?.[1] || '';
@@ -154,8 +159,8 @@ function SubsectionView({ title, content }: { title: string; content: string }) 
     <View style={subsectionStyles.container}>
       <View style={subsectionStyles.headerRow}>
         {subNum ? (
-          <View style={subsectionStyles.numBadge}>
-            <Text style={subsectionStyles.numText}>{subNum}</Text>
+          <View style={[subsectionStyles.numBadge, { borderColor: `rgba(${rgb.r},${rgb.g},${rgb.b},0.3)`, backgroundColor: `rgba(${rgb.r},${rgb.g},${rgb.b},0.06)` }]}>
+            <Text style={[subsectionStyles.numText, { color: accentColor }]}>{subNum}</Text>
           </View>
         ) : null}
         <Text style={subsectionStyles.title}>{cleanTitle}</Text>
@@ -182,16 +187,13 @@ const subsectionStyles = StyleSheet.create({
   },
   numBadge: {
     borderWidth: 1,
-    borderColor: 'rgba(213,167,72,0.3)',
     borderRadius: 4,
     paddingHorizontal: 6,
     paddingVertical: 2,
-    backgroundColor: 'rgba(213,167,72,0.06)',
   },
   numText: {
     fontFamily: 'Cinzel',
     fontSize: 11,
-    color: GOLD,
     fontWeight: '700',
   },
   title: {
@@ -212,10 +214,11 @@ const subsectionStyles = StyleSheet.create({
 });
 
 function ImageFrame({ source, style }: { source: any; style?: any }) {
+  const { color: accentColor, rgb } = useContext(AccentColorContext);
   return (
     <View style={[imageFrameStyles.container, style]}>
-      <View style={imageFrameStyles.outer}>
-        <View style={imageFrameStyles.inner}>
+      <View style={[imageFrameStyles.outer, { borderColor: accentColor }]}>
+        <View style={[imageFrameStyles.inner, { borderColor: `rgba(${rgb.r},${rgb.g},${rgb.b},0.3)` }]}>
           <Image source={source} style={imageFrameStyles.image} contentFit="cover" />
         </View>
       </View>
@@ -229,13 +232,11 @@ const imageFrameStyles = StyleSheet.create({
   },
   outer: {
     borderWidth: 2,
-    borderColor: GOLD,
     borderRadius: 4,
     padding: 4,
   },
   inner: {
     borderWidth: 1,
-    borderColor: 'rgba(213,167,72,0.3)',
     borderRadius: 2,
     overflow: 'hidden',
   },
@@ -247,14 +248,15 @@ const imageFrameStyles = StyleSheet.create({
 });
 
 function SectionHeader({ number, title }: { number: string; title: string }) {
+  const { color: accentColor, rgb } = useContext(AccentColorContext);
   return (
     <View style={sectionHeaderStyles.container}>
-      <View style={sectionHeaderStyles.lineLeft} />
+      <View style={[sectionHeaderStyles.lineLeft, { backgroundColor: `rgba(${rgb.r},${rgb.g},${rgb.b},0.25)` }]} />
       <View style={sectionHeaderStyles.textGroup}>
-        <Text style={sectionHeaderStyles.number}>{number}</Text>
+        <Text style={[sectionHeaderStyles.number, { color: accentColor }]}>{number}</Text>
         <Text style={sectionHeaderStyles.title}>{title}</Text>
       </View>
-      <View style={sectionHeaderStyles.lineRight} />
+      <View style={[sectionHeaderStyles.lineRight, { backgroundColor: `rgba(${rgb.r},${rgb.g},${rgb.b},0.25)` }]} />
     </View>
   );
 }
@@ -269,12 +271,10 @@ const sectionHeaderStyles = StyleSheet.create({
   lineLeft: {
     flex: 1,
     height: 1,
-    backgroundColor: 'rgba(213,167,72,0.25)',
   },
   lineRight: {
     flex: 1,
     height: 1,
-    backgroundColor: 'rgba(213,167,72,0.25)',
   },
   textGroup: {
     alignItems: 'center',
@@ -283,7 +283,6 @@ const sectionHeaderStyles = StyleSheet.create({
   number: {
     fontFamily: 'Cinzel',
     fontSize: 28,
-    color: GOLD,
     fontWeight: '700',
     letterSpacing: 2,
   },
@@ -297,33 +296,58 @@ const sectionHeaderStyles = StyleSheet.create({
   },
 });
 
-type Section = {
-  id: string;
-  title: string;
-  content?: string;
-  subsections?: { id: string; title: string; content: string }[];
-  intro?: string;
-  timeline?: { date: string; event: string; reference: string }[];
-};
+type Section = ContextSection;
+
+function TermCard({ term, definition }: { term: string; definition: string }) {
+  const { color: accentColor } = useContext(AccentColorContext);
+  return (
+    <View style={termCardStyles.container}>
+      <View style={[termCardStyles.termRow, { borderBottomColor: `rgba(255,255,255,0.08)` }]}>
+        <Text style={[termCardStyles.term, { color: accentColor }]}>{term}</Text>
+      </View>
+      <Text style={termCardStyles.definition}>{definition}</Text>
+    </View>
+  );
+}
+
+const termCardStyles = StyleSheet.create({
+  container: {
+    marginTop: 4,
+    marginBottom: 8,
+    gap: 6,
+  },
+  termRow: {
+    borderBottomWidth: 1,
+    paddingBottom: 4,
+  },
+  term: {
+    fontFamily: 'Cinzel',
+    fontSize: 15,
+    fontWeight: '700',
+    letterSpacing: 0.3,
+  },
+  definition: {
+    fontFamily: BODY_SERIF,
+    fontSize: 13,
+    lineHeight: 20,
+    color: BODY_TEXT,
+  },
+});
 
 function SectionBody({ section, index }: { section: Section; index: number }) {
   const { paragraphs, quotes } = section.content ? extractQuotes(section.content) : { paragraphs: [], quotes: [] };
 
   return (
     <View>
-      {/* Intro text */}
       {section.intro && (
         <Text style={sectionBodyStyles.intro}>{section.intro}</Text>
       )}
 
-      {/* Timeline */}
       {section.timeline && section.timeline.length > 0 && (
         <TimelineVisual items={section.timeline} />
       )}
 
-      {/* Main content columns */}
       <View style={IS_WIDE ? sectionBodyStyles.columns : undefined}>
-        {/* Left or single column */}
         <View style={sectionBodyStyles.column}>
           {paragraphs.slice(0, IS_WIDE ? Math.ceil(paragraphs.length / 2) : paragraphs.length).map((p, i) => (
             <Text key={`p-${i}`} style={sectionBodyStyles.para}>{p}</Text>
@@ -333,7 +357,6 @@ function SectionBody({ section, index }: { section: Section; index: number }) {
           ))}
         </View>
 
-        {/* Right column (wide only) */}
         {IS_WIDE && (
           <View style={sectionBodyStyles.column}>
             {paragraphs.slice(Math.ceil(paragraphs.length / 2)).map((p, i) => (
@@ -346,7 +369,14 @@ function SectionBody({ section, index }: { section: Section; index: number }) {
         )}
       </View>
 
-      {/* Subsections */}
+      {section.terms && section.terms.length > 0 && (
+        <View style={sectionBodyStyles.termsSection}>
+          {section.terms.map((t) => (
+            <TermCard key={t.id} term={t.term} definition={t.definition} />
+          ))}
+        </View>
+      )}
+
       {section.subsections && section.subsections.length > 0 && (
         <View style={sectionBodyStyles.subsections}>
           {section.subsections.map((sub) => (
@@ -383,6 +413,10 @@ const sectionBodyStyles = StyleSheet.create({
     letterSpacing: 0.2,
     marginBottom: 8,
   },
+  termsSection: {
+    marginTop: 12,
+    gap: 8,
+  },
   subsections: {
     marginTop: 8,
     gap: 16,
@@ -390,19 +424,20 @@ const sectionBodyStyles = StyleSheet.create({
 });
 
 function TimelineVisual({ items }: { items: { date: string; event: string; reference: string }[] }) {
+  const { color: accentColor, rgb } = useContext(AccentColorContext);
   return (
     <View style={timelineStyles.container}>
-      <View style={timelineStyles.line} />
+      <View style={[timelineStyles.line, { backgroundColor: `rgba(${rgb.r},${rgb.g},${rgb.b},0.2)` }]} />
       {items.map((item, i) => (
         <View key={i} style={timelineStyles.item}>
-          <View style={timelineStyles.dot}>
-            <View style={timelineStyles.dotInner} />
+          <View style={[timelineStyles.dot, { borderColor: `rgba(${rgb.r},${rgb.g},${rgb.b},0.4)` }]}>
+            <View style={[timelineStyles.dotInner, { backgroundColor: accentColor }]} />
           </View>
           <View style={timelineStyles.content}>
-            <Text style={timelineStyles.date}>{item.date}</Text>
+            <Text style={[timelineStyles.date, { color: accentColor }]}>{item.date}</Text>
             <Text style={timelineStyles.event}>{item.event}</Text>
             <Pressable
-              style={timelineStyles.refChip}
+              style={[timelineStyles.refChip, { backgroundColor: `rgba(${rgb.r},${rgb.g},${rgb.b},0.08)` }]}
               onPress={() => {
                 const match = item.reference.match(/^(.+?)\s+(\d+)/);
                 if (match) {
@@ -413,8 +448,8 @@ function TimelineVisual({ items }: { items: { date: string; event: string; refer
                 }
               }}
             >
-              <BookOpen size={10} color={GOLD} />
-              <Text style={timelineStyles.refText}>{item.reference}</Text>
+              <BookOpen size={10} color={accentColor} />
+              <Text style={[timelineStyles.refText, { color: accentColor }]}>{item.reference}</Text>
             </Pressable>
           </View>
         </View>
@@ -427,35 +462,36 @@ const timelineStyles = StyleSheet.create({
   container: { paddingLeft: 16, position: 'relative', marginVertical: 12 },
   line: {
     position: 'absolute', left: 20, top: 8, bottom: 8,
-    width: 2, backgroundColor: 'rgba(213,167,72,0.2)', borderRadius: 1,
+    width: 2, borderRadius: 1,
   },
   item: { flexDirection: 'row', gap: 14, paddingVertical: 8 },
   dot: {
     width: 14, height: 14, borderRadius: 7,
     backgroundColor: DARK_CARD, borderWidth: 2,
-    borderColor: 'rgba(213,167,72,0.4)', alignItems: 'center',
+    alignItems: 'center',
     justifyContent: 'center', marginTop: 4,
   },
-  dotInner: { width: 5, height: 5, borderRadius: 3, backgroundColor: GOLD },
+  dotInner: { width: 5, height: 5, borderRadius: 3 },
   content: { flex: 1, gap: 4 },
-  date: { fontFamily: 'Cinzel', fontSize: 12, color: GOLD, fontWeight: '700', letterSpacing: 0.5 },
+  date: { fontFamily: 'Cinzel', fontSize: 12, fontWeight: '700', letterSpacing: 0.5 },
   event: { fontFamily: BODY_SERIF, fontSize: 13, lineHeight: 19, color: BODY_TEXT },
   refChip: {
     flexDirection: 'row', alignItems: 'center', gap: 4,
-    alignSelf: 'flex-start', backgroundColor: 'rgba(213,167,72,0.08)',
+    alignSelf: 'flex-start',
     borderRadius: 4, paddingHorizontal: 6, paddingVertical: 2, marginTop: 2,
   },
-  refText: { fontFamily: 'Cinzel', fontSize: 10, color: GOLD, fontWeight: '600' },
+  refText: { fontFamily: 'Cinzel', fontSize: 10, fontWeight: '600' },
 });
 
 function CalloutBox({ title, children }: { title: string; children: React.ReactNode }) {
+  const { color: accentColor, rgb } = useContext(AccentColorContext);
   return (
     <View style={calloutStyles.container}>
-      <View style={calloutStyles.borderOuter}>
-        <View style={calloutStyles.borderInner}>
+      <View style={[calloutStyles.borderOuter, { borderColor: accentColor }]}>
+        <View style={[calloutStyles.borderInner, { borderColor: `rgba(${rgb.r},${rgb.g},${rgb.b},0.35)` }]}>
           <View style={calloutStyles.content}>
             {title && (
-              <Text style={calloutStyles.title}>{title}</Text>
+              <Text style={[calloutStyles.title, { color: accentColor }]}>{title}</Text>
             )}
             {children}
           </View>
@@ -469,13 +505,11 @@ const calloutStyles = StyleSheet.create({
   container: { marginVertical: 20 },
   borderOuter: {
     borderWidth: 2,
-    borderColor: GOLD,
     borderRadius: 4,
     padding: 4,
   },
   borderInner: {
     borderWidth: 1,
-    borderColor: 'rgba(213,167,72,0.35)',
     borderRadius: 2,
     backgroundColor: QUOTE_BG,
   },
@@ -483,7 +517,6 @@ const calloutStyles = StyleSheet.create({
   title: {
     fontFamily: 'Cinzel',
     fontSize: 16,
-    color: GOLD,
     fontWeight: '700',
     letterSpacing: 0.5,
     textAlign: 'center',
@@ -492,11 +525,12 @@ const calloutStyles = StyleSheet.create({
 });
 
 function DropCap({ text }: { text: string }) {
+  const { color: accentColor } = useContext(AccentColorContext);
   const firstChar = text.charAt(0);
   const rest = text.slice(1);
   return (
     <View style={dropCapStyles.row}>
-      <Text style={dropCapStyles.cap}>{firstChar}</Text>
+      <Text style={[dropCapStyles.cap, { color: accentColor }]}>{firstChar}</Text>
       <Text style={dropCapStyles.rest}>{rest}</Text>
     </View>
   );
@@ -507,7 +541,6 @@ const dropCapStyles = StyleSheet.create({
   cap: {
     fontFamily: 'Cinzel',
     fontSize: 48,
-    color: GOLD,
     fontWeight: '700',
     lineHeight: 44,
     marginRight: 6,
@@ -523,7 +556,7 @@ const dropCapStyles = StyleSheet.create({
   },
 });
 
-export default function ReadTabContent({ scrollRef }: ReadTabContentProps) {
+export default function ReadTabContent({ contextData, accentColor = '#D5A748', headerEyebrow, scrollRef }: ReadTabContentProps) {
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(20)).current;
   const sectionPositions = useRef<Record<string, number>>({});
@@ -531,6 +564,14 @@ export default function ReadTabContent({ scrollRef }: ReadTabContentProps) {
   const tocScrollRef = useRef<RNScrollView>(null);
   const [activeSection, setActiveSection] = useState<string | null>(null);
   const [tocOpen, setTocOpen] = useState(false);
+
+  const accentRgb = useMemo(() => ({
+    r: parseInt(accentColor.slice(1, 3), 16),
+    g: parseInt(accentColor.slice(3, 5), 16),
+    b: parseInt(accentColor.slice(5, 7), 16),
+  }), [accentColor]);
+
+  const accentCtx = useMemo(() => ({ color: accentColor, rgb: accentRgb }), [accentColor, accentRgb]);
 
   const handleLayoutRoot = useCallback((e: any) => {
     rootOffsetRef.current = e.nativeEvent.layout.y;
@@ -554,20 +595,18 @@ export default function ReadTabContent({ scrollRef }: ReadTabContentProps) {
 
   const tocItems = useMemo(() => {
     const items: { id: string; label: string }[] = [];
-    const sections = preExileContext.sections;
+    const sections = contextData.sections;
 
-    // Add Abstract if present
     const abs = sections.find(s => s.id === 'abstract');
     if (abs) items.push({ id: abs.id, label: 'Abstract' });
 
-    // Add numbered sections
     for (const s of sections) {
       if (s.id === 'abstract') continue;
       const match = s.title.match(/^([IVXLC]+)\.\s*(.*)/);
       items.push({ id: s.id, label: match?.[1] || s.title });
     }
     return items;
-  }, []);
+  }, [contextData]);
 
   useEffect(() => {
     fadeAnim.setValue(0);
@@ -582,11 +621,81 @@ export default function ReadTabContent({ scrollRef }: ReadTabContentProps) {
     ]).start();
   }, [fadeAnim, slideAnim]);
 
-  const abstractSection = preExileContext.sections.find(s => s.id === 'abstract');
-  const otherSections = preExileContext.sections.filter(s => s.id !== 'abstract');
-  const firstSectionText = abstractSection?.content || preExileContext.description;
+  const abstractSection = contextData.sections.find(s => s.id === 'abstract');
+  const otherSections = contextData.sections.filter(s => s.id !== 'abstract');
+  const firstSectionText = abstractSection?.content || contextData.description;
+
+  const baseStyles = useMemo(() => {
+    const r = accentRgb.r;
+    const g = accentRgb.g;
+    const b = accentRgb.b;
+    return StyleSheet.create({
+      headerBanner: {
+        backgroundColor: DARK_CARD,
+        borderWidth: 1.5,
+        borderColor: `rgba(${r},${g},${b},0.2)`,
+        borderRadius: 4,
+        padding: 20,
+        overflow: 'hidden',
+      },
+      abstractSection: {
+        backgroundColor: DARK_CARD,
+        borderWidth: 1.5,
+        borderColor: `rgba(${r},${g},${b},0.18)`,
+        borderRadius: 4,
+        padding: 20,
+        marginTop: 8,
+      },
+      footerCard: {
+        backgroundColor: DARK_CARD,
+        borderWidth: 1.5,
+        borderColor: `rgba(${r},${g},${b},0.15)`,
+        borderRadius: 4,
+        padding: 20,
+        alignItems: 'center',
+        gap: 12,
+        marginTop: 8,
+      },
+      footerBtn: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 7,
+        backgroundColor: `rgba(${r},${g},${b},0.1)`,
+        borderWidth: 1,
+        borderColor: `rgba(${r},${g},${b},0.25)`,
+        borderRadius: 4,
+        paddingHorizontal: 16,
+        paddingVertical: 10,
+      },
+      tocInner: {
+        backgroundColor: 'rgba(12, 20, 32, 0.95)',
+        borderWidth: 1,
+        borderColor: `rgba(${r},${g},${b},0.2)`,
+        borderRadius: 4,
+        overflow: 'hidden',
+      },
+      tocScroll: {
+        maxHeight: 44,
+        borderTopWidth: 1,
+        borderTopColor: `rgba(${r},${g},${b},0.12)`,
+      },
+      tocChip: {
+        borderWidth: 1,
+        borderColor: `rgba(${r},${g},${b},0.2)`,
+        borderRadius: 4,
+        paddingHorizontal: 10,
+        paddingVertical: 4,
+        backgroundColor: `rgba(${r},${g},${b},0.04)`,
+      },
+      tocChipActive: {
+        borderColor: accentColor,
+        backgroundColor: `rgba(${r},${g},${b},0.12)`,
+      },
+    });
+  }, [accentColor, accentRgb]);
 
   return (
+    <AccentColorContext.Provider value={accentCtx}>
       <Animated.View
         onLayout={handleLayoutRoot}
         style={[
@@ -596,14 +705,14 @@ export default function ReadTabContent({ scrollRef }: ReadTabContentProps) {
       >
         {/* ─────── SECTION INDEX (TOC) ─────── */}
         <View style={tocStyles.wrapper}>
-          <View style={tocStyles.inner}>
+          <View style={baseStyles.tocInner}>
             <Pressable
               style={tocStyles.toggleBtn}
               onPress={() => setTocOpen(o => !o)}
               hitSlop={8}
             >
-              <List size={16} color={GOLD} />
-              <Text style={tocStyles.toggleText}>
+              <List size={16} color={accentColor} />
+              <Text style={[tocStyles.toggleText, { color: accentColor }]}>
                 {tocOpen ? 'Close Index' : 'Section Index'}
               </Text>
             </Pressable>
@@ -613,14 +722,13 @@ export default function ReadTabContent({ scrollRef }: ReadTabContentProps) {
                 ref={tocScrollRef}
                 horizontal
                 showsHorizontalScrollIndicator={false}
-                style={tocStyles.scroll}
+                style={baseStyles.tocScroll}
                 contentContainerStyle={tocStyles.scrollContent}
               >
-                {/* Scroll to top */}
                 <Pressable
                   style={({ pressed }) => [
-                    tocStyles.chip,
-                    activeSection === '__header__' && tocStyles.chipActive,
+                    baseStyles.tocChip,
+                    activeSection === '__header__' && baseStyles.tocChipActive,
                     pressed && { opacity: 0.7 },
                   ]}
                   onPress={() => {
@@ -631,7 +739,7 @@ export default function ReadTabContent({ scrollRef }: ReadTabContentProps) {
                 >
                   <Text style={[
                     tocStyles.chipText,
-                    activeSection === '__header__' && tocStyles.chipTextActive,
+                    activeSection === '__header__' && { color: accentColor },
                   ]}>
                     Top
                   </Text>
@@ -641,15 +749,15 @@ export default function ReadTabContent({ scrollRef }: ReadTabContentProps) {
                   <Pressable
                     key={item.id}
                     style={({ pressed }) => [
-                      tocStyles.chip,
-                      activeSection === item.id && tocStyles.chipActive,
+                      baseStyles.tocChip,
+                      activeSection === item.id && baseStyles.tocChipActive,
                       pressed && { opacity: 0.7 },
                     ]}
                     onPress={() => scrollToSection(item.id)}
                   >
                     <Text style={[
                       tocStyles.chipText,
-                      activeSection === item.id && tocStyles.chipTextActive,
+                      activeSection === item.id && { color: accentColor },
                     ]}>
                       {item.label}
                     </Text>
@@ -662,127 +770,118 @@ export default function ReadTabContent({ scrollRef }: ReadTabContentProps) {
 
         {/* ─────── HEADER BANNER ─────── */}
         <View
-          style={styles.headerBanner}
+          style={baseStyles.headerBanner}
           onLayout={(e) => handleSectionLayout('__header__', e)}
         >
           <LinearGradient
-          colors={['rgba(213,167,72,0.08)', 'transparent']}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={[StyleSheet.absoluteFillObject, { borderRadius: 4 }]}
-        />
-        <Text style={styles.headerEyebrow}>PRE-EXILIC CONTEXT</Text>
-        <Text style={styles.headerTitle}>{preExileContext.title}</Text>
-        <Text style={styles.headerSubtitle}>{preExileContext.subtitle}</Text>
+            colors={[`rgba(${accentRgb.r},${accentRgb.g},${accentRgb.b},0.08)`, 'transparent']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={[StyleSheet.absoluteFillObject, { borderRadius: 4 }]}
+          />
+          <Text style={[styles.headerEyebrow, { color: accentColor }]}>{headerEyebrow}</Text>
+          <Text style={styles.headerTitle}>{contextData.title}</Text>
+          <Text style={[styles.headerSubtitle, { color: accentColor }]}>{contextData.subtitle}</Text>
 
-        <GoldDivider double />
+          <GoldDivider double />
 
-        <Text style={styles.headerDesc}>{preExileContext.description}</Text>
+          <Text style={styles.headerDesc}>{contextData.description}</Text>
 
-        {/* Relief image */}
-        <ImageFrame
-          source={require('../assets/images/pre_exile_header_relief.png')}
-          style={{ marginBottom: 4 }}
-        />
-      </View>
+          <ImageFrame
+            source={require('../assets/images/pre_exile_header_relief.png')}
+            style={{ marginBottom: 4 }}
+          />
+        </View>
 
         {/* ─────── ABSTRACT SECTION ─────── */}
         {abstractSection && (
           <View
-            style={styles.abstractSection}
+            style={baseStyles.abstractSection}
             onLayout={(e) => handleSectionLayout(abstractSection.id, e)}
           >
-          <View style={IS_WIDE ? styles.abstractRow : undefined}>
-            <View style={styles.abstractTextCol}>
-              <Text style={styles.abstractLabel}>Abstract</Text>
-              <GoldDivider double />
-              <DropCap text={firstSectionText} />
-            </View>
-
-            {IS_WIDE && (
-              <View style={styles.abstractImageCol}>
-                <ImageFrame
-                  source={require('../assets/images/ancient_babylon_engraving.png')}
-                />
+            <View style={IS_WIDE ? styles.abstractRow : undefined}>
+              <View style={styles.abstractTextCol}>
+                <Text style={[styles.abstractLabel, { color: accentColor }]}>Abstract</Text>
+                <GoldDivider double />
+                <DropCap text={firstSectionText} />
               </View>
-            )}
-          </View>
-        </View>
-      )}
 
-      {/* ─────── SECTIONS I – VIII ─────── */}
-      {otherSections.map((section, idx) => {
-        const numMatch = section.title.match(/^([IVXLC]+)\.\s*(.*)/);
-        const sectionNum = numMatch?.[1] || '';
-        const cleanTitle = numMatch?.[2] || section.title;
-
-        const isSectionII = sectionNum === 'II';
-
-        return (
-          <View
-            key={section.id}
-            style={styles.sectionWrapper}
-            onLayout={(e) => handleSectionLayout(section.id, e)}
-          >
-            {/* Ornate Section Header */}
-            {isSectionII ? (
-              <CalloutBox title={`${sectionNum}. ${cleanTitle}`}>
-                <SectionBody section={section} index={idx} />
-              </CalloutBox>
-            ) : (
-              <>
-                <SectionHeader number={sectionNum} title={cleanTitle} />
-
-                <SectionBody section={section} index={idx} />
-
-                {/* Insert judean_ruins image after Section I */}
-                {sectionNum === 'I' && (
+              {IS_WIDE && (
+                <View style={styles.abstractImageCol}>
                   <ImageFrame
-                    source={require('../assets/images/judean_ruins.png')}
+                    source={require('../assets/images/ancient_babylon_engraving.png')}
                   />
-                )}
-              </>
-            )}
-
-            <GoldDivider double />
+                </View>
+              )}
+            </View>
           </View>
-        );
-      })}
+        )}
 
-      {/* ─────── FOOTER CTA ─────── */}
-      <View style={styles.footerCard}>
-        <Scroll size={22} color={GOLD} style={{ opacity: 0.6 }} />
-        <Text style={styles.footerText}>
-          This study covers {preExileContext.sections.length} major sections of scholarship on the Babylonian captivity.
-        </Text>
-        <Pressable
-          style={({ pressed }) => [
-            styles.footerBtn,
-            pressed && { opacity: 0.8, transform: [{ scale: 0.97 }] },
-          ]}
-          onPress={() =>
-            router.push({ pathname: '/bible', params: { book: 'Daniel', chapter: '1' } })
-          }
-        >
-          <BookOpen size={14} color={GOLD} />
-          <Text style={styles.footerBtnText}>Open Daniel in Study Bible</Text>
-          <ChevronRight size={14} color={GOLD} />
-        </Pressable>
-      </View>
-    </Animated.View>
+        {/* ─────── SECTIONS I – VIII ─────── */}
+        {otherSections.map((section, idx) => {
+          const numMatch = section.title.match(/^([IVXLC]+)\.\s*(.*)/);
+          const sectionNum = numMatch?.[1] || '';
+          const cleanTitle = numMatch?.[2] || section.title;
+
+          const isSectionII = sectionNum === 'II';
+
+          return (
+            <View
+              key={section.id}
+              style={styles.sectionWrapper}
+              onLayout={(e) => handleSectionLayout(section.id, e)}
+            >
+              {isSectionII ? (
+                <CalloutBox title={`${sectionNum}. ${cleanTitle}`}>
+                  <SectionBody section={section} index={idx} />
+                </CalloutBox>
+              ) : (
+                <>
+                  <SectionHeader number={sectionNum} title={cleanTitle} />
+
+                  <SectionBody section={section} index={idx} />
+
+                  {sectionNum === 'I' && (
+                    <ImageFrame
+                      source={require('../assets/images/judean_ruins.png')}
+                    />
+                  )}
+                </>
+              )}
+
+              <GoldDivider double />
+            </View>
+          );
+        })}
+
+        {/* ─────── FOOTER CTA ─────── */}
+        <View style={baseStyles.footerCard}>
+          <Scroll size={22} color={accentColor} style={{ opacity: 0.6 }} />
+          <Text style={styles.footerText}>
+            This study covers {contextData.sections.length} major sections of scholarship on the {contextData.title}.
+          </Text>
+          <Pressable
+            style={({ pressed }) => [
+              baseStyles.footerBtn,
+              pressed && { opacity: 0.8, transform: [{ scale: 0.97 }] },
+            ]}
+            onPress={() =>
+              router.push({ pathname: '/bible', params: { book: 'Daniel', chapter: '1' } })
+            }
+          >
+            <BookOpen size={14} color={accentColor} />
+            <Text style={[styles.footerBtnText, { color: accentColor }]}>Open Daniel in Study Bible</Text>
+            <ChevronRight size={14} color={accentColor} />
+          </Pressable>
+        </View>
+      </Animated.View>
+    </AccentColorContext.Provider>
   );
 }
 
 const tocStyles = StyleSheet.create({
   wrapper: {
     marginBottom: 4,
-  },
-  inner: {
-    backgroundColor: 'rgba(12, 20, 32, 0.95)',
-    borderWidth: 1,
-    borderColor: 'rgba(213, 167, 72, 0.2)',
-    borderRadius: 4,
-    overflow: 'hidden',
   },
   toggleBtn: {
     flexDirection: 'row',
@@ -794,32 +893,14 @@ const tocStyles = StyleSheet.create({
   toggleText: {
     fontFamily: 'Cinzel',
     fontSize: 11,
-    color: GOLD,
     fontWeight: '600',
     letterSpacing: 1,
-  },
-  scroll: {
-    maxHeight: 44,
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(213, 167, 72, 0.12)',
   },
   scrollContent: {
     paddingHorizontal: 10,
     paddingVertical: 6,
     gap: 6,
     alignItems: 'center',
-  },
-  chip: {
-    borderWidth: 1,
-    borderColor: 'rgba(213, 167, 72, 0.2)',
-    borderRadius: 4,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    backgroundColor: 'rgba(213, 167, 72, 0.04)',
-  },
-  chipActive: {
-    borderColor: GOLD,
-    backgroundColor: 'rgba(213, 167, 72, 0.12)',
   },
   chipText: {
     fontFamily: 'Cinzel',
@@ -828,29 +909,15 @@ const tocStyles = StyleSheet.create({
     fontWeight: '600',
     letterSpacing: 0.5,
   },
-  chipTextActive: {
-    color: GOLD,
-  },
 });
 
 const styles = StyleSheet.create({
   container: {
     gap: 8,
   },
-
-  // Header Banner
-  headerBanner: {
-    backgroundColor: DARK_CARD,
-    borderWidth: 1.5,
-    borderColor: 'rgba(213,167,72,0.2)',
-    borderRadius: 4,
-    padding: 20,
-    overflow: 'hidden',
-  },
   headerEyebrow: {
     fontFamily: 'Cinzel',
     fontSize: 11,
-    color: GOLD,
     fontWeight: '700',
     letterSpacing: 2,
     marginBottom: 6,
@@ -866,7 +933,6 @@ const styles = StyleSheet.create({
   headerSubtitle: {
     fontFamily: 'Cinzel',
     fontSize: 13,
-    color: GOLD,
     fontWeight: '500',
     letterSpacing: 0.3,
     marginTop: 2,
@@ -878,14 +944,7 @@ const styles = StyleSheet.create({
     color: 'rgba(255,255,255,0.6)',
     marginBottom: 4,
   },
-
-  // Abstract
   abstractSection: {
-    backgroundColor: DARK_CARD,
-    borderWidth: 1.5,
-    borderColor: 'rgba(213,167,72,0.18)',
-    borderRadius: 4,
-    padding: 20,
     marginTop: 8,
   },
   abstractRow: {
@@ -902,26 +961,11 @@ const styles = StyleSheet.create({
   abstractLabel: {
     fontFamily: 'Cinzel',
     fontSize: 13,
-    color: GOLD,
     fontWeight: '700',
     letterSpacing: 1.5,
     textTransform: 'uppercase',
   },
-
-  // Sections
   sectionWrapper: {
-    marginTop: 8,
-  },
-
-  // Footer
-  footerCard: {
-    backgroundColor: DARK_CARD,
-    borderWidth: 1.5,
-    borderColor: 'rgba(213,167,72,0.15)',
-    borderRadius: 4,
-    padding: 20,
-    alignItems: 'center',
-    gap: 12,
     marginTop: 8,
   },
   footerText: {
@@ -931,21 +975,9 @@ const styles = StyleSheet.create({
     color: 'rgba(255,255,255,0.55)',
     textAlign: 'center',
   },
-  footerBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 7,
-    backgroundColor: 'rgba(213,167,72,0.1)',
-    borderWidth: 1,
-    borderColor: 'rgba(213,167,72,0.25)',
-    borderRadius: 4,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-  },
   footerBtnText: {
     fontFamily: 'Cinzel',
     fontSize: 12,
-    color: GOLD,
     fontWeight: '600',
   },
 });

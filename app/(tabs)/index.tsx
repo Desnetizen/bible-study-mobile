@@ -31,10 +31,7 @@ import { useAppReadiness } from '../../lib/app-readiness';
 import { formatActivityTime, useRecentActivity } from '../../lib/activity-tracker';
 import { useDanielProgress } from '../../lib/daniel-progress';
 import { useStreak } from '../../lib/useStreak';
-import { BadgeEarnedToast } from '../../components/BadgeEarnedToast';
-import { BadgePreviewModal } from '../../components/BadgePreviewModal';
-import { getEarnedBadges, useNewBadgeIds } from '../../lib/badges';
-import type { Badge } from '../../lib/badges';
+import { useNewBadgeIds } from '../../lib/badges';
 
 // expo-image doesn't need Animated wrapping — we wrap in Animated.View instead
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
@@ -377,21 +374,6 @@ export default function HomeTabScreen() {
   const displayDate = useMemo(() => formatDisplayDate(), []);
 
   const newBadgeIds = useNewBadgeIds();
-  const [selectedBadge, setSelectedBadge] = useState<Badge | null>(null);
-  const [toastBadges, setToastBadges] = useState<Badge[]>([]);
-  const prevCompletedRef = useRef<number[]>([]);
-
-  useEffect(() => {
-    const prev = prevCompletedRef.current;
-    if (prev.length > 0 && completedChapters.length > prev.length) {
-      const newlyCompleted = completedChapters.filter(ch => !prev.includes(ch));
-      const earned = getEarnedBadges(newlyCompleted);
-      if (earned.length > 0) {
-        setToastBadges(earned);
-      }
-    }
-    prevCompletedRef.current = [...completedChapters];
-  }, [completedChapters]);
 
   const completedCount = completedChapters.length;
   const progressPercent = Math.round((completedCount / STUDY_TOTAL_CHAPTERS) * 100);
@@ -893,18 +875,6 @@ export default function HomeTabScreen() {
         </Animated.ScrollView>
       )}
 
-      {/* Toast overlay */}
-      <View style={StyleSheet.absoluteFill} pointerEvents="box-none">
-        <BadgeEarnedToast
-          badges={toastBadges}
-          onComplete={() => setToastBadges([])}
-          onPress={(badge) => setSelectedBadge(badge)}
-        />
-      </View>
-      <BadgePreviewModal
-        badge={selectedBadge}
-        onClose={() => setSelectedBadge(null)}
-      />
     </View>
   );
 }
