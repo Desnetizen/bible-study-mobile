@@ -1,13 +1,15 @@
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import * as SplashScreen from 'expo-splash-screen';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import 'react-native-reanimated';
 
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import AnimatedSplashScreen from '@/components/AnimatedSplashScreen';
+import { AppReadinessProvider, useAppReadiness } from '@/lib/app-readiness';
+import { preloadStartupImages } from '@/lib/startup-assets';
 
 // Prevent the native splash screen from auto-hiding
 SplashScreen.preventAutoHideAsync().catch(() => {});
@@ -17,30 +19,49 @@ export const unstable_settings = {
 };
 
 export default function RootLayout() {
+  return (
+    <AppReadinessProvider>
+      <RootLayoutContent />
+    </AppReadinessProvider>
+  );
+}
+
+function RootLayoutContent() {
   const colorScheme = useColorScheme();
-  const [appIsReady, setAppIsReady] = useState(false);
-  const [splashAnimationComplete, setSplashAnimationComplete] = useState(false);
+  const { appContentReady, splashAnimationComplete, markAppContentReady, markSplashAnimationComplete } = useAppReadiness();
+  const [nativeSplashHidden, setNativeSplashHidden] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
-    const readyTimer = setTimeout(() => {
-      if (isMounted) {
-        setAppIsReady(true);
-      }
-    }, 350);
+
+    void SplashScreen.hideAsync()
+      .catch(() => {})
+      .finally(() => {
+        if (isMounted) {
+          setNativeSplashHidden(true);
+        }
+      });
 
     return () => {
       isMounted = false;
-      clearTimeout(readyTimer);
     };
   }, []);
 
   useEffect(() => {
-    if (appIsReady) {
-      // Hide the native splash screen once custom splash screen has mounted
-      SplashScreen.hideAsync().catch(() => {});
-    }
-  }, [appIsReady]);
+    let isMounted = true;
+
+    void preloadStartupImages().finally(() => {
+      if (isMounted) {
+        markAppContentReady();
+      }
+    });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [markAppContentReady]);
+
+  const appIsReady = nativeSplashHidden && appContentReady;
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
@@ -49,13 +70,15 @@ export default function RootLayout() {
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
           <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
           <Stack.Screen name="recent-activity" options={{ headerShown: false }} />
+          <Stack.Screen name="badges" options={{ headerShown: false }} />
+          <Stack.Screen name="pre-exilic-detail" options={{ headerShown: false }} />
         </Stack>
         <StatusBar style="auto" />
 
         {!splashAnimationComplete && (
           <AnimatedSplashScreen
             isReady={appIsReady}
-            onAnimationComplete={() => setSplashAnimationComplete(true)}
+            onAnimationComplete={markSplashAnimationComplete}
           />
         )}
       </ThemeProvider>

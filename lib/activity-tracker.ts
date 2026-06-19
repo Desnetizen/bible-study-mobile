@@ -16,7 +16,8 @@ export type ActivityType =
   | 'bookmark_added'
   | 'verse_highlighted'
   | 'character_explored'
-  | 'chapter_opened';
+  | 'chapter_opened'
+  | 'timeline_event_read';
 
 export type ActivityItem = {
   id?: number;

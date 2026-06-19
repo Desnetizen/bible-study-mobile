@@ -68,6 +68,22 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
+        name="timeline"
+        options={{
+          title: 'Timeline',
+          tabBarActiveTintColor: '#E8A838',
+          tabBarInactiveTintColor: '#8B7D6B',
+          tabBarIcon: ({ color }) => (
+            <Image
+              source={require('../../assets/Icons/Timeline.png')}
+              style={{ width: 24, height: 24 }}
+              tintColor={color}
+              contentFit="contain"
+            />
+          ),
+        }}
+      />
+      <Tabs.Screen
         name="characters"
         options={{
           title: 'Characters',

@@ -101,6 +101,12 @@ export default function RecentActivityScreen() {
         color = '#06b6d4'; // Cyan
         bg = 'rgba(6, 182, 212, 0.12)';
         actionLabel = 'Chapter Opened';
+      } else if (lower.includes('timeline')) {
+        type = 'explored';
+        icon = Compass;
+        color = '#E8A838';
+        bg = 'rgba(232, 168, 56, 0.12)';
+        actionLabel = 'Timeline Event';
       }
 
       return {

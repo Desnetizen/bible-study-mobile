@@ -88,6 +88,18 @@ function makeRange(start, end) {
   return Array.from({ length: max - min + 1 }, (_, index) => min + index);
 }
 
+const MAX_CACHE_ENTRIES = 30;
+
+const FONT_SIZE_OPTIONS = [16, 18, 20, 22, 24];
+
+function setCacheEntry(cacheRef, key, value) {
+  const keys = Object.keys(cacheRef.current);
+  if (keys.length >= MAX_CACHE_ENTRIES) {
+    delete cacheRef.current[keys[0]];
+  }
+  cacheRef.current[key] = value;
+}
+
 async function fetchJson(url, signal) {
   const response = await fetch(url, { signal });
 
@@ -217,7 +229,6 @@ function BibleReaderScreen({
   setBibleBook,
   bibleChapter,
   setBibleChapter,
-  setChapter,
   selectableBibleBooks,
   bibleChapterCount,
   loading,
@@ -252,6 +263,8 @@ function BibleReaderScreen({
   openCrossReference,
   DANIEL_BOOK_NAME: danielBookName,
   SCRIPTURE_VERSIONS,
+  fontSize,
+  setFontSize,
 }) {
   const insets = useSafeAreaInsets();
   const scheme = useColorScheme();
@@ -389,9 +402,6 @@ function BibleReaderScreen({
 
       setBibleBook(nextBookName);
       setBibleChapter(1);
-      if (nextBookName === danielBookName) {
-        setChapter(1);
-      }
       clearRangeSelection();
       closeLongPressMenu();
       clearSelectionState();
@@ -401,10 +411,8 @@ function BibleReaderScreen({
       clearSelectionState,
       closeLongPressMenu,
       confirmDiscardUnsaved,
-      danielBookName,
       setBibleBook,
       setBibleChapter,
-      setChapter,
     ]
   );
 
@@ -415,22 +423,16 @@ function BibleReaderScreen({
       }
 
       setBibleChapter(nextChapter);
-      if (bibleBook === danielBookName) {
-        setChapter(nextChapter);
-      }
       clearRangeSelection();
       closeLongPressMenu();
       clearSelectionState();
     },
     [
-      bibleBook,
       clearRangeSelection,
       clearSelectionState,
       closeLongPressMenu,
       confirmDiscardUnsaved,
-      danielBookName,
       setBibleChapter,
-      setChapter,
     ]
   );
 
@@ -475,17 +477,30 @@ function BibleReaderScreen({
       }
 
       clearRangeSelection();
+      setSelectedVerse(verse);
+      setVerseNote(getSavedNoteForVerse(verse.verse));
     },
     [
       clearRangeSelection,
       closeLongPressMenu,
       confirmDiscardUnsaved,
+      getSavedNoteForVerse,
       selectedVerse,
       selectionEnd,
       selectionStart,
       setSelectionEnd,
+      setSelectedVerse,
+      setVerseNote,
     ]
   );
+
+  const handleTextButtonPress = useCallback(() => {
+    setFontSize((current) => {
+      const currentIndex = FONT_SIZE_OPTIONS.indexOf(current);
+      const nextIndex = currentIndex === -1 ? 0 : (currentIndex + 1) % FONT_SIZE_OPTIONS.length;
+      return FONT_SIZE_OPTIONS[nextIndex];
+    });
+  }, [setFontSize]);
 
   const setMenuFromMeasuredVerse = useCallback(
     (verseNumber, node) => {
@@ -765,13 +780,14 @@ function BibleReaderScreen({
                 accessibilityRole="button"
                 accessibilityLabel="Text settings"
                 hitSlop={10}
-                onPress={() => { }}
+                onPress={handleTextButtonPress}
                 style={({ pressed }) => [
                   styles.textButton,
                   {
                     backgroundColor: pressed ? colors.rowPressed : 'transparent',
                   },
-                ]}>
+                ]}
+              >
                 <Text style={[styles.textButtonLabel, { color: colors.text }]}>Aa</Text>
               </Pressable>
             </View>
@@ -972,7 +988,7 @@ function BibleReaderScreen({
                           },
                         ]}>
                         <Text style={[styles.verseNumber, { color: colors.subtext }]}>{verse.verse}</Text>
-                        <Text selectable style={[styles.verseText, { color: colors.text }]}>
+                        <Text selectable style={[styles.verseText, { color: colors.text, fontSize }]}>
                           {verse.text}
                         </Text>
                       </Pressable>
@@ -1204,6 +1220,7 @@ export default function BiblePage() {
   const [selectionEnd, setSelectionEnd] = useState(null);
   const [selectedVerse, setSelectedVerse] = useState(null);
   const [verseNote, setVerseNote] = useState('');
+  const [fontSize, setFontSize] = useState(20);
   const [savedNotes, setSavedNotes] = useState({});
   const [bookmarks, setBookmarks] = useState([]);
   const [highlightedVerses, setHighlightedVerses] = useState([]);
@@ -1233,8 +1250,8 @@ export default function BiblePage() {
   );
 
   const getNoteKey = useCallback(
-    (book, chapter, verseNumber) => `${scriptureVersion}:${book}:${chapter}:${verseNumber}`,
-    [scriptureVersion]
+    (book, chapter, verseNumber) => `${book}:${chapter}:${verseNumber}`,
+    []
   );
 
   const clearChapterState = useCallback(() => {
@@ -1273,7 +1290,7 @@ export default function BiblePage() {
         }))
         : [];
 
-      versesCacheRef.current[cacheKey] = nextVerses;
+      setCacheEntry(versesCacheRef, cacheKey, nextVerses);
       setBibleText(nextVerses);
     } catch (fetchError) {
       if (fetchError.name !== 'AbortError') {
@@ -1326,7 +1343,7 @@ export default function BiblePage() {
           }, [])
           : [];
 
-        chaptersCacheRef.current[cacheKey] = nextChapters;
+        setCacheEntry(chaptersCacheRef, cacheKey, nextChapters);
         setChapters(nextChapters);
 
         const targetChapter = nextChapters.includes(preferredChapter)
@@ -1377,7 +1394,7 @@ export default function BiblePage() {
           throw new Error('No books found.');
         }
 
-        booksCacheRef.current[translationId] = nextBooks;
+        setCacheEntry(booksCacheRef, translationId, nextBooks);
         setBooks(nextBooks);
         setTranslationName(data.translation?.name ?? 'Bible Translation');
 
@@ -1426,8 +1443,6 @@ export default function BiblePage() {
     },
     [bibleBook, clearChapterState, loadVerses, scriptureVersion, selectedBookId]
   );
-
-  const setChapter = useCallback(() => { }, []);
 
   const navigateToReference = useCallback(
     (bookName, chapter, startVerse = null, endVerse = startVerse) => {
@@ -1525,16 +1540,14 @@ export default function BiblePage() {
   );
 
   useEffect(() => {
-    let active = true;
-
     if (!selectedVerse || bibleBook !== DANIEL_BOOK_NAME) {
       setCrossReferences([]);
       setCrossReferencesLoading(false);
       setCrossReferencesLoaded(false);
-      return () => {
-        active = false;
-      };
+      return;
     }
+
+    let active = true;
 
     const cacheKey = `${bibleBook}:${bibleChapter}:${selectedVerse.verse}`;
     const cachedCrossReferences = crossReferencesCacheRef.current[cacheKey];
@@ -1557,7 +1570,7 @@ export default function BiblePage() {
           return;
         }
 
-        crossReferencesCacheRef.current[cacheKey] = nextCrossReferences;
+        setCacheEntry(crossReferencesCacheRef, cacheKey, nextCrossReferences);
         setCrossReferences(nextCrossReferences);
         setCrossReferencesLoaded(true);
       })
@@ -1659,6 +1672,7 @@ export default function BiblePage() {
       return;
     }
 
+    let timeoutId;
     let cancelled = false;
     let attempts = 0;
 
@@ -1679,7 +1693,7 @@ export default function BiblePage() {
 
       if (attempts < 8) {
         attempts += 1;
-        setTimeout(tryScrollToVerse, 50);
+        timeoutId = setTimeout(tryScrollToVerse, 50);
       }
     };
 
@@ -1687,6 +1701,7 @@ export default function BiblePage() {
 
     return () => {
       cancelled = true;
+      clearTimeout(timeoutId);
     };
   }, [bibleBook, bibleChapter, bibleText.length, loading]);
 
@@ -1752,7 +1767,6 @@ export default function BiblePage() {
         setBibleBook={setBibleBook}
         bibleChapter={bibleChapter}
         setBibleChapter={setBibleChapter}
-        setChapter={setChapter}
         selectableBibleBooks={books.map((book) => ({ name: book.name }))}
         bibleChapterCount={chapters.length || 1}
         loading={loading}
@@ -1787,6 +1801,8 @@ export default function BiblePage() {
         openCrossReference={openCrossReference}
         DANIEL_BOOK_NAME={DANIEL_BOOK_NAME}
         SCRIPTURE_VERSIONS={SCRIPTURE_VERSIONS}
+        fontSize={fontSize}
+        setFontSize={setFontSize}
       />
       <ChapterCompleteModal
         visible={showCompleteModal}
@@ -1795,7 +1811,9 @@ export default function BiblePage() {
         onClose={() => setShowCompleteModal(false)}
         onNextChapter={() => {
           setShowCompleteModal(false);
-          setBibleChapter(bibleChapter + 1);
+          if (bibleChapter < chapters.length) {
+            setBibleChapter(bibleChapter + 1);
+          }
         }}
       />
     </>
@@ -2043,7 +2061,6 @@ const styles = StyleSheet.create({
   },
   verseText: {
     flex: 1,
-    fontSize: 20,
     lineHeight: 35,
   },
   completeWrap: {

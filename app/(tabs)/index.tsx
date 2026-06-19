@@ -1,29 +1,40 @@
+import { BlurView } from 'expo-blur';
+import { BadgeSection } from '../../components/BadgeSection';
 import { Image, ImageBackground } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Href, Link, router } from 'expo-router';
-import { ArrowRight, BookOpen, CalendarDays, Gift, NotebookPen, Bookmark, Compass } from 'lucide-react-native';
-import { ComponentProps, ComponentType, useCallback, useEffect, useMemo, useState } from 'react';
+import { ArrowRight, Bookmark, BookOpen, CalendarDays, Compass, Gift, NotebookPen } from 'lucide-react-native';
+import { ComponentProps, ComponentType, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, StatusBar, StyleSheet, Text, View } from 'react-native';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
   Extrapolation,
   FadeInDown,
   FadeInUp,
   interpolate,
+  runOnJS,
+  useAnimatedReaction,
   useAnimatedScrollHandler,
   useAnimatedStyle,
   useSharedValue,
+  withRepeat,
   withSpring,
   withTiming,
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Svg, { Circle } from 'react-native-svg';
+import Svg, { Circle, Defs, RadialGradient, Rect, Stop } from 'react-native-svg';
 import { StreakBadge } from '../../components/StreakBadge';
 import { ImageSkeleton, Skeleton, TextSkeleton } from '../../components/ui/Skeleton';
 import { DANIEL_CHAPTERS, formatDisplayDate, RECENT_ACTIVITY } from '../../constants/bible-connection';
-import { useRecentActivity, formatActivityTime } from '../../lib/activity-tracker';
-import { KEY_VERSES } from '../../constants/key-verses';
+import { BIBLE_VERSES } from '../../constants/bible-verse';
+import { useAppReadiness } from '../../lib/app-readiness';
+import { formatActivityTime, useRecentActivity } from '../../lib/activity-tracker';
 import { useDanielProgress } from '../../lib/daniel-progress';
 import { useStreak } from '../../lib/useStreak';
+import { BadgeEarnedToast } from '../../components/BadgeEarnedToast';
+import { BadgePreviewModal } from '../../components/BadgePreviewModal';
+import { getEarnedBadges, useNewBadgeIds } from '../../lib/badges';
+import type { Badge } from '../../lib/badges';
 
 // expo-image doesn't need Animated wrapping — we wrap in Animated.View instead
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
@@ -47,7 +58,7 @@ const quickAccessItems: QuickAccessItem[] = [
   { title: 'Daniel Study', subtitle: 'Explore the book of Daniel chapter by chapter with interactive tools.', icon: require('../../assets/Icons/crown.png'), buttonText: 'Open', color: '#2463ff', href: '/daniel-study' },
   { title: 'Historical Context', subtitle: 'Discover the historical background from Prophets and Kings.', icon: require('../../assets/Icons/Building.png'), buttonText: 'Open', color: '#ff9500', href: '/historical-context' },
   { title: 'Connections', subtitle: 'See how verses, events, and themes connect across Scripture.', icon: require('../../assets/Icons/Connection.png'), buttonText: 'Explore', color: '#10b981' },
-  { title: 'Timeline', subtitle: 'Walk through biblical history from Babylon to Medo-Persia and beyond.', icon: require('../../assets/Icons/Timeline.png'), buttonText: 'View Timeline', color: '#a855f7' },
+  { title: 'Timeline', subtitle: 'Walk through biblical history from Babylon to Medo-Persia and beyond.', icon: require('../../assets/Icons/Timeline.png'), buttonText: 'View Timeline', color: '#e8a838', href: '/timeline' as Href },
   { title: 'Patterns', subtitle: 'Discover recurring themes and prophetic patterns in Daniel.', icon: require('../../assets/Icons/Patterns.png'), buttonText: 'Discover', color: '#06b6d4' },
   { title: 'Notes', subtitle: 'Your saved notes and highlights from your Bible study journey.', icon: require('../../assets/Icons/Notes.png'), buttonText: 'View Notes', color: '#3b82f6' },
 ];
@@ -91,7 +102,7 @@ function parseVerseReference(reference: string) {
   };
 }
 
-const DAILY_KEY_VERSES: DailyVerse[] = KEY_VERSES.map((verse) => {
+const ROTATING_KEY_VERSES: DailyVerse[] = BIBLE_VERSES.map((verse) => {
   const parsedReference = parseVerseReference(verse.reference);
 
   if (!parsedReference) {
@@ -111,12 +122,11 @@ const DAILY_KEY_VERSES: DailyVerse[] = KEY_VERSES.map((verse) => {
   };
 });
 
-function getDailyKeyVerse(date = new Date()) {
-  const start = Date.UTC(date.getFullYear(), 0, 0);
-  const today = Date.UTC(date.getFullYear(), date.getMonth(), date.getDate());
-  const dayOfYear = Math.floor((today - start) / 86_400_000);
+function getRotatingKeyVerse(date = new Date()) {
+  const rotationWindow = 4 * 60 * 1000;
+  const slotIndex = Math.floor(date.getTime() / rotationWindow);
 
-  return DAILY_KEY_VERSES[dayOfYear % DAILY_KEY_VERSES.length];
+  return ROTATING_KEY_VERSES[slotIndex % ROTATING_KEY_VERSES.length];
 }
 
 const chapterShowcase = {
@@ -168,8 +178,33 @@ const chapterShowcase = {
 
 function QuickAccessCard({ item, index }: { item: typeof quickAccessItems[number]; index: number }) {
   const scale = useSharedValue(1);
+  // CHANGE 8 — 3D Tilt shared values
+  const tiltX = useSharedValue(0);
+  const tiltY = useSharedValue(0);
+
   const animatedCard = useAnimatedStyle(() => ({
     transform: [{ scale: scale.get() }],
+  }));
+
+  // CHANGE 8 — Pan gesture for 3D tilt
+  const panGesture = Gesture.Pan()
+    .onUpdate((e) => {
+      'worklet';
+      tiltY.set(Math.min(8, Math.max(-8, e.translationX / 4)));
+      tiltX.set(Math.min(8, Math.max(-8, -e.translationY / 4)));
+    })
+    .onEnd(() => {
+      'worklet';
+      tiltX.set(withSpring(0));
+      tiltY.set(withSpring(0));
+    });
+
+  const animatedTilt = useAnimatedStyle(() => ({
+    transform: [
+      { perspective: 800 },
+      { rotateX: `${tiltX.get()}deg` },
+      { rotateY: `${tiltY.get()}deg` },
+    ],
   }));
 
   return (
@@ -177,41 +212,65 @@ function QuickAccessCard({ item, index }: { item: typeof quickAccessItems[number
       entering={FadeInDown.delay(300 + index * 60).springify()}
       style={styles.quickAccessCardWrapper}
     >
-      <AnimatedPressable
-        onPress={() => router.push(item.href ?? '/bible')}
-        onPressIn={() => {
-          scale.set(withSpring(0.96));
-        }}
-        onPressOut={() => {
-          scale.set(withSpring(1));
-        }}
-        style={animatedCard}
-      >
-        <View style={[styles.quickAccessCard, { borderColor: item.color + '40' }]}>
-          <SharedAnimatedView
-            sharedTransitionTag={`quickaccess-icon-${index}`}
-            style={[styles.quickAccessIconLarge, { backgroundColor: item.color }]}
+      <GestureDetector gesture={panGesture}>
+        <Animated.View style={animatedTilt}>
+          <AnimatedPressable
+            onPress={() => router.push(item.href ?? '/bible')}
+            onPressIn={() => {
+              scale.set(withSpring(0.96));
+            }}
+            onPressOut={() => {
+              scale.set(withSpring(1));
+            }}
+            style={animatedCard}
           >
-            <Image source={item.icon} style={styles.quickAccessCardIcon} contentFit="contain" cachePolicy="memory-disk" />
-          </SharedAnimatedView>
-          <SharedAnimatedText sharedTransitionTag={`quickaccess-title-${index}`} style={styles.quickAccessCardTitle}>
-            {item.title}
-          </SharedAnimatedText>
-          <Text style={styles.quickAccessCardDescription}>{item.subtitle}</Text>
-          <View style={[styles.quickAccessButton, { backgroundColor: item.color + '20', borderColor: item.color }]}>
-            <Text style={[styles.quickAccessButtonText, { color: item.color }]}>{item.buttonText}</Text>
-          </View>
-        </View>
-      </AnimatedPressable>
+            {/* CHANGE 5 — Glassmorphism BlurView card */}
+            <BlurView intensity={18} tint="dark" style={[styles.quickAccessCard, { borderColor: item.color + '40' }]}>
+              <View style={styles.quickAccessCardGlassInner}>
+                <SharedAnimatedView
+                  sharedTransitionTag={`quickaccess-icon-${index}`}
+                  style={[styles.quickAccessIconLarge, { backgroundColor: item.color }]}
+                >
+                  <Image source={item.icon} style={styles.quickAccessCardIcon} contentFit="contain" cachePolicy="memory-disk" />
+                </SharedAnimatedView>
+                <SharedAnimatedText sharedTransitionTag={`quickaccess-title-${index}`} style={styles.quickAccessCardTitle}>
+                  {item.title}
+                </SharedAnimatedText>
+                <Text style={styles.quickAccessCardDescription}>{item.subtitle}</Text>
+                <View style={[styles.quickAccessButton, { backgroundColor: item.color + '20', borderColor: item.color }]}>
+                  <Text style={[styles.quickAccessButtonText, { color: item.color }]}>{item.buttonText}</Text>
+                </View>
+              </View>
+            </BlurView>
+          </AnimatedPressable>
+        </Animated.View>
+      </GestureDetector>
     </Animated.View>
   );
 }
 
 function ProgressRing({ progress }: { progress: number }) {
   const clampedProgress = Math.min(100, Math.max(0, progress));
+  const animatedProgress = useSharedValue(0);
+  const [displayedProgress, setDisplayedProgress] = useState(0);
   const radius = (PROGRESS_RING_SIZE - PROGRESS_RING_STROKE) / 2;
   const circumference = 2 * Math.PI * radius;
   const strokeDashoffset = circumference * (1 - clampedProgress / 100);
+
+  useEffect(() => {
+    animatedProgress.set(0);
+    animatedProgress.set(withTiming(clampedProgress, { duration: 1200 }));
+  }, [animatedProgress, clampedProgress]);
+
+  useAnimatedReaction(
+    () => Math.floor(animatedProgress.get()),
+    (currentValue, previousValue) => {
+      if (currentValue !== previousValue) {
+        runOnJS(setDisplayedProgress)(currentValue);
+      }
+    },
+    [animatedProgress]
+  );
 
   return (
     <View
@@ -243,7 +302,7 @@ function ProgressRing({ progress }: { progress: number }) {
         />
       </Svg>
       <View style={styles.progressRingCenter}>
-        <Text style={styles.progressRingText}>{`${clampedProgress}%`}</Text>
+        <Text style={styles.progressRingText}>{`${displayedProgress}%`}</Text>
       </View>
     </View>
   );
@@ -277,6 +336,7 @@ function SegmentedProgressBar({
 
 export default function HomeTabScreen() {
   const insets = useSafeAreaInsets();
+  const { splashAnimationComplete } = useAppReadiness();
   const placeImages = useMemo(
     () => [
       require('../../assets/Places/Ancient Jerusalem.jpg'),
@@ -308,15 +368,30 @@ export default function HomeTabScreen() {
   const { streakCount, recordToday } = useStreak();
   const recentActivities = useRecentActivity(3);
   const initialVerseIndex = useMemo(() => {
-    const start = Date.UTC(new Date().getFullYear(), 0, 0);
-    const today = Date.UTC(new Date().getFullYear(), new Date().getMonth(), new Date().getDate());
-    const dayOfYear = Math.floor((today - start) / 86_400_000);
-
-    return dayOfYear % DAILY_KEY_VERSES.length;
+    const now = Date.now();
+    const rotationWindow = 4 * 60 * 1000;
+    return Math.floor(now / rotationWindow) % ROTATING_KEY_VERSES.length;
   }, []);
   const [currentVerseIndex, setCurrentVerseIndex] = useState(initialVerseIndex);
-  const dailyVerse = DAILY_KEY_VERSES[currentVerseIndex] ?? getDailyKeyVerse();
+  const dailyVerse = ROTATING_KEY_VERSES[currentVerseIndex] ?? getRotatingKeyVerse();
   const displayDate = useMemo(() => formatDisplayDate(), []);
+
+  const newBadgeIds = useNewBadgeIds();
+  const [selectedBadge, setSelectedBadge] = useState<Badge | null>(null);
+  const [toastBadges, setToastBadges] = useState<Badge[]>([]);
+  const prevCompletedRef = useRef<number[]>([]);
+
+  useEffect(() => {
+    const prev = prevCompletedRef.current;
+    if (prev.length > 0 && completedChapters.length > prev.length) {
+      const newlyCompleted = completedChapters.filter(ch => !prev.includes(ch));
+      const earned = getEarnedBadges(newlyCompleted);
+      if (earned.length > 0) {
+        setToastBadges(earned);
+      }
+    }
+    prevCompletedRef.current = [...completedChapters];
+  }, [completedChapters]);
 
   const completedCount = completedChapters.length;
   const progressPercent = Math.round((completedCount / STUDY_TOTAL_CHAPTERS) * 100);
@@ -328,7 +403,6 @@ export default function HomeTabScreen() {
   const nextChapterData = DANIEL_CHAPTERS.find((chapter) => chapter.chapter === nextChapter) ?? DANIEL_CHAPTERS[0];
   const showcase = chapterShowcase[nextChapter as keyof typeof chapterShowcase];
   const chapterArtwork = showcase?.image;
-  const chapterGradient = showcase?.gradient ?? ['rgba(14, 28, 58, 0.14)', 'rgba(15, 31, 69, 0.96)'];
 
   const onScroll = useAnimatedScrollHandler((event) => {
     scrollY.set(event.contentOffset.y);
@@ -336,6 +410,30 @@ export default function HomeTabScreen() {
 
   const heroParallax = useAnimatedStyle(() => ({
     transform: [{ translateY: interpolate(scrollY.get(), [0, 300], [0, -80], Extrapolation.CLAMP) }],
+  }));
+
+  // CHANGE 6 — Verse card parallax artwork
+  const verseParallax = useAnimatedStyle(() => ({
+    transform: [{ translateY: interpolate(scrollY.get(), [0, 600], [0, -40], Extrapolation.CLAMP) }],
+  }));
+
+  // CHANGE 3 — Shiny sweep shared value for Continue button
+  const shinySweepX = useSharedValue(-200);
+  useEffect(() => {
+    shinySweepX.set(withRepeat(withTiming(400, { duration: 2200 }), -1, false));
+  }, [shinySweepX]);
+  const shinySweepStyle = useAnimatedStyle(() => ({
+    transform: [{ translateX: shinySweepX.get() }, { rotate: '20deg' }],
+  }));
+
+  // CHANGE 7 — Aurora glow shared value for Study card
+  const auroraOpacity = useSharedValue(0.10);
+  useEffect(() => {
+    auroraOpacity.set(withRepeat(withTiming(0.22, { duration: 3000 }), -1, true));
+  }, [auroraOpacity]);
+
+  const auroraGlowStyle = useAnimatedStyle(() => ({
+    opacity: auroraOpacity.get(),
   }));
 
   const currentHeroImageStyle = useAnimatedStyle(() => ({
@@ -348,11 +446,18 @@ export default function HomeTabScreen() {
         setPreviousPlaceImageIndex(prevIndex);
         return (prevIndex + 1) % placeImages.length;
       });
-      setCurrentVerseIndex((prevIndex) => (prevIndex + 1) % DAILY_KEY_VERSES.length);
     }, 2 * 60 * 1000);
 
     return () => clearInterval(intervalId);
   }, [placeImages.length]);
+
+  useEffect(() => {
+    const intervalId = setInterval(() => {
+      setCurrentVerseIndex((prevIndex) => (prevIndex + 1) % ROTATING_KEY_VERSES.length);
+    }, 4 * 60 * 1000);
+
+    return () => clearInterval(intervalId);
+  }, []);
 
   useEffect(() => {
     heroImageOpacity.set(0);
@@ -388,12 +493,13 @@ export default function HomeTabScreen() {
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor="#040f2d" />
-      <Animated.ScrollView
-        style={styles.streamScroll}
-        contentContainerStyle={styles.streamContent}
-        onScroll={onScroll}
-        scrollEventThrottle={16}
-      >
+      {splashAnimationComplete && (
+        <Animated.ScrollView
+          style={styles.streamScroll}
+          contentContainerStyle={styles.streamContent}
+          onScroll={onScroll}
+          scrollEventThrottle={16}
+        >
         {/* Hero Banner */}
         <Animated.View entering={FadeInDown.delay(80).springify()} style={styles.heroRow}>
           <View style={styles.heroCard}>
@@ -465,7 +571,18 @@ export default function HomeTabScreen() {
               </Animated.View>
               <Animated.View entering={FadeInDown.delay(140).springify()} style={styles.heroTextBlock}>
                 <Text style={styles.heroKicker}>Welcome back,</Text>
-                <Text style={styles.heroHeading}>Desvorn!</Text>
+                {/* CHANGE 4 — SplitText Hero Heading */}
+                <View style={styles.heroHeadingSplitRow}>
+                  {'Desvorn!'.split('').map((char, index) => (
+                    <Animated.Text
+                      key={`hero-char-${index}`}
+                      entering={FadeInDown.delay(200 + index * 40).springify()}
+                      style={styles.heroHeading}
+                    >
+                      {char}
+                    </Animated.Text>
+                  ))}
+                </View>
                 <Text style={styles.heroDescription}>Continue your journey through Daniel and discover the connections in God&apos;s Word.</Text>
               </Animated.View>
             </View>
@@ -474,6 +591,18 @@ export default function HomeTabScreen() {
 
         {/* Continue Study */}
         <Animated.View entering={FadeInDown.delay(200).springify()} style={styles.studyCard}>
+          {/* CHANGE 7 — Aurora Glow behind study card artwork */}
+          <Animated.View style={[styles.auroraGlowSvg, auroraGlowStyle]} pointerEvents="none">
+            <Svg width="100%" height={240}>
+              <Defs>
+                <RadialGradient id="auroraGrad" cx="30%" cy="50%" r="50%">
+                  <Stop offset="0" stopColor="#2463ff" stopOpacity={1} />
+                  <Stop offset="1" stopColor="transparent" stopOpacity={0} />
+                </RadialGradient>
+              </Defs>
+              <Rect x="0" y="0" width="100%" height="240" fill="url(#auroraGrad)" />
+            </Svg>
+          </Animated.View>
           {/* Skeleton placeholder while chapter artwork loads */}
           {!studyImageLoaded && (
             <View style={styles.studySkeletonWrap}>
@@ -491,102 +620,111 @@ export default function HomeTabScreen() {
             </View>
           )}
           {/* Full-bleed chapter artwork background */}
-          <Animated.View style={[{ flex: 1 }, studyLoadedAnimStyle]}>
-          <ImageBackground
-            source={chapterArtwork ?? undefined}
-            contentFit="cover"
-            cachePolicy="memory-disk"
-            transition={300}
-            imageStyle={styles.studyBgImage}
-            style={styles.studyBgFill}
-            onLoad={onStudyImageLoad}
-          >
-            {/* Left-to-right dark gradient overlay (dark on the left for text readability, transparent on the right for artwork visibility) */}
-            <LinearGradient
-              colors={['rgba(3,10,28,0.95)', 'rgba(3,10,28,0.6)', 'rgba(3,10,28,0.15)']}
-              start={{ x: 0, y: 0.5 }}
-              end={{ x: 1, y: 0.5 }}
-              style={StyleSheet.absoluteFillObject}
-            />
-            {/* Bottom navy fade */}
-            <LinearGradient
-              colors={['transparent', 'rgba(3,10,28,0.85)', 'rgba(3,10,28,0.98)']}
-              locations={[0, 0.55, 1]}
-              start={{ x: 0.5, y: 0 }}
-              end={{ x: 0.5, y: 1 }}
-              style={StyleSheet.absoluteFillObject}
-            />
+          <Animated.View style={[styles.studyImageLayer, studyLoadedAnimStyle]}>
+            <ImageBackground
+              source={chapterArtwork ?? undefined}
+              contentFit="cover"
+              cachePolicy="memory-disk"
+              transition={300}
+              imageStyle={styles.studyBgImage}
+              style={styles.studyBgFill}
+              onLoad={onStudyImageLoad}
+            >
+              {/* Left-to-right dark gradient overlay (dark on the left for text readability, transparent on the right for artwork visibility) */}
+              <LinearGradient
+                colors={['rgba(3,10,28,0.95)', 'rgba(3,10,28,0.6)', 'rgba(3,10,28,0.15)']}
+                start={{ x: 0, y: 0.5 }}
+                end={{ x: 1, y: 0.5 }}
+                style={StyleSheet.absoluteFillObject}
+              />
+              {/* Bottom navy fade */}
+              <LinearGradient
+                colors={['transparent', 'rgba(3,10,28,0.85)', 'rgba(3,10,28,0.98)']}
+                locations={[0, 0.55, 1]}
+                start={{ x: 0.5, y: 0 }}
+                end={{ x: 0.5, y: 1 }}
+                style={StyleSheet.absoluteFillObject}
+              />
 
-            {/* ProgressRing - top-right corner */}
-            <View style={styles.studyProgressRingWrap}>
-              <ProgressRing progress={progressPercent} />
-            </View>
-
-            {/* Content overlay */}
-            <View style={styles.studyContent}>
-              {/* Top row: label + streak (spans full width, parallel streak float) */}
-              <View style={styles.studyHeaderRow}>
-                <BookOpen size={16} color="#2f8cff" fill="#2f8cff" strokeWidth={2.4} />
-                <Text style={styles.studyLabel}>Continue Study</Text>
-                <StreakBadge count={streakCount} />
+              {/* ProgressRing - top-right corner */}
+              <View style={styles.studyProgressRingWrap}>
+                <ProgressRing progress={progressPercent} />
               </View>
 
-              {/* Restrict width of the upper text content to avoid overlapping the ProgressRing */}
-              <View style={styles.studyUpperContent}>
-                {/* Chapter info */}
-                <SharedAnimatedText
-                  sharedTransitionTag={`open-chapter-daniel-${nextChapter}-title`}
-                  style={styles.studyChapter}
+              {/* Content overlay */}
+              <View style={styles.studyContent}>
+                {/* Top row: label + streak (spans full width, parallel streak float) */}
+                <View style={styles.studyHeaderRow}>
+                  <BookOpen size={16} color="#2f8cff" fill="#2f8cff" strokeWidth={2.4} />
+                  <Text style={styles.studyLabel}>Continue Study</Text>
+                  <StreakBadge count={streakCount} />
+                </View>
+
+                {/* Restrict width of the upper text content to avoid overlapping the ProgressRing */}
+                <View style={styles.studyUpperContent}>
+                  {/* Chapter info */}
+                  <SharedAnimatedText
+                    sharedTransitionTag={`open-chapter-daniel-${nextChapter}-title`}
+                    style={styles.studyChapter}
+                  >
+                    {`DANIEL ${nextChapter}`}
+                  </SharedAnimatedText>
+                  <Text style={styles.studyTitle}>{nextChapterData.title}</Text>
+                  <Text style={styles.studyDescription} numberOfLines={2}>
+                    {nextChapterData.description}
+                  </Text>
+                </View>
+
+                {/* Dot separator */}
+                <Text style={styles.studyDotSeparator}>·</Text>
+
+                {/* Chapters completed count */}
+                <View style={styles.studyCompletedRow}>
+                  <BookOpen size={12} color="#ffffff" strokeWidth={2} />
+                  <Text style={styles.studyCompletedText}>
+                    {`${completedCount} of ${STUDY_TOTAL_CHAPTERS} Chapters Completed`}
+                  </Text>
+                </View>
+
+                {/* Segmented progress bar */}
+                <SegmentedProgressBar total={STUDY_TOTAL_CHAPTERS} completed={completedChapters} />
+
+                {/* Milestone */}
+                <View style={styles.studyMilestoneRow}>
+                  <Gift size={13} color="#2463ff" strokeWidth={2.2} />
+                  <Text style={styles.studyMilestoneText}>
+                    {`Next Milestone: Chapter ${milestoneChapter}`}
+                  </Text>
+                </View>
+
+                {/* Continue button */}
+                <Link
+                  href={{
+                    pathname: '/bible',
+                    params: {
+                      book: 'Daniel',
+                      chapter: String(nextChapter),
+                    },
+                  }}
+                  asChild
                 >
-                  {`DANIEL ${nextChapter}`}
-                </SharedAnimatedText>
-                <Text style={styles.studyTitle}>{nextChapterData.title}</Text>
-                <Text style={styles.studyDescription} numberOfLines={2}>
-                  {nextChapterData.description}
-                </Text>
+                  <Pressable style={styles.studyContinueButton} onPress={() => recordToday()}>
+                    <BookOpen size={16} color="#ffffff" strokeWidth={2.4} />
+                    <Text style={styles.studyContinueButtonText}>Continue Chapter</Text>
+                    <ArrowRight size={16} color="#ffffff" strokeWidth={2.4} />
+                    {/* CHANGE 3 — Shiny sweep overlay */}
+                    <Animated.View style={[styles.shinySweepOverlay, shinySweepStyle]} pointerEvents="none">
+                      <LinearGradient
+                        colors={['transparent', 'rgba(255,255,255,0.18)', 'transparent']}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 0.36 }}
+                        style={StyleSheet.absoluteFillObject}
+                      />
+                    </Animated.View>
+                  </Pressable>
+                </Link>
               </View>
-
-              {/* Dot separator */}
-              <Text style={styles.studyDotSeparator}>·</Text>
-
-              {/* Chapters completed count */}
-              <View style={styles.studyCompletedRow}>
-                <BookOpen size={12} color="#ffffff" strokeWidth={2} />
-                <Text style={styles.studyCompletedText}>
-                  {`${completedCount} of ${STUDY_TOTAL_CHAPTERS} Chapters Completed`}
-                </Text>
-              </View>
-
-              {/* Segmented progress bar */}
-              <SegmentedProgressBar total={STUDY_TOTAL_CHAPTERS} completed={completedChapters} />
-
-              {/* Milestone */}
-              <View style={styles.studyMilestoneRow}>
-                <Gift size={13} color="#2463ff" strokeWidth={2.2} />
-                <Text style={styles.studyMilestoneText}>
-                  {`Next Milestone: Chapter ${milestoneChapter}`}
-                </Text>
-              </View>
-
-              {/* Continue button */}
-              <Link
-                href={{
-                  pathname: '/bible',
-                  params: {
-                    book: 'Daniel',
-                    chapter: String(nextChapter),
-                  },
-                }}
-                asChild
-              >
-                <Pressable style={styles.studyContinueButton} onPress={() => recordToday()}>
-                  <BookOpen size={16} color="#ffffff" strokeWidth={2.4} />
-                  <Text style={styles.studyContinueButtonText}>Continue Chapter</Text>
-                  <ArrowRight size={16} color="#ffffff" strokeWidth={2.4} />
-                </Pressable>
-              </Link>
-            </View>
-          </ImageBackground>
+            </ImageBackground>
           </Animated.View>
         </Animated.View>
 
@@ -613,7 +751,8 @@ export default function HomeTabScreen() {
             </View>
           )}
           {/* Full bleed artwork on right */}
-          <Animated.View style={[styles.verseArtworkWrap, verseLoadedAnimStyle]} pointerEvents="none">
+          {/* CHANGE 6 — Verse card parallax artwork */}
+          <Animated.View style={[styles.verseArtworkWrap, verseLoadedAnimStyle, verseParallax]} pointerEvents="none">
             <ImageBackground
               source={require('../../assets/Aesthetics/Bible.jpg')}
               contentFit="cover"
@@ -667,8 +806,13 @@ export default function HomeTabScreen() {
           </View>
         </Animated.View>
 
+        {/* Badges */}
+        <Animated.View entering={FadeInDown.delay(320).springify()}>
+          <BadgeSection newBadgeIds={newBadgeIds} />
+        </Animated.View>
+
         {/* Quick Access */}
-        <Animated.View entering={FadeInDown.delay(320).springify()} style={styles.quickAccessSection}>
+        <Animated.View entering={FadeInDown.delay(360).springify()} style={styles.quickAccessSection}>
           <View style={styles.sectionHeader}>
             <View style={styles.sectionIconPlaceholder} />
             <Text style={styles.sectionTitle}>Quick Access</Text>
@@ -681,7 +825,7 @@ export default function HomeTabScreen() {
         </Animated.View>
 
         {/* Recent Activity */}
-        <Animated.View entering={FadeInDown.delay(380).springify()} style={styles.recentActivitySection}>
+        <Animated.View entering={FadeInDown.delay(420).springify()} style={styles.recentActivitySection}>
           <View style={styles.sectionHeader}>
             <View style={[styles.sectionIconPlaceholder, { backgroundColor: '#10b981' }]} />
             <Text style={styles.sectionTitle}>Recent Activity</Text>
@@ -689,9 +833,9 @@ export default function HomeTabScreen() {
           <View style={styles.activityList}>
             {(recentActivities.length > 0
               ? recentActivities.slice(0, 3).map((item) => ({
-                  label: item.label,
-                  time: formatActivityTime(item),
-                }))
+                label: item.label,
+                time: formatActivityTime(item),
+              }))
               : RECENT_ACTIVITY.slice(0, 3)
             ).map((item, index) => {
               const lower = item.label.toLowerCase();
@@ -718,17 +862,19 @@ export default function HomeTabScreen() {
               }
 
               return (
-                <View key={index} style={[styles.activityRow, index === 2 && { borderBottomWidth: 0 }]}>
-                  <View style={[styles.activityIconCircle, { backgroundColor: actBg }]}>
-                    <ActIcon size={14} color={actColor} strokeWidth={2.4} />
+                <Animated.View key={index} entering={FadeInDown.delay(index * 80).springify()}>
+                  <View style={[styles.activityRow, index === 2 && { borderBottomWidth: 0 }]}>
+                    <View style={[styles.activityIconCircle, { backgroundColor: actBg }]}>
+                      <ActIcon size={14} color={actColor} strokeWidth={2.4} />
+                    </View>
+                    <View style={styles.activityRowTextContent}>
+                      <Text style={styles.activityRowLabel} numberOfLines={1}>
+                        {item.label}
+                      </Text>
+                      <Text style={styles.activityRowTime}>{item.time}</Text>
+                    </View>
                   </View>
-                  <View style={styles.activityRowTextContent}>
-                    <Text style={styles.activityRowLabel} numberOfLines={1}>
-                      {item.label}
-                    </Text>
-                    <Text style={styles.activityRowTime}>{item.time}</Text>
-                  </View>
-                </View>
+                </Animated.View>
               );
             })}
           </View>
@@ -744,7 +890,21 @@ export default function HomeTabScreen() {
           </Pressable>
         </Animated.View>
 
-      </Animated.ScrollView>
+        </Animated.ScrollView>
+      )}
+
+      {/* Toast overlay */}
+      <View style={StyleSheet.absoluteFill} pointerEvents="box-none">
+        <BadgeEarnedToast
+          badges={toastBadges}
+          onComplete={() => setToastBadges([])}
+          onPress={(badge) => setSelectedBadge(badge)}
+        />
+      </View>
+      <BadgePreviewModal
+        badge={selectedBadge}
+        onClose={() => setSelectedBadge(null)}
+      />
     </View>
   );
 }
@@ -946,6 +1106,10 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(55, 139, 255, 0.28)',
     minHeight: 240,
   },
+  studyImageLayer: {
+    flex: 1,
+    zIndex: 1,
+  },
   studyBgFill: {
     flex: 1,
     minHeight: 240,
@@ -1059,6 +1223,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 8,
     minHeight: 44,
+    overflow: 'hidden', // CHANGE 3 — clip the shiny sweep
   },
   studyContinueButtonText: {
     color: '#ffffff',
@@ -1112,12 +1277,18 @@ const styles = StyleSheet.create({
     width: '48%',
   },
   quickAccessCard: {
-    backgroundColor: '#1a2947',
     borderRadius: 24,
+    overflow: 'hidden', // CHANGE 5 — needed for BlurView clip
+    borderWidth: 1,
+    minHeight: 180,
+  },
+  quickAccessCardGlassInner: {
+    backgroundColor: 'rgba(255,255,255,0.04)', // CHANGE 5 — glass look
     padding: 16,
     alignItems: 'center',
     minHeight: 180,
     justifyContent: 'space-between',
+    width: '100%',
   },
   quickAccessIconLarge: {
     width: 56,
@@ -1263,6 +1434,30 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '600',
     fontFamily: 'Inter',
+  },
+
+  // CHANGE 3 — Shiny sweep overlay
+  shinySweepOverlay: {
+    position: 'absolute',
+    top: 0,
+    bottom: 0,
+    width: 60,
+    left: 0,
+  },
+
+  // CHANGE 4 — SplitText hero heading row
+  heroHeadingSplitRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+  },
+
+  // CHANGE 7 — Aurora glow SVG behind study card
+  auroraGlowSvg: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 0,
   },
 
 });
