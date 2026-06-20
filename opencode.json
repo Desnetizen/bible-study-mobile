@@ -1,0 +1,14 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "model": "openrouter/openai/gpt-oss-120b:free",
+  "plugin": [
+    "./.superpowers/.opencode/plugins/superpowers.js"
+  ],
+  "provider": {
+    "openrouter": {
+      "models": {
+        "openai/gpt-oss-120b:free": {}
+      }
+    }
+  }
+}

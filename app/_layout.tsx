@@ -72,6 +72,10 @@ function RootLayoutContent() {
           <Stack.Screen name="recent-activity" options={{ headerShown: false }} />
           <Stack.Screen name="badges" options={{ headerShown: false }} />
           <Stack.Screen name="pre-exilic-detail" options={{ headerShown: false }} />
+          <Stack.Screen name="babylon-detail" options={{ headerShown: false }} />
+          <Stack.Screen name="medo-persian-detail" options={{ headerShown: false }} />
+          <Stack.Screen name="greek-detail" options={{ headerShown: false }} />
+          <Stack.Screen name="roman-detail" options={{ headerShown: false }} />
         </Stack>
         <StatusBar style="auto" />
 

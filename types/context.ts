@@ -19,7 +19,7 @@ export interface Term {
 export interface Section {
   id: string;
   title: string;
-  content: string;
+  content?: string;
   intro?: string;
   subsections?: SubSection[];
   timeline?: TimelineItem[];

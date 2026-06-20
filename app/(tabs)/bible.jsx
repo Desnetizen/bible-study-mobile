@@ -1,5 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Clipboard from 'expo-clipboard';
+import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Bookmark, ChevronDown, ChevronLeft, Highlighter, NotebookPen } from 'lucide-react-native';
@@ -35,14 +36,13 @@ import Reanimated, {
   withTiming,
 } from 'react-native-reanimated';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import ChapterCompleteModal from '../../components/ChapterCompleteModal';
 import { BadgeEarnedToast } from '../../components/BadgeEarnedToast';
 import { BadgePreviewModal } from '../../components/BadgePreviewModal';
+import ChapterCompleteModal from '../../components/ChapterCompleteModal';
 import { trackActivity } from '../../lib/activity-tracker';
+import { getEarnedBadges } from '../../lib/badges';
 import { loadDanielCrossReferences } from '../../lib/daniel-cross-references';
 import { saveDanielProgress, useDanielProgress } from '../../lib/daniel-progress';
-import { getEarnedBadges } from '../../lib/badges';
-import type { Badge } from '../../lib/badges';
 
 const API_ROOT = 'https://bible-api.com/data';
 const DEFAULT_TRANSLATION_ID = 'kjv';
@@ -1235,10 +1235,11 @@ export default function BiblePage() {
   const [crossReferencesLoaded, setCrossReferencesLoaded] = useState(false);
   const [storageReady, setStorageReady] = useState(false);
   const [showCompleteModal, setShowCompleteModal] = useState(false);
-  const [selectedBadge, setSelectedBadge] = useState<Badge | null>(null);
-  const [toastBadges, setToastBadges] = useState<Badge[]>([]);
+  const [selectedBadge, setSelectedBadge] = useState(null);
+  const [toastBadges, setToastBadges] = useState([]);
   const crossReferencesCacheRef = useRef({});
-  const prevCompletedRef = useRef<number[]>([]);
+  const prevCompletedRef = useRef([]);
+  const badgeHandledRef = useRef(new Set());
 
   const selectedTranslation = useMemo(
     () => translations.find((translation) => translation.identifier === scriptureVersion) ?? null,
@@ -1490,6 +1491,12 @@ export default function BiblePage() {
       void saveDanielProgress(nextChapters);
       if (!isCurrentlyComplete) {
         setShowCompleteModal(true);
+        const earned = getEarnedBadges([chapter]);
+        if (earned.length > 0) {
+          setToastBadges(earned);
+          badgeHandledRef.current.add(chapter);
+          void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        }
         void trackActivity('chapter_completed', `Completed Daniel ${chapter}`, {
           book: 'Daniel', chapter,
         });
@@ -1501,10 +1508,14 @@ export default function BiblePage() {
   useEffect(() => {
     const prev = prevCompletedRef.current;
     if (prev.length > 0 && completedDanielChapters.length > prev.length) {
-      const newlyCompleted = completedDanielChapters.filter((ch) => !prev.includes(ch));
+      const newlyCompleted = completedDanielChapters.filter(
+        (ch) => !prev.includes(ch) && !badgeHandledRef.current.has(ch)
+      );
       const earned = getEarnedBadges(newlyCompleted);
       if (earned.length > 0) {
         setToastBadges(earned);
+        newlyCompleted.forEach((ch) => badgeHandledRef.current.add(ch));
+        void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       }
     }
     prevCompletedRef.current = [...completedDanielChapters];

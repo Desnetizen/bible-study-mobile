@@ -20,7 +20,6 @@ import {
   Feather,
   ShieldAlert,
   Flame,
-  Users,
   Compass,
   ChevronRight,
   Clock,
@@ -30,95 +29,37 @@ import {
 } from 'lucide-react-native';
 import { CastleIcon } from '@/components/CastleIcon';
 import ReadTabContent from '@/components/ReadTabContent';
-import { preExileContext } from '@/Data/preExileContext';
+import { hexToRgba } from '@/lib/colors';
+import { romanContext } from '@/Data/romanContext';
 
 const { width } = Dimensions.get('window');
+const ACCENT = '#F87171';
 
 // ─── Timeline Data ────────────────────────────────────────────────────────────
 
 const TIMELINE_NODES = [
-  {
-    id: 'kingdom-divides',
-    title: 'KINGDOM DIVIDES',
-    date: '931 BC',
-    icon: Shield,
-    isSpecial: false,
-  },
-  {
-    id: 'rehoboam',
-    title: 'REHOBOAM',
-    date: '931–913 BC',
-    icon: Crown,
-    isSpecial: false,
-  },
-  {
-    id: 'hezekiah',
-    title: 'HEZEKIAH',
-    date: '715–687 BC',
-    icon: Crown,
-    isSpecial: false,
-  },
-  {
-    id: 'josiah',
-    title: 'JOSIAH',
-    date: '640–609 BC',
-    icon: BookOpen,
-    isSpecial: false,
-  },
-  {
-    id: 'jeremiah',
-    title: 'JEREMIAH',
-    date: '627–580 BC',
-    icon: Feather,
-    isSpecial: false,
-  },
-  {
-    id: 'babylon-arrives',
-    title: 'BABYLON ARRIVES',
-    date: '605 BC',
-    icon: CastleIcon,
-    isSpecial: true, // Red highlighted event
-  },
+  { id: 'rome-takes-judea', title: 'ROME TAKES JUDEA', date: '63 BC', icon: Shield, isSpecial: false },
+  { id: 'jesus-born', title: 'JESUS IS BORN', date: '4 BC', icon: BookOpen, isSpecial: false },
+  { id: 'jesus-crucified', title: 'JESUS CRUCIFIED', date: 'AD 30', icon: Flame, isSpecial: false },
+  { id: 'temple-destroyed', title: 'TEMPLE DESTROYED', date: 'AD 70', icon: CastleIcon, isSpecial: true },
+  { id: 'revelation-written', title: 'REVELATION WRITTEN', date: 'AD 95', icon: Feather, isSpecial: false },
+  { id: 'rome-falls', title: 'WESTERN ROME FALLS', date: 'AD 476', icon: ShieldAlert, isSpecial: false },
 ];
 
 // ─── Explore Cards Data ─────────────────────────────────────────────────────────
 
 const EXPLORE_CARDS = [
-  {
-    id: 'political-landscape',
-    title: 'POLITICAL LANDSCAPE',
-    subtitle: 'Kings, wars, and alliances in Judah',
-    icon: Shield,
-    image: require('../assets/Places/Canaanite Lands.jpg'),
-  },
-  {
-    id: 'spiritual-condition',
-    title: 'SPIRITUAL CONDITION',
-    subtitle: 'Faithfulness, idolatry, and reform',
-    icon: Flame,
-    image: require('../assets/Places/Ur of the Chaldeans.png'),
-  },
-  {
-    id: 'key-figures',
-    title: 'KEY FIGURES',
-    subtitle: 'The kings, prophets, and leaders',
-    icon: Users,
-    image: require('../assets/Aesthetics/Bible.jpg'),
-  },
-  {
-    id: 'historical-context',
-    title: 'HISTORICAL CONTEXT',
-    subtitle: "Events that shaped Judah's final centuries",
-    icon: Compass,
-    image: require('../assets/Places/Ancient Jerusalem.jpg'),
-  },
+  { id: 'daniels-visions-rome', title: "DANIEL'S VISIONS & ROME", subtitle: 'The iron legs and feet of mixed clay', icon: BookOpen, image: require('../assets/Places/Rome.jpg') },
+  { id: 'rome-crucifixion', title: 'ROME & THE CRUCIFIXION', subtitle: 'Pilate, the cross, and prophetic timing', icon: Flame, image: require('../assets/Places/Rome.jpg') },
+  { id: 'seventy-weeks', title: 'THE SEVENTY WEEKS', subtitle: "Daniel's countdown to the Messiah", icon: Clock, image: require('../assets/Places/Rome.jpg') },
+  { id: 'destruction-jerusalem', title: 'THE DESTRUCTION OF JERUSALEM', subtitle: 'Titus, AD 70, and the end of the temple', icon: CastleIcon, image: require('../assets/Places/Rome.jpg') },
 ];
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 // ─── Main Component ─────────────────────────────────────────────────────────
 
-export default function PreExilicDetailScreen() {
+export default function RomanDetailScreen() {
   const insets = useSafeAreaInsets();
   const [activeTab, setActiveTab] = useState<'overview' | 'map' | 'read'>('overview');
 
@@ -158,7 +99,7 @@ export default function PreExilicDetailScreen() {
       >
         {/* ── Hero Header Banner ────────────────────────────────────────── */}
         <ImageBackground
-          source={require('../assets/Places/Ancient Jerusalem.jpg')}
+          source={require('../assets/Places/Rome.jpg')}
           style={[styles.hero, { paddingTop: insets.top + 10 }]}
           contentFit="cover"
         >
@@ -169,7 +110,7 @@ export default function PreExilicDetailScreen() {
             style={StyleSheet.absoluteFillObject}
           />
           <LinearGradient
-            colors={['rgba(213, 167, 72, 0.15)', 'rgba(7, 17, 31, 0)']}
+            colors={[hexToRgba(ACCENT, 0.15), 'rgba(7, 17, 31, 0)']}
             start={{ x: 0.5, y: 0 }}
             end={{ x: 0.5, y: 0.8 }}
             style={StyleSheet.absoluteFillObject}
@@ -180,7 +121,7 @@ export default function PreExilicDetailScreen() {
             style={styles.backButton}
             onPress={() => router.back()}
           >
-            <ChevronLeft size={24} color="#D5A748" />
+            <ChevronLeft size={24} color={ACCENT} />
           </Pressable>
 
           {/* Hero Content */}
@@ -190,10 +131,10 @@ export default function PreExilicDetailScreen() {
               { opacity: fadeAnim, transform: [{ translateY: slideAnim }] },
             ]}
           >
-            <Text style={styles.heroEyebrow}>PRE-EXILIC JUDAH</Text>
-            <Text style={styles.heroTitle}>The Southern Kingdom</Text>
+            <Text style={styles.heroEyebrow}>THE ROMAN EMPIRE</Text>
+            <Text style={styles.heroTitle}>The Iron Kingdom</Text>
             <View style={styles.badgeContainer}>
-              <Text style={styles.badgeText}>931–605 BC</Text>
+              <Text style={styles.badgeText}>63 BC–AD 476</Text>
             </View>
           </Animated.View>
         </ImageBackground>
@@ -234,37 +175,37 @@ export default function PreExilicDetailScreen() {
               <View style={styles.factsGrid}>
                 {/* Fact 1: Capital */}
                 <View style={styles.factCard}>
-                  <MapPin color="#D5A748" size={16} />
+                  <MapPin color={ACCENT} size={16} />
                   <Text style={styles.factLabel}>CAPITAL</Text>
-                  <Text style={styles.factValue} numberOfLines={2}>Jerusalem</Text>
+                  <Text style={styles.factValue} numberOfLines={2}>Rome</Text>
                 </View>
 
                 {/* Fact 2: Dynasty */}
                 <View style={styles.factCard}>
-                  <Crown color="#D5A748" size={16} />
-                  <Text style={styles.factLabel}>DYNASTY</Text>
-                  <Text style={styles.factValue} numberOfLines={2}>House of David</Text>
+                  <Crown color={ACCENT} size={16} />
+                  <Text style={styles.factLabel}>RULER</Text>
+                  <Text style={styles.factValue} numberOfLines={2}>Augustus · Tiberius</Text>
                 </View>
 
                 {/* Fact 3: Key Prophets */}
                 <View style={styles.factCard}>
-                  <Feather color="#D5A748" size={16} />
-                  <Text style={styles.factLabel}>KEY PROPHETS</Text>
-                  <Text style={styles.factValue} numberOfLines={2}>Isaiah · Jeremiah</Text>
+                  <ShieldAlert color={ACCENT} size={16} />
+                  <Text style={styles.factLabel}>KEY FIGURE</Text>
+                  <Text style={styles.factValue} numberOfLines={2}>Pontius Pilate</Text>
                 </View>
 
                 {/* Fact 4: Status */}
                 <View style={styles.factCard}>
-                  <ShieldAlert color="#D5A748" size={16} />
+                  <Flame color={ACCENT} size={16} />
                   <Text style={styles.factLabel}>STATUS</Text>
-                  <Text style={styles.factValue} numberOfLines={2}>Approaching Exile</Text>
+                  <Text style={styles.factValue} numberOfLines={2}>Crucifixion & Cross</Text>
                 </View>
               </View>
             </View>
 
             {/* Timeline Section */}
             <View style={styles.sectionHeaderRow}>
-              <Clock size={16} color="#D5A748" style={{ marginRight: 6 }} />
+              <Clock size={16} color={ACCENT} style={{ marginRight: 6 }} />
               <Text style={styles.sectionTitleText}>TIMELINE</Text>
             </View>
 
@@ -278,7 +219,7 @@ export default function PreExilicDetailScreen() {
 
               {TIMELINE_NODES.map((node) => {
                 const IconComponent = node.icon;
-                const strokeColor = node.isSpecial ? '#EF4444' : '#D5A748';
+                const strokeColor = node.isSpecial ? '#EF4444' : ACCENT;
                 const bgColor = node.isSpecial ? 'rgba(239, 68, 68, 0.15)' : '#07111F';
 
                 return (
@@ -303,8 +244,8 @@ export default function PreExilicDetailScreen() {
 
             {/* Explore Section */}
             <View style={styles.sectionHeaderRow}>
-              <Compass size={16} color="#D5A748" style={{ marginRight: 6 }} />
-              <Text style={styles.sectionTitleText}>EXPLORE PRE-EXILIC JUDAH</Text>
+              <Compass size={16} color={ACCENT} style={{ marginRight: 6 }} />
+              <Text style={styles.sectionTitleText}>EXPLORE THE ROMAN EMPIRE</Text>
             </View>
 
             <View style={styles.exploreGrid}>
@@ -328,13 +269,13 @@ export default function PreExilicDetailScreen() {
                     />
 
                     <View style={styles.exploreCardContent}>
-                      <IconComponent color="#D5A748" size={18} style={styles.exploreCardIcon} />
+                      <IconComponent color={ACCENT} size={18} style={styles.exploreCardIcon} />
                       <Text style={styles.exploreCardTitle}>{card.title}</Text>
                       <Text style={styles.exploreCardSubtitle}>{card.subtitle}</Text>
                     </View>
 
                     <View style={styles.chevronWrap}>
-                      <ChevronRight size={16} color="#D5A748" />
+                      <ChevronRight size={16} color={ACCENT} />
                     </View>
                   </Pressable>
                 );
@@ -347,7 +288,7 @@ export default function PreExilicDetailScreen() {
           <Animated.View style={[styles.tabContentContainer, { opacity: fadeAnim }]}>
             <View style={styles.mapContainer}>
               <ImageBackground
-                source={require('../assets/Places/Canaanite Lands.jpg')}
+                source={require('../assets/Places/Rome.jpg')}
                 style={styles.mapVisual}
                 contentFit="cover"
               >
@@ -355,33 +296,47 @@ export default function PreExilicDetailScreen() {
                   colors={['rgba(7, 17, 31, 0.2)', 'rgba(7, 17, 31, 0.82)']}
                   style={StyleSheet.absoluteFillObject}
                 />
-                {/* Jerusalem Pin */}
-                <View style={[styles.mapPin, { top: '42%', left: '46%' }]}>
+                {/* Rome Pin */}
+                <View style={[styles.mapPin, { top: '44%', left: '46%' }]}>
                   <View style={styles.pulseContainer}>
                     <View style={styles.pulsePin} />
-                    <MapPin color="#D5A748" size={20} />
+                    <MapPin color={ACCENT} size={20} />
                   </View>
-                  <Text style={styles.mapPinLabel}>Jerusalem</Text>
+                  <Text style={styles.mapPinLabel}>Rome</Text>
                 </View>
-                {/* Lachish Pin */}
-                <View style={[styles.mapPin, { top: '62%', left: '26%' }]}>
+                {/* Jerusalem Pin */}
+                <View style={[styles.mapPin, { top: '60%', left: '68%' }]}>
                   <View style={styles.pulseContainer}>
                     <MapPin color="#EF4444" size={16} />
                   </View>
-                  <Text style={styles.mapPinLabel}>Lachish</Text>
+                  <Text style={styles.mapPinLabel}>Jerusalem</Text>
+                </View>
+                {/* Caesarea Pin */}
+                <View style={[styles.mapPin, { top: '54%', left: '62%' }]}>
+                  <View style={styles.pulseContainer}>
+                    <MapPin color="#EF4444" size={16} />
+                  </View>
+                  <Text style={styles.mapPinLabel}>Caesarea</Text>
                 </View>
               </ImageBackground>
             </View>
             <View style={styles.mapInfoCard}>
               <Text style={styles.mapInfoTitle}>Geographic Overview</Text>
               <Text style={styles.mapInfoText}>
-                Pre-Exilic Judah was a rugged, mountainous kingdom bordered by the Dead Sea to the east and Philistia to the west. Jerusalem, situated safely in the Judean hills, served as its highly fortified royal capital and spiritual heart.
+                Rome&apos;s reach spanned the Mediterranean world, binding provinces together by roads, governors, soldiers, and law. Judea sat as a contested province on the empire&apos;s eastern edge, where Roman power framed the crucifixion and the early church&apos;s witness.
               </Text>
             </View>
           </Animated.View>
         )}
 
-        {activeTab === 'read' && <ReadTabContent contextData={preExileContext} accentColor="#D5A748" headerEyebrow="PRE-EXILIC JUDAH" scrollRef={scrollRef} />}
+        {activeTab === 'read' && (
+          <ReadTabContent
+            contextData={romanContext}
+            accentColor={ACCENT}
+            headerEyebrow="THE ROMAN EMPIRE"
+            scrollRef={scrollRef}
+          />
+        )}
       </ScrollView>
     </View>
   );
@@ -417,14 +372,14 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     zIndex: 10,
     borderWidth: 1,
-    borderColor: 'rgba(213, 167, 72, 0.2)',
+    borderColor: hexToRgba(ACCENT, 0.2),
   },
   heroContent: {
     marginTop: 60,
     alignItems: 'flex-start',
   },
   heroEyebrow: {
-    color: '#D5A748',
+    color: ACCENT,
     fontFamily: 'Inter',
     fontSize: 12,
     fontWeight: '700',
@@ -441,13 +396,13 @@ const styles = StyleSheet.create({
   },
   badgeContainer: {
     borderWidth: 1.5,
-    borderColor: '#D5A748',
+    borderColor: ACCENT,
     borderRadius: 16,
     paddingHorizontal: 16,
     paddingVertical: 4,
   },
   badgeText: {
-    color: '#D5A748',
+    color: ACCENT,
     fontFamily: 'Inter',
     fontSize: 12,
     fontWeight: '600',
@@ -467,14 +422,14 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#0C1420',
     borderWidth: 1.2,
-    borderColor: 'rgba(213, 167, 72, 0.18)',
+    borderColor: hexToRgba(ACCENT, 0.18),
     borderRadius: 8,
     paddingVertical: 10,
     paddingHorizontal: 2,
     alignItems: 'center',
     justifyContent: 'center',
     gap: 4,
-    shadowColor: '#D5A748',
+    shadowColor: ACCENT,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.04,
     shadowRadius: 6,
@@ -505,7 +460,7 @@ const styles = StyleSheet.create({
     marginBottom: 14,
   },
   sectionTitleText: {
-    color: '#D5A748',
+    color: ACCENT,
     fontFamily: 'Inter',
     fontSize: 11,
     fontWeight: '800',
@@ -531,7 +486,7 @@ const styles = StyleSheet.create({
     height: 2,
     borderStyle: 'dashed',
     borderWidth: 1,
-    borderColor: 'rgba(213, 167, 72, 0.35)',
+    borderColor: hexToRgba(ACCENT, 0.35),
     zIndex: 1,
   },
   timelineItem: {
@@ -579,7 +534,7 @@ const styles = StyleSheet.create({
     position: 'relative',
     overflow: 'hidden',
     borderWidth: 1,
-    borderColor: 'rgba(213, 167, 72, 0.15)',
+    borderColor: hexToRgba(ACCENT, 0.15),
   },
   exploreCardGradient: {
     borderRadius: 12,
@@ -636,7 +591,7 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
   activeSubNavText: {
-    color: '#D5A748',
+    color: ACCENT,
     fontWeight: '700',
   },
   activeTabIndicator: {
@@ -645,7 +600,7 @@ const styles = StyleSheet.create({
     left: 20,
     right: 20,
     height: 2,
-    backgroundColor: '#D5A748',
+    backgroundColor: ACCENT,
     borderRadius: 1,
   },
 
@@ -663,7 +618,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     overflow: 'hidden',
     borderWidth: 1.2,
-    borderColor: 'rgba(213, 167, 72, 0.2)',
+    borderColor: hexToRgba(ACCENT, 0.2),
   },
   mapVisual: {
     flex: 1,
@@ -684,9 +639,9 @@ const styles = StyleSheet.create({
     width: 30,
     height: 30,
     borderRadius: 15,
-    backgroundColor: 'rgba(213, 167, 72, 0.3)',
+    backgroundColor: hexToRgba(ACCENT, 0.3),
     borderWidth: 1,
-    borderColor: 'rgba(213, 167, 72, 0.5)',
+    borderColor: hexToRgba(ACCENT, 0.5),
   },
   mapPinLabel: {
     color: '#FFFFFF',
@@ -700,18 +655,18 @@ const styles = StyleSheet.create({
     marginTop: 2,
     overflow: 'hidden',
     borderWidth: 0.5,
-    borderColor: 'rgba(213, 167, 72, 0.3)',
+    borderColor: hexToRgba(ACCENT, 0.3),
   },
   mapInfoCard: {
     backgroundColor: '#0C1420',
     borderWidth: 1.2,
-    borderColor: 'rgba(213, 167, 72, 0.18)',
+    borderColor: hexToRgba(ACCENT, 0.18),
     borderRadius: 10,
     padding: 16,
     gap: 8,
   },
   mapInfoTitle: {
-    color: '#D5A748',
+    color: ACCENT,
     fontFamily: 'Inter',
     fontSize: 12,
     fontWeight: '800',

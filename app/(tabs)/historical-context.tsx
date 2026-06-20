@@ -265,10 +265,20 @@ export default function HistoricalContextScreen() {
   }, [modalVisible, backdropOpacity, sheetTranslateY]);
 
   const openEraDetail = (era: Era) => {
-    if (era.id === 'pre-exilic') {
-      router.push('/pre-exilic-detail');
+    const routeMap: Record<string, '/pre-exilic-detail' | '/babylon-detail' | '/medo-persian-detail' | '/greek-detail' | '/roman-detail'> = {
+      'pre-exilic': '/pre-exilic-detail',
+      'babylonian-exile': '/babylon-detail',
+      'persian-period': '/medo-persian-detail',
+      'greek-period': '/greek-detail',
+      'new-testament': '/roman-detail',
+    };
+
+    const route = routeMap[era.id];
+    if (route) {
+      router.push(route);
       return;
     }
+
     setActiveEra(era);
     setActiveEvent(era.events[0] ?? null);
     setModalVisible(true);
