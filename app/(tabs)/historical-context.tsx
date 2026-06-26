@@ -1,4 +1,3 @@
-import * as Haptics from 'expo-haptics';
 import { Image, ImageBackground } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
@@ -23,7 +22,7 @@ import {
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { HISTORICAL_ERAS } from '../../Data/historicalContextData';
+import { HISTORICAL_ERAS } from '@/data/historicalContextData';
 
 // ─── Era config ────────────────────────────────────────────────────────────────
 
@@ -312,7 +311,7 @@ export default function HistoricalContextScreen() {
   };
 
   const handleScripturePress = (ref: string) => {
-    const normalized = ref.trim().replace(/–|—/g, '-');
+    const normalized = ref.trim().replace(/–|—/g, '-').split(/[,;]/)[0].trim();
     const match = normalized.match(/^(.+?)\s+(\d+)(?::(\d+))?/);
     if (!match) return;
     closeModal();
@@ -368,7 +367,7 @@ export default function HistoricalContextScreen() {
                 </Text>
                 <Pressable
                   style={({ pressed }) => [styles.exploreBtn, pressed && styles.exploreBtnPressed]}
-                  onPress={() => openEraDetail(HISTORICAL_ERAS[0])}
+                  onPress={() => { if (HISTORICAL_ERAS.length > 0) openEraDetail(HISTORICAL_ERAS[0]); }}
                 >
                   <Compass size={13} color="#93C5FD" strokeWidth={2} />
                   <Text style={styles.exploreBtnText}>Tap to explore</Text>

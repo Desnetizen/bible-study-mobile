@@ -2,13 +2,25 @@
   "$schema": "https://opencode.ai/config.json",
   "model": "openrouter/openai/gpt-oss-120b:free",
   "plugin": [
-    "./.superpowers/.opencode/plugins/superpowers.js"
+    "superpowers@git+https://github.com/obra/superpowers.git#v6.0.3"
   ],
   "provider": {
     "openrouter": {
       "models": {
         "openai/gpt-oss-120b:free": {}
       }
+    }
+  },
+  "compaction": {
+    "auto": true,
+    "threshold": 0.6,
+    "prune": true
+  },
+  "mcp": {
+    "supabase": {
+      "type": "remote",
+      "url": "https://mcp.supabase.com/mcp",
+      "enabled": true
     }
   }
 }

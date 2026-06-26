@@ -1,36 +1,38 @@
-import { useRef, useEffect, useState } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  StatusBar,
-  Pressable,
-  Animated,
-  Easing,
-  Dimensions,
-} from 'react-native';
+import OutlineScrubber from '@/components/OutlineScrubber';
+import ReadTabContent from '@/components/ReadTabContent';
+import { extractHeadings } from '@/data/extractHeadings';
+import { greekContext } from '@/data/greekContext';
+import { hexToRgba } from '@/lib/colors';
 import { ImageBackground } from 'expo-image';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
+import { router } from 'expo-router';
 import {
+  BookOpen,
   ChevronLeft,
-  Crown,
-  Feather,
-  ShieldAlert,
-  Flame,
-  Users,
-  Compass,
   ChevronRight,
   Clock,
-  Shield,
+  Compass,
+  Crown,
+  Feather,
+  Flame,
   MapPin,
-  BookOpen,
+  Shield,
+  ShieldAlert,
+  Users,
 } from 'lucide-react-native';
-import ReadTabContent from '@/components/ReadTabContent';
-import { hexToRgba } from '@/lib/colors';
-import { greekContext } from '@/Data/greekContext';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import {
+  Animated,
+  Dimensions,
+  Easing,
+  Pressable,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const { width } = Dimensions.get('window');
 const ACCENT = '#A78BFA';
@@ -61,12 +63,19 @@ const EXPLORE_CARDS = [
 
 export default function GreekDetailScreen() {
   const insets = useSafeAreaInsets();
-  const [activeTab, setActiveTab] = useState<'overview' | 'map' | 'read'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'places' | 'read'>('overview');
 
   // Animations
   const scrollRef = useRef<ScrollView>(null);
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(20)).current;
+
+  const scrollY = useRef(new Animated.Value(0)).current;
+  const scrollViewHeightRef = useRef(0);
+  const scrollViewContentHeightRef = useRef(0);
+  const [rootOffset, setRootOffset] = useState(0);
+  const sectionPositions = useRef<Record<string, number>>({});
+  const headings = useMemo(() => extractHeadings(greekContext), []);
 
   useEffect(() => {
     fadeAnim.setValue(0);
@@ -96,6 +105,17 @@ export default function GreekDetailScreen() {
         style={styles.scroll}
         contentContainerStyle={{ paddingBottom: insets.bottom + 40 }}
         showsVerticalScrollIndicator={false}
+        scrollEventThrottle={16}
+        onScroll={Animated.event(
+          [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+          { useNativeDriver: false }
+        )}
+        onLayout={(e) => {
+          scrollViewHeightRef.current = e.nativeEvent.layout.height;
+        }}
+        onContentSizeChange={(w, h) => {
+          scrollViewContentHeightRef.current = h;
+        }}
       >
         {/* ── Hero Header Banner ────────────────────────────────────────── */}
         <ImageBackground
@@ -150,11 +170,11 @@ export default function GreekDetailScreen() {
           </Pressable>
 
           <Pressable
-            onPress={() => setActiveTab('map')}
+            onPress={() => setActiveTab('places')}
             style={styles.subNavTab}
           >
-            <Text style={[styles.subNavText, activeTab === 'map' && styles.activeSubNavText]}>Map</Text>
-            {activeTab === 'map' && <View style={styles.activeTabIndicator} />}
+            <Text style={[styles.subNavText, activeTab === 'places' && styles.activeSubNavText]}>Places</Text>
+            {activeTab === 'places' && <View style={styles.activeTabIndicator} />}
           </Pressable>
 
           <Pressable
@@ -284,11 +304,19 @@ export default function GreekDetailScreen() {
           </Animated.View>
         )}
 
-        {activeTab === 'map' && (
+        {activeTab === 'places' && (
           <Animated.View style={[styles.tabContentContainer, { opacity: fadeAnim }]}>
+
+            {/* Section Header - ABOVE the map */}
+            <View style={styles.sectionHeaderRow}>
+              <Compass size={16} color={ACCENT} style={{ marginRight: 6 }} />
+              <Text style={styles.sectionTitleText}>GEOGRAPHIC OVERVIEW</Text>
+            </View>
+
+            {/* Map */}
             <View style={styles.mapContainer}>
               <ImageBackground
-                source={require('../assets/Places/Athens.jpg')}
+                source={require('../assets/Maps/greek-empire-under-alexander-map.jpg')}
                 style={styles.mapVisual}
                 contentFit="cover"
               >
@@ -342,9 +370,27 @@ export default function GreekDetailScreen() {
             accentColor={ACCENT}
             headerEyebrow="THE GREEK EMPIRE"
             scrollRef={scrollRef}
+            scrollY={scrollY}
+            scrollViewHeightRef={scrollViewHeightRef}
+            scrollViewContentHeightRef={scrollViewContentHeightRef}
+            sectionPositions={sectionPositions}
+            rootOffset={rootOffset}
+            setRootOffset={setRootOffset}
           />
         )}
       </ScrollView>
+      {activeTab === 'read' && rootOffset > 0 && (
+        <OutlineScrubber
+          headings={headings}
+          accentColor={ACCENT}
+          scrollRef={scrollRef}
+          scrollY={scrollY}
+          scrollViewHeightRef={scrollViewHeightRef}
+          scrollViewContentHeightRef={scrollViewContentHeightRef}
+          rootOffset={rootOffset}
+          sectionPositions={sectionPositions}
+        />
+      )}
     </View>
   );
 }

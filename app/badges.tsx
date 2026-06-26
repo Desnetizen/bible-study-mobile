@@ -5,10 +5,10 @@ import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { BadgePreviewModal } from '../components/BadgePreviewModal';
-import { getEarnedBadges } from '../lib/badges';
-import type { Badge } from '../lib/badges';
-import { useDanielProgress } from '../lib/daniel-progress';
+import { BadgePreviewModal } from '@/components/BadgePreviewModal';
+import { getEarnedBadges } from '@/lib/badges';
+import type { Badge } from '@/lib/badges';
+import { useDanielProgress } from '@/lib/daniel-progress';
 
 export default function BadgesScreen() {
   const insets = useSafeAreaInsets();

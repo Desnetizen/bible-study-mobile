@@ -16,9 +16,9 @@ import {
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { ImageSkeleton, TextSkeleton } from '../../components/ui/Skeleton';
-import { trackActivity } from '../../lib/activity-tracker';
-import { TIMELINE_ITEMS } from '../../Data/danielTimeline';
+import { ImageSkeleton, TextSkeleton } from '@/components/ui/Skeleton';
+import { trackActivity } from '@/lib/activity-tracker';
+import { TIMELINE_ITEMS } from '@/data/danielTimeline';
 
 const READ_EVENTS_KEY = 'bible-connection:timeline-read-events';
 const LAST_READ_EVENT_KEY = 'bible-connection:timeline-last-read';
@@ -269,7 +269,7 @@ export default function TimelineScreen() {
             <Text style={styles.heroEyebrow}>BIBLICAL TIMELINE</Text>
             <Text style={styles.heroTitle}>The Full Story</Text>
             <Text style={styles.heroSubtitle}>
-              From the divided kingdom to Revelation — trace God's plan through history.
+              From the divided kingdom to Revelation — trace God&apos;s plan through history.
             </Text>
             {!timelineBegun && (
               <Pressable

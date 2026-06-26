@@ -1,36 +1,38 @@
-import { useRef, useEffect, useState } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  StatusBar,
-  Pressable,
-  Animated,
-  Easing,
-  Dimensions,
-} from 'react-native';
+import { CastleIcon } from '@/components/CastleIcon';
+import OutlineScrubber from '@/components/OutlineScrubber';
+import ReadTabContent from '@/components/ReadTabContent';
+import { extractHeadings } from '@/data/extractHeadings';
+import { preExileContext } from '@/data/preExileContext';
 import { ImageBackground } from 'expo-image';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
+import { router } from 'expo-router';
 import {
+  BookOpen,
   ChevronLeft,
-  Crown,
-  Feather,
-  ShieldAlert,
-  Flame,
-  Users,
-  Compass,
   ChevronRight,
   Clock,
-  Shield,
+  Compass,
+  Crown,
+  Feather,
+  Flame,
   MapPin,
-  BookOpen,
+  Shield,
+  ShieldAlert,
+  Users,
 } from 'lucide-react-native';
-import { CastleIcon } from '@/components/CastleIcon';
-import ReadTabContent from '@/components/ReadTabContent';
-import { preExileContext } from '@/Data/preExileContext';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import {
+  Animated,
+  Dimensions,
+  Easing,
+  Pressable,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const { width } = Dimensions.get('window');
 
@@ -96,7 +98,7 @@ const EXPLORE_CARDS = [
     title: 'SPIRITUAL CONDITION',
     subtitle: 'Faithfulness, idolatry, and reform',
     icon: Flame,
-    image: require('../assets/Places/Ur of the Chaldeans.png'),
+    image: require('../assets/Aesthetics/isreal-Idolotary.png'),
   },
   {
     id: 'key-figures',
@@ -120,12 +122,19 @@ const EXPLORE_CARDS = [
 
 export default function PreExilicDetailScreen() {
   const insets = useSafeAreaInsets();
-  const [activeTab, setActiveTab] = useState<'overview' | 'map' | 'read'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'places' | 'read'>('overview');
 
   // Animations
   const scrollRef = useRef<ScrollView>(null);
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(20)).current;
+
+  const scrollY = useRef(new Animated.Value(0)).current;
+  const scrollViewHeightRef = useRef(0);
+  const scrollViewContentHeightRef = useRef(0);
+  const [rootOffset, setRootOffset] = useState(0);
+  const sectionPositions = useRef<Record<string, number>>({});
+  const headings = useMemo(() => extractHeadings(preExileContext), []);
 
   useEffect(() => {
     fadeAnim.setValue(0);
@@ -155,6 +164,17 @@ export default function PreExilicDetailScreen() {
         style={styles.scroll}
         contentContainerStyle={{ paddingBottom: insets.bottom + 40 }}
         showsVerticalScrollIndicator={false}
+        scrollEventThrottle={16}
+        onScroll={Animated.event(
+          [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+          { useNativeDriver: false }
+        )}
+        onLayout={(e) => {
+          scrollViewHeightRef.current = e.nativeEvent.layout.height;
+        }}
+        onContentSizeChange={(w, h) => {
+          scrollViewContentHeightRef.current = h;
+        }}
       >
         {/* ── Hero Header Banner ────────────────────────────────────────── */}
         <ImageBackground
@@ -209,11 +229,11 @@ export default function PreExilicDetailScreen() {
           </Pressable>
 
           <Pressable
-            onPress={() => setActiveTab('map')}
+            onPress={() => setActiveTab('places')}
             style={styles.subNavTab}
           >
-            <Text style={[styles.subNavText, activeTab === 'map' && styles.activeSubNavText]}>Map</Text>
-            {activeTab === 'map' && <View style={styles.activeTabIndicator} />}
+            <Text style={[styles.subNavText, activeTab === 'places' && styles.activeSubNavText]}>Places</Text>
+            {activeTab === 'places' && <View style={styles.activeTabIndicator} />}
           </Pressable>
 
           <Pressable
@@ -343,7 +363,7 @@ export default function PreExilicDetailScreen() {
           </Animated.View>
         )}
 
-        {activeTab === 'map' && (
+        {activeTab === 'places' && (
           <Animated.View style={[styles.tabContentContainer, { opacity: fadeAnim }]}>
             <View style={styles.mapContainer}>
               <ImageBackground
@@ -381,8 +401,33 @@ export default function PreExilicDetailScreen() {
           </Animated.View>
         )}
 
-        {activeTab === 'read' && <ReadTabContent contextData={preExileContext} accentColor="#D5A748" headerEyebrow="PRE-EXILIC JUDAH" scrollRef={scrollRef} />}
+        {activeTab === 'read' && (
+          <ReadTabContent
+            contextData={preExileContext}
+            accentColor="#D5A748"
+            headerEyebrow="PRE-EXILIC JUDAH"
+            scrollRef={scrollRef}
+            scrollY={scrollY}
+            scrollViewHeightRef={scrollViewHeightRef}
+            scrollViewContentHeightRef={scrollViewContentHeightRef}
+            sectionPositions={sectionPositions}
+            rootOffset={rootOffset}
+            setRootOffset={setRootOffset}
+          />
+        )}
       </ScrollView>
+      {activeTab === 'read' && rootOffset > 0 && (
+        <OutlineScrubber
+          headings={headings}
+          accentColor="#D5A748"
+          scrollRef={scrollRef}
+          scrollY={scrollY}
+          scrollViewHeightRef={scrollViewHeightRef}
+          scrollViewContentHeightRef={scrollViewContentHeightRef}
+          rootOffset={rootOffset}
+          sectionPositions={sectionPositions}
+        />
+      )}
     </View>
   );
 }

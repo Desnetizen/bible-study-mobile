@@ -16,18 +16,17 @@ create index if not exists idx_user_activity_device
 -- Enable Row Level Security
 alter table public.user_activity enable row level security;
 
--- Allow anonymous read access (device_id scoped in queries, not policy)
 drop policy if exists "Allow anon read access to user_activity" on public.user_activity;
-create policy "Allow anon read access to user_activity"
-on public.user_activity
-for select
-to anon
-using (true);
-
--- Allow anonymous insert access (append-only activity log)
 drop policy if exists "Allow anon insert access to user_activity" on public.user_activity;
-create policy "Allow anon insert access to user_activity"
-on public.user_activity
-for insert
-to anon
-with check (true);
+
+create policy "device_id read access"
+  on public.user_activity
+  for select
+  to anon
+  using (device_id = nullif(current_setting('app.device_id', true), '')::text);
+
+create policy "device_id insert access"
+  on public.user_activity
+  for insert
+  to anon
+  with check (device_id = nullif(current_setting('app.device_id', true), '')::text);

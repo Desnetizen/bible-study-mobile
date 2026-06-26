@@ -1,36 +1,42 @@
-import { useRef, useEffect, useState } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  StatusBar,
-  Pressable,
-  Animated,
-  Easing,
-  Dimensions,
-} from 'react-native';
+import { CastleIcon } from '@/components/CastleIcon';
+import OutlineScrubber from '@/components/OutlineScrubber';
+import ReadTabContent from '@/components/ReadTabContent';
+import { extractHeadings } from '@/data/extractHeadings';
+import { medoPersianContext } from '@/data/medoPersianContext';
+import { keyPlaces, morePlaces } from '@/data/medoPersianPlaces';
+import GeographicOverviewCard from '@/components/GeographicOverviewCard';
+import HorizontalPlaceCard from '@/components/HorizontalPlaceCard';
+import MapModal from '@/components/MapModal';
+import { hexToRgba } from '@/lib/colors';
 import { ImageBackground } from 'expo-image';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
+import { router } from 'expo-router';
 import {
+  BookOpen,
   ChevronLeft,
-  Crown,
-  Feather,
-  ShieldAlert,
-  Users,
-  Compass,
   ChevronRight,
   Clock,
-  Shield,
+  Compass,
+  Crown,
+  Feather,
   MapPin,
-  BookOpen,
+  Shield,
+  ShieldAlert,
+  Users,
 } from 'lucide-react-native';
-import { CastleIcon } from '@/components/CastleIcon';
-import ReadTabContent from '@/components/ReadTabContent';
-import { hexToRgba } from '@/lib/colors';
-import { medoPersianContext } from '@/Data/medoPersianContext';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import {
+  Animated,
+  Dimensions,
+  Easing,
+  Pressable,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const { width } = Dimensions.get('window');
 const ACCENT = '#4ECDC4';
@@ -49,24 +55,32 @@ const TIMELINE_NODES = [
 // ─── Explore Cards Data ─────────────────────────────────────────────────────────
 
 const EXPLORE_CARDS = [
-  { id: 'daniels-visions', title: "DANIEL'S VISIONS", subtitle: 'Five visions spanning the Persian century', icon: BookOpen, image: require('../assets/Places/Ancient Susa.png') },
+  { id: 'daniels-visions', title: "DANIEL'S VISIONS", subtitle: 'Five visions spanning the Persian century', icon: BookOpen, image: require('../assets/Aesthetics/Daniel-Visions.png') },
   { id: 'cyrus-named-prophecy', title: 'CYRUS: THE NAMED PROPHECY', subtitle: 'A king named 150 years before his birth', icon: Feather, image: require('../assets/Places/Ancient Susa.png') },
   { id: 'extrabiblical-evidence', title: 'EXTRABIBLICAL EVIDENCE', subtitle: 'Confirmation from Persian records', icon: Compass, image: require('../assets/Places/Ancient Susa.png') },
   { id: 'return-grace', title: 'THE RETURN: GRACE THROUGH AN ALIEN EMPIRE', subtitle: 'Why a pagan king set Israel free', icon: Users, image: require('../assets/Places/Ancient Susa.png') },
 ];
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
+// ─── Helpers ─────────────────────────────────────────────────────────────────
 
 // ─── Main Component ─────────────────────────────────────────────────────────
 
 export default function MedoPersianDetailScreen() {
   const insets = useSafeAreaInsets();
-  const [activeTab, setActiveTab] = useState<'overview' | 'map' | 'read'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'places' | 'read'>('overview');
+  const [mapModalVisible, setMapModalVisible] = useState(false);
 
   // Animations
   const scrollRef = useRef<ScrollView>(null);
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(20)).current;
+
+  const scrollY = useRef(new Animated.Value(0)).current;
+  const scrollViewHeightRef = useRef(0);
+  const scrollViewContentHeightRef = useRef(0);
+  const [rootOffset, setRootOffset] = useState(0);
+  const sectionPositions = useRef<Record<string, number>>({});
+  const headings = useMemo(() => extractHeadings(medoPersianContext), []);
 
   useEffect(() => {
     fadeAnim.setValue(0);
@@ -96,6 +110,17 @@ export default function MedoPersianDetailScreen() {
         style={styles.scroll}
         contentContainerStyle={{ paddingBottom: insets.bottom + 40 }}
         showsVerticalScrollIndicator={false}
+        scrollEventThrottle={16}
+        onScroll={Animated.event(
+          [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+          { useNativeDriver: false }
+        )}
+        onLayout={(e) => {
+          scrollViewHeightRef.current = e.nativeEvent.layout.height;
+        }}
+        onContentSizeChange={(w, h) => {
+          scrollViewContentHeightRef.current = h;
+        }}
       >
         {/* ── Hero Header Banner ────────────────────────────────────────── */}
         <ImageBackground
@@ -150,11 +175,11 @@ export default function MedoPersianDetailScreen() {
           </Pressable>
 
           <Pressable
-            onPress={() => setActiveTab('map')}
+            onPress={() => setActiveTab('places')}
             style={styles.subNavTab}
           >
-            <Text style={[styles.subNavText, activeTab === 'map' && styles.activeSubNavText]}>Map</Text>
-            {activeTab === 'map' && <View style={styles.activeTabIndicator} />}
+            <Text style={[styles.subNavText, activeTab === 'places' && styles.activeSubNavText]}>Places</Text>
+            {activeTab === 'places' && <View style={styles.activeTabIndicator} />}
           </Pressable>
 
           <Pressable
@@ -284,11 +309,34 @@ export default function MedoPersianDetailScreen() {
           </Animated.View>
         )}
 
-        {activeTab === 'map' && (
+        {activeTab === 'places' && (
           <Animated.View style={[styles.tabContentContainer, { opacity: fadeAnim }]}>
-            <View style={styles.mapContainer}>
+            {/* Key Places Horizontal Scroll */}
+            <View>
+              <View style={styles.sectionHeaderRow}>
+                <Text style={styles.sectionTitleText}>KEY PLACES OF THE MEDO-PERSIAN EMPIRE</Text>
+              </View>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.placesScrollContent}
+                scrollEventThrottle={16}
+              >
+                {keyPlaces.map((place) => (
+                  <HorizontalPlaceCard key={place.id} place={place} accentColor={ACCENT} />
+                ))}
+              </ScrollView>
+            </View>
+
+            {/* Map Without Pins */}
+            <Pressable
+              style={({ pressed }) => [styles.mapContainer, pressed && { opacity: 0.92 }]}
+              onPress={() => setMapModalVisible(true)}
+              accessibilityRole="button"
+              accessibilityLabel="Expand map"
+            >
               <ImageBackground
-                source={require('../assets/Places/Ancient Susa.png')}
+                source={require('../assets/Maps/medo-persian.jpg')}
                 style={styles.mapVisual}
                 contentFit="cover"
               >
@@ -296,42 +344,36 @@ export default function MedoPersianDetailScreen() {
                   colors={['rgba(7, 17, 31, 0.2)', 'rgba(7, 17, 31, 0.82)']}
                   style={StyleSheet.absoluteFillObject}
                 />
-                {/* Susa Pin */}
-                <View style={[styles.mapPin, { top: '48%', left: '54%' }]}>
-                  <View style={styles.pulseContainer}>
-                    <View style={styles.pulsePin} />
-                    <MapPin color={ACCENT} size={20} />
-                  </View>
-                  <Text style={styles.mapPinLabel}>Susa</Text>
-                </View>
-                {/* Persepolis Pin */}
-                <View style={[styles.mapPin, { top: '62%', left: '68%' }]}>
-                  <View style={styles.pulseContainer}>
-                    <MapPin color="#EF4444" size={16} />
-                  </View>
-                  <Text style={styles.mapPinLabel}>Persepolis</Text>
-                </View>
-                {/* Jerusalem Pin */}
-                <View style={[styles.mapPin, { top: '58%', left: '20%' }]}>
-                  <View style={styles.pulseContainer}>
-                    <MapPin color="#EF4444" size={16} />
-                  </View>
-                  <Text style={styles.mapPinLabel}>Jerusalem</Text>
-                </View>
-                {/* Babylon Pin */}
-                <View style={[styles.mapPin, { top: '42%', left: '36%' }]}>
-                  <View style={styles.pulseContainer}>
-                    <MapPin color="#EF4444" size={16} />
-                  </View>
-                  <Text style={styles.mapPinLabel}>Babylon</Text>
-                </View>
               </ImageBackground>
-            </View>
-            <View style={styles.mapInfoCard}>
-              <Text style={styles.mapInfoTitle}>Geographic Overview</Text>
-              <Text style={styles.mapInfoText}>
-                The Persian heartland stretched east of Babylon through Susa and Persepolis, linking royal power with the roads of return. From this imperial center, decrees traveled westward and opened the way for Jewish exiles to journey back to Jerusalem.
-              </Text>
+              <View style={styles.expandHint}>
+                <Text style={styles.expandHintText}>Tap to expand</Text>
+              </View>
+            </Pressable>
+
+            {/* Geographic Overview with Side Image */}
+            <GeographicOverviewCard
+              title="Geographic Overview"
+              description="The Persian heartland stretched east of Babylon through Susa and Persepolis, linking royal power with the roads of return. From this imperial center, decrees traveled westward and opened the way for Jewish exiles to journey back to Jerusalem."
+              image={require('../assets/Places/Ancient Susa.png')}
+              imageCaption="Royal Road\nImperial highways\nconnected the empire"
+              accentColor={ACCENT}
+            />
+
+            {/* More Places to Explore Horizontal Scroll */}
+            <View>
+              <View style={styles.sectionHeaderRow}>
+                <Text style={styles.sectionTitleText}>MORE PLACES TO EXPLORE</Text>
+              </View>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.placesScrollContent}
+                scrollEventThrottle={16}
+              >
+                {morePlaces.map((place) => (
+                  <HorizontalPlaceCard key={place.id} place={place} accentColor={ACCENT} />
+                ))}
+              </ScrollView>
             </View>
           </Animated.View>
         )}
@@ -342,9 +384,33 @@ export default function MedoPersianDetailScreen() {
             accentColor={ACCENT}
             headerEyebrow="THE MEDO-PERSIAN EMPIRE"
             scrollRef={scrollRef}
+            scrollY={scrollY}
+            scrollViewHeightRef={scrollViewHeightRef}
+            scrollViewContentHeightRef={scrollViewContentHeightRef}
+            sectionPositions={sectionPositions}
+            rootOffset={rootOffset}
+            setRootOffset={setRootOffset}
           />
         )}
       </ScrollView>
+      {activeTab === 'read' && rootOffset > 0 && (
+        <OutlineScrubber
+          headings={headings}
+          accentColor={ACCENT}
+          scrollRef={scrollRef}
+          scrollY={scrollY}
+          scrollViewHeightRef={scrollViewHeightRef}
+          scrollViewContentHeightRef={scrollViewContentHeightRef}
+          rootOffset={rootOffset}
+          sectionPositions={sectionPositions}
+        />
+      )}
+      <MapModal
+        visible={mapModalVisible}
+        onClose={() => setMapModalVisible(false)}
+        source={require('../assets/Maps/medo-persian.jpg')}
+        accentColor={ACCENT}
+      />
     </View>
   );
 }
@@ -551,6 +617,7 @@ const styles = StyleSheet.create({
     bottom: 12,
     left: 12,
     right: 12,
+    paddingRight: 22,
     gap: 2,
   },
   exploreCardIcon: {
@@ -618,6 +685,13 @@ const styles = StyleSheet.create({
     gap: 14,
   },
 
+  // Places Horizontal Scroll
+  placesScrollContent: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    gap: 10,
+  },
+
   // Map Content
   mapContainer: {
     width: '100%',
@@ -631,58 +705,19 @@ const styles = StyleSheet.create({
     flex: 1,
     position: 'relative',
   },
-  mapPin: {
+  expandHint: {
     position: 'absolute',
-    alignItems: 'center',
-    justifyContent: 'center',
+    bottom: 10,
+    right: 10,
+    backgroundColor: 'rgba(7, 17, 31, 0.75)',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
   },
-  pulseContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    position: 'relative',
-  },
-  pulsePin: {
-    position: 'absolute',
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    backgroundColor: hexToRgba(ACCENT, 0.3),
-    borderWidth: 1,
-    borderColor: hexToRgba(ACCENT, 0.5),
-  },
-  mapPinLabel: {
+  expandHintText: {
     color: '#FFFFFF',
     fontFamily: 'Inter',
-    fontSize: 9,
-    fontWeight: '800',
-    backgroundColor: 'rgba(7, 17, 31, 0.85)',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 4,
-    marginTop: 2,
-    overflow: 'hidden',
-    borderWidth: 0.5,
-    borderColor: hexToRgba(ACCENT, 0.3),
-  },
-  mapInfoCard: {
-    backgroundColor: '#0C1420',
-    borderWidth: 1.2,
-    borderColor: hexToRgba(ACCENT, 0.18),
-    borderRadius: 10,
-    padding: 16,
-    gap: 8,
-  },
-  mapInfoTitle: {
-    color: ACCENT,
-    fontFamily: 'Inter',
-    fontSize: 12,
-    fontWeight: '800',
-    letterSpacing: 0.8,
-  },
-  mapInfoText: {
-    color: 'rgba(255, 255, 255, 0.7)',
-    fontFamily: 'Inter',
-    fontSize: 12,
-    lineHeight: 18,
+    fontSize: 10,
+    fontWeight: '600',
   },
 });

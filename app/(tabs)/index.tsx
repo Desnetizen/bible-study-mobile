@@ -1,5 +1,5 @@
 import { BlurView } from 'expo-blur';
-import { BadgeSection } from '../../components/BadgeSection';
+import { BadgeSection } from '@/components/BadgeSection';
 import { Image, ImageBackground } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Href, Link, router } from 'expo-router';
@@ -23,18 +23,18 @@ import Animated, {
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Circle, Defs, RadialGradient, Rect, Stop } from 'react-native-svg';
-import { StreakBadge } from '../../components/StreakBadge';
-import { ImageSkeleton, Skeleton, TextSkeleton } from '../../components/ui/Skeleton';
-import { DANIEL_CHAPTERS, formatDisplayDate, RECENT_ACTIVITY } from '../../constants/bible-connection';
-import { BIBLE_VERSES } from '../../constants/bible-verse';
-import { useAppReadiness } from '../../lib/app-readiness';
-import { formatActivityTime, useRecentActivity } from '../../lib/activity-tracker';
-import { useDanielProgress } from '../../lib/daniel-progress';
-import { useStreak } from '../../lib/useStreak';
-import { useNewBadgeIds } from '../../lib/badges';
+import { StreakBadge } from '@/components/StreakBadge';
+import { ImageSkeleton, Skeleton, TextSkeleton } from '@/components/ui/Skeleton';
+import { DANIEL_CHAPTERS, formatDisplayDate, RECENT_ACTIVITY } from '@/constants/bible-connection';
+import { BIBLE_VERSES } from '@/constants/bible-verse';
+import { useAppReadiness } from '@/lib/app-readiness';
+import { formatActivityTime, useRecentActivity } from '@/lib/activity-tracker';
+import { useDanielProgress } from '@/lib/daniel-progress';
+import { useStreak } from '@/lib/useStreak';
+import { useNewBadgeIds } from '@/lib/badges';
 
 // expo-image doesn't need Animated wrapping — we wrap in Animated.View instead
-const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
+
 const SharedAnimatedView = Animated.View as ComponentType<
   ComponentProps<typeof Animated.View> & { sharedTransitionTag?: string }
 >;
@@ -174,17 +174,18 @@ const chapterShowcase = {
 } as const;
 
 function QuickAccessCard({ item, index }: { item: typeof quickAccessItems[number]; index: number }) {
-  const scale = useSharedValue(1);
+  const pressed = useSharedValue(0);
   // CHANGE 8 — 3D Tilt shared values
   const tiltX = useSharedValue(0);
   const tiltY = useSharedValue(0);
 
   const animatedCard = useAnimatedStyle(() => ({
-    transform: [{ scale: scale.get() }],
+    transform: [{ scale: interpolate(pressed.get(), [0, 1], [1, 0.96]) }],
   }));
 
-  // CHANGE 8 — Pan gesture for 3D tilt
+  // CHANGE 8 — Pan gesture for 3D tilt (only activates on horizontal swipe)
   const panGesture = Gesture.Pan()
+    .activeOffsetX([-10, 10])
     .onUpdate((e) => {
       'worklet';
       tiltY.set(Math.min(8, Math.max(-8, e.translationX / 4)));
@@ -195,6 +196,19 @@ function QuickAccessCard({ item, index }: { item: typeof quickAccessItems[number
       tiltX.set(withSpring(0));
       tiltY.set(withSpring(0));
     });
+
+  const tapGesture = Gesture.Tap()
+    .onBegin(() => {
+      pressed.set(withSpring(1));
+    })
+    .onFinalize(() => {
+      pressed.set(withSpring(0));
+    })
+    .onEnd(() => {
+      runOnJS(router.push)(item.href ?? '/bible');
+    });
+
+  const composedGesture = Gesture.Race(tapGesture, panGesture);
 
   const animatedTilt = useAnimatedStyle(() => ({
     transform: [
@@ -209,37 +223,26 @@ function QuickAccessCard({ item, index }: { item: typeof quickAccessItems[number
       entering={FadeInDown.delay(300 + index * 60).springify()}
       style={styles.quickAccessCardWrapper}
     >
-      <GestureDetector gesture={panGesture}>
-        <Animated.View style={animatedTilt}>
-          <AnimatedPressable
-            onPress={() => router.push(item.href ?? '/bible')}
-            onPressIn={() => {
-              scale.set(withSpring(0.96));
-            }}
-            onPressOut={() => {
-              scale.set(withSpring(1));
-            }}
-            style={animatedCard}
-          >
-            {/* CHANGE 5 — Glassmorphism BlurView card */}
-            <BlurView intensity={18} tint="dark" style={[styles.quickAccessCard, { borderColor: item.color + '40' }]}>
-              <View style={styles.quickAccessCardGlassInner}>
-                <SharedAnimatedView
-                  sharedTransitionTag={`quickaccess-icon-${index}`}
-                  style={[styles.quickAccessIconLarge, { backgroundColor: item.color }]}
-                >
-                  <Image source={item.icon} style={styles.quickAccessCardIcon} contentFit="contain" cachePolicy="memory-disk" />
-                </SharedAnimatedView>
-                <SharedAnimatedText sharedTransitionTag={`quickaccess-title-${index}`} style={styles.quickAccessCardTitle}>
-                  {item.title}
-                </SharedAnimatedText>
-                <Text style={styles.quickAccessCardDescription}>{item.subtitle}</Text>
-                <View style={[styles.quickAccessButton, { backgroundColor: item.color + '20', borderColor: item.color }]}>
-                  <Text style={[styles.quickAccessButtonText, { color: item.color }]}>{item.buttonText}</Text>
-                </View>
+      <GestureDetector gesture={composedGesture}>
+        <Animated.View style={[animatedTilt, animatedCard]}>
+          {/* CHANGE 5 — Glassmorphism BlurView card */}
+          <BlurView intensity={18} tint="dark" style={[styles.quickAccessCard, { borderColor: item.color + '40' }]}>
+            <View style={styles.quickAccessCardGlassInner}>
+              <SharedAnimatedView
+                sharedTransitionTag={`quickaccess-icon-${index}`}
+                style={[styles.quickAccessIconLarge, { backgroundColor: item.color }]}
+              >
+                <Image source={item.icon} style={styles.quickAccessCardIcon} contentFit="contain" cachePolicy="memory-disk" />
+              </SharedAnimatedView>
+              <SharedAnimatedText sharedTransitionTag={`quickaccess-title-${index}`} style={styles.quickAccessCardTitle}>
+                {item.title}
+              </SharedAnimatedText>
+              <Text style={styles.quickAccessCardDescription}>{item.subtitle}</Text>
+              <View style={[styles.quickAccessButton, { backgroundColor: item.color + '20', borderColor: item.color }]}>
+                <Text style={[styles.quickAccessButtonText, { color: item.color }]}>{item.buttonText}</Text>
               </View>
-            </BlurView>
-          </AnimatedPressable>
+            </View>
+          </BlurView>
         </Animated.View>
       </GestureDetector>
     </Animated.View>

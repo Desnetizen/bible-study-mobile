@@ -10,6 +10,7 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import AnimatedSplashScreen from '@/components/AnimatedSplashScreen';
 import { AppReadinessProvider, useAppReadiness } from '@/lib/app-readiness';
 import { preloadStartupImages } from '@/lib/startup-assets';
+import { useEnsureAuth } from '@/hooks/useEnsureAuth';
 
 // Prevent the native splash screen from auto-hiding
 SplashScreen.preventAutoHideAsync().catch(() => {});
@@ -27,6 +28,8 @@ export default function RootLayout() {
 }
 
 function RootLayoutContent() {
+  useEnsureAuth();
+
   const colorScheme = useColorScheme();
   const { appContentReady, splashAnimationComplete, markAppContentReady, markSplashAnimationComplete } = useAppReadiness();
   const [nativeSplashHidden, setNativeSplashHidden] = useState(false);

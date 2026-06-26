@@ -24,10 +24,10 @@ import Animated, {
 } from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
 
-import { RECENT_ACTIVITY, STUDY_USER } from '../constants/bible-connection';
-import { useDanielProgress } from '../lib/daniel-progress';
-import { useStreak } from '../lib/useStreak';
-import { useRecentActivity, formatActivityTime } from '../lib/activity-tracker';
+import { RECENT_ACTIVITY, STUDY_USER } from '@/constants/bible-connection';
+import { useDanielProgress } from '@/lib/daniel-progress';
+import { useStreak } from '@/lib/useStreak';
+import { useRecentActivity, formatActivityTime } from '@/lib/activity-tracker';
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
@@ -55,7 +55,7 @@ export default function RecentActivityScreen() {
       ? trackedActivities.map((item, index) => ({
           label: item.label,
           time: formatActivityTime(item),
-          key: `tracked-${item.id ?? index}`,
+          key: item.id != null ? `db-${item.id}` : `local-${index}`,
         }))
       : RECENT_ACTIVITY.map((item, index) => ({
           label: item.label,

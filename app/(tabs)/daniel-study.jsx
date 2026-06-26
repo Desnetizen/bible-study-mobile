@@ -2,8 +2,8 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useMemo } from 'react';
 import { useColorScheme } from 'react-native';
 
-import DanielStudyPage from '../../components/DanielStudyPage';
-import { useDanielProgress } from '../../lib/daniel-progress';
+import DanielStudyPage from '@/components/DanielStudyPage';
+import { useDanielProgress } from '@/lib/daniel-progress';
 
 function getFocusChapter(completedChapters, requestedChapter) {
   if (Number.isFinite(requestedChapter) && requestedChapter >= 1 && requestedChapter <= 12) {

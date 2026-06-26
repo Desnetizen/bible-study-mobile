@@ -1,5 +1,5 @@
 import { Image } from 'expo-image';
-import { ImageSkeleton } from '../../components/ui/Skeleton';
+import { ImageSkeleton } from '@/components/ui/Skeleton';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import {
@@ -20,8 +20,8 @@ import {
   useWindowDimensions,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { characterProfiles } from '../../Data/characterProfile';
-import { trackActivity } from '../../lib/activity-tracker';
+import { characterProfiles } from '@/data/characterProfile';
+import { trackActivity } from '@/lib/activity-tracker';
 
 const ICONS = {
   bible: require('../../assets/Icons/Bible.png'),

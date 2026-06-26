@@ -7,23 +7,24 @@ create table if not exists public.daniel_progress (
 alter table public.daniel_progress enable row level security;
 
 drop policy if exists "Allow anon read access to Daniel progress" on public.daniel_progress;
-create policy "Allow anon read access to Daniel progress"
-on public.daniel_progress
-for select
-to anon
-using (true);
-
 drop policy if exists "Allow anon insert access to Daniel progress" on public.daniel_progress;
-create policy "Allow anon insert access to Daniel progress"
-on public.daniel_progress
-for insert
-to anon
-with check (true);
-
 drop policy if exists "Allow anon update access to Daniel progress" on public.daniel_progress;
-create policy "Allow anon update access to Daniel progress"
-on public.daniel_progress
-for update
-to anon
-using (true)
-with check (true);
+
+create policy "device_id read access"
+  on public.daniel_progress
+  for select
+  to anon
+  using (device_id = nullif(current_setting('app.device_id', true), '')::text);
+
+create policy "device_id insert access"
+  on public.daniel_progress
+  for insert
+  to anon
+  with check (device_id = nullif(current_setting('app.device_id', true), '')::text);
+
+create policy "device_id update access"
+  on public.daniel_progress
+  for update
+  to anon
+  using (device_id = nullif(current_setting('app.device_id', true), '')::text)
+  with check (device_id = nullif(current_setting('app.device_id', true), '')::text);

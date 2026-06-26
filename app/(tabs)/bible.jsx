@@ -36,13 +36,13 @@ import Reanimated, {
   withTiming,
 } from 'react-native-reanimated';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { BadgeEarnedToast } from '../../components/BadgeEarnedToast';
-import { BadgePreviewModal } from '../../components/BadgePreviewModal';
-import ChapterCompleteModal from '../../components/ChapterCompleteModal';
-import { trackActivity } from '../../lib/activity-tracker';
-import { getEarnedBadges } from '../../lib/badges';
-import { loadDanielCrossReferences } from '../../lib/daniel-cross-references';
-import { saveDanielProgress, useDanielProgress } from '../../lib/daniel-progress';
+import { BadgeEarnedToast } from '@/components/BadgeEarnedToast';
+import { BadgePreviewModal } from '@/components/BadgePreviewModal';
+import ChapterCompleteModal from '@/components/ChapterCompleteModal';
+import { trackActivity } from '@/lib/activity-tracker';
+import { getEarnedBadges } from '@/lib/badges';
+import { loadDanielCrossReferences } from '@/lib/daniel-cross-references';
+import { saveDanielProgress, useDanielProgress } from '@/lib/daniel-progress';
 
 const API_ROOT = 'https://bible-api.com/data';
 const DEFAULT_TRANSLATION_ID = 'kjv';
