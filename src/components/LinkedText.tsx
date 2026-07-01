@@ -17,7 +17,7 @@ export function LinkedText({ text, style, linkStyle }: LinkedTextProps) {
     const matches = findBibleReferences(text);
     if (matches.length === 0) return null;
 
-    const parts: Array<{ type: 'text' | 'ref'; content: string; ref?: { book: string; chapter: number; verse?: number } }> = [];
+    const parts: { type: 'text' | 'ref'; content: string; ref?: { book: string; chapter: number; verse?: number } }[] = [];
     let lastIndex = 0;
 
     for (const match of matches) {
