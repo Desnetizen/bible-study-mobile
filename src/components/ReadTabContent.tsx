@@ -13,6 +13,8 @@ import {
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
+import { VerseLink } from '@/components/VerseLink';
+import { parseBibleReference } from '@/lib/parseBibleReference';
 import {
   BookOpen,
   ChevronRight,
@@ -98,7 +100,17 @@ function QuoteCard({ text, reference }: { text: string; reference?: string }) {
             {reference && (
               <View style={quoteStyles.refRow}>
                 <View style={[quoteStyles.refDash, { backgroundColor: accentColor }]} />
-                <Text style={[quoteStyles.refText, { color: accentColor }]}>{reference}</Text>
+                {(() => {
+                  const parsed = parseBibleReference(reference);
+                  if (parsed) {
+                    return (
+                      <VerseLink book={parsed.book} chapter={parsed.chapter} verse={parsed.verse}>
+                        <Text style={[quoteStyles.refText, { color: accentColor }]}>{reference}</Text>
+                      </VerseLink>
+                    );
+                  }
+                  return <Text style={[quoteStyles.refText, { color: accentColor }]}>{reference}</Text>;
+                })()}
               </View>
             )}
           </View>
@@ -492,11 +504,15 @@ function TimelineVisual({ items }: { items: { date: string; event: string; refer
             <Pressable
               style={[timelineStyles.refChip, { backgroundColor: `rgba(${rgb.r},${rgb.g},${rgb.b},0.08)` }]}
               onPress={() => {
-                const match = item.reference.match(/^(.+?)\s+(\d+)/);
-                if (match) {
+                const parsed = parseBibleReference(item.reference);
+                if (parsed) {
                   router.push({
                     pathname: '/bible',
-                    params: { book: match[1].trim(), chapter: match[2] },
+                    params: {
+                      book: parsed.book,
+                      chapter: String(parsed.chapter),
+                      ...(parsed.verse ? { verse: String(parsed.verse) } : {}),
+                    },
                   });
                 }
               }}
