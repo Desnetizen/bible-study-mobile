@@ -1,8 +1,12 @@
 import { CastleIcon } from '@/components/CastleIcon';
 import OutlineScrubber from '@/components/OutlineScrubber';
 import ReadTabContent from '@/components/ReadTabContent';
-import { extractHeadings } from '@/data/extractHeadings';
 import { preExileContext } from '@/data/preExileContext';
+import { keyPlaces as preExilicKeyPlaces, morePlaces as preExilicMorePlaces } from '@/data/preExilicPlaces';
+import GeographicOverviewCard from '@/components/GeographicOverviewCard';
+import HorizontalPlaceCard from '@/components/HorizontalPlaceCard';
+import MapModal from '@/components/MapModal';
+import { extractHeadings } from '@/data/extractHeadings';
 import { ImageBackground } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
@@ -35,6 +39,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const { width } = Dimensions.get('window');
+const ACCENT = '#D5A748';
 
 // ─── Timeline Data ────────────────────────────────────────────────────────────
 
@@ -123,6 +128,7 @@ const EXPLORE_CARDS = [
 export default function PreExilicDetailScreen() {
   const insets = useSafeAreaInsets();
   const [activeTab, setActiveTab] = useState<'overview' | 'places' | 'read'>('overview');
+  const [mapModalVisible, setMapModalVisible] = useState(false);
 
   // Animations
   const scrollRef = useRef<ScrollView>(null);
@@ -200,7 +206,7 @@ export default function PreExilicDetailScreen() {
             style={styles.backButton}
             onPress={() => router.back()}
           >
-            <ChevronLeft size={24} color="#D5A748" />
+            <ChevronLeft size={24} color={ACCENT} />
           </Pressable>
 
           {/* Hero Content */}
@@ -254,28 +260,28 @@ export default function PreExilicDetailScreen() {
               <View style={styles.factsGrid}>
                 {/* Fact 1: Capital */}
                 <View style={styles.factCard}>
-                  <MapPin color="#D5A748" size={16} />
+                  <MapPin color={ACCENT} size={16} />
                   <Text style={styles.factLabel}>CAPITAL</Text>
                   <Text style={styles.factValue} numberOfLines={2}>Jerusalem</Text>
                 </View>
 
                 {/* Fact 2: Dynasty */}
                 <View style={styles.factCard}>
-                  <Crown color="#D5A748" size={16} />
+                  <Crown color={ACCENT} size={16} />
                   <Text style={styles.factLabel}>DYNASTY</Text>
                   <Text style={styles.factValue} numberOfLines={2}>House of David</Text>
                 </View>
 
                 {/* Fact 3: Key Prophets */}
                 <View style={styles.factCard}>
-                  <Feather color="#D5A748" size={16} />
+                  <Feather color={ACCENT} size={16} />
                   <Text style={styles.factLabel}>KEY PROPHETS</Text>
                   <Text style={styles.factValue} numberOfLines={2}>Isaiah · Jeremiah</Text>
                 </View>
 
                 {/* Fact 4: Status */}
                 <View style={styles.factCard}>
-                  <ShieldAlert color="#D5A748" size={16} />
+                  <ShieldAlert color={ACCENT} size={16} />
                   <Text style={styles.factLabel}>STATUS</Text>
                   <Text style={styles.factValue} numberOfLines={2}>Approaching Exile</Text>
                 </View>
@@ -284,7 +290,7 @@ export default function PreExilicDetailScreen() {
 
             {/* Timeline Section */}
             <View style={styles.sectionHeaderRow}>
-              <Clock size={16} color="#D5A748" style={{ marginRight: 6 }} />
+              <Clock size={16} color={ACCENT} style={{ marginRight: 6 }} />
               <Text style={styles.sectionTitleText}>TIMELINE</Text>
             </View>
 
@@ -298,7 +304,7 @@ export default function PreExilicDetailScreen() {
 
               {TIMELINE_NODES.map((node) => {
                 const IconComponent = node.icon;
-                const strokeColor = node.isSpecial ? '#EF4444' : '#D5A748';
+                const strokeColor = node.isSpecial ? '#EF4444' : ACCENT;
                 const bgColor = node.isSpecial ? 'rgba(239, 68, 68, 0.15)' : '#07111F';
 
                 return (
@@ -323,7 +329,7 @@ export default function PreExilicDetailScreen() {
 
             {/* Explore Section */}
             <View style={styles.sectionHeaderRow}>
-              <Compass size={16} color="#D5A748" style={{ marginRight: 6 }} />
+              <Compass size={16} color={ACCENT} style={{ marginRight: 6 }} />
               <Text style={styles.sectionTitleText}>EXPLORE PRE-EXILIC JUDAH</Text>
             </View>
 
@@ -348,13 +354,13 @@ export default function PreExilicDetailScreen() {
                     />
 
                     <View style={styles.exploreCardContent}>
-                      <IconComponent color="#D5A748" size={18} style={styles.exploreCardIcon} />
+                      <IconComponent color={ACCENT} size={18} style={styles.exploreCardIcon} />
                       <Text style={styles.exploreCardTitle}>{card.title}</Text>
                       <Text style={styles.exploreCardSubtitle}>{card.subtitle}</Text>
                     </View>
 
                     <View style={styles.chevronWrap}>
-                      <ChevronRight size={16} color="#D5A748" />
+                      <ChevronRight size={16} color={ACCENT} />
                     </View>
                   </Pressable>
                 );
@@ -365,7 +371,30 @@ export default function PreExilicDetailScreen() {
 
         {activeTab === 'places' && (
           <Animated.View style={[styles.tabContentContainer, { opacity: fadeAnim }]}>
-            <View style={styles.mapContainer}>
+            {/* Key Places Horizontal Scroll */}
+            <View>
+              <View style={styles.sectionHeaderRow}>
+                <Text style={styles.sectionTitleText}>KEY PLACES OF PRE-EXILIC JUDAH</Text>
+              </View>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.placesScrollContent}
+                scrollEventThrottle={16}
+              >
+                {preExilicKeyPlaces.map((place) => (
+                  <HorizontalPlaceCard key={place.id} place={place} accentColor={ACCENT} />
+                ))}
+              </ScrollView>
+            </View>
+
+            {/* Map Without Pins */}
+            <Pressable
+              style={({ pressed }) => [styles.mapContainer, pressed && { opacity: 0.92 }]}
+              onPress={() => setMapModalVisible(true)}
+              accessibilityRole="button"
+              accessibilityLabel="Expand map"
+            >
               <ImageBackground
                 source={require('../assets/Places/Canaanite Lands.jpg')}
                 style={styles.mapVisual}
@@ -375,28 +404,36 @@ export default function PreExilicDetailScreen() {
                   colors={['rgba(7, 17, 31, 0.2)', 'rgba(7, 17, 31, 0.82)']}
                   style={StyleSheet.absoluteFillObject}
                 />
-                {/* Jerusalem Pin */}
-                <View style={[styles.mapPin, { top: '42%', left: '46%' }]}>
-                  <View style={styles.pulseContainer}>
-                    <View style={styles.pulsePin} />
-                    <MapPin color="#D5A748" size={20} />
-                  </View>
-                  <Text style={styles.mapPinLabel}>Jerusalem</Text>
-                </View>
-                {/* Lachish Pin */}
-                <View style={[styles.mapPin, { top: '62%', left: '26%' }]}>
-                  <View style={styles.pulseContainer}>
-                    <MapPin color="#EF4444" size={16} />
-                  </View>
-                  <Text style={styles.mapPinLabel}>Lachish</Text>
-                </View>
               </ImageBackground>
-            </View>
-            <View style={styles.mapInfoCard}>
-              <Text style={styles.mapInfoTitle}>Geographic Overview</Text>
-              <Text style={styles.mapInfoText}>
-                Pre-Exilic Judah was a rugged, mountainous kingdom bordered by the Dead Sea to the east and Philistia to the west. Jerusalem, situated safely in the Judean hills, served as its highly fortified royal capital and spiritual heart.
-              </Text>
+              <View style={styles.expandHint}>
+                <Text style={styles.expandHintText}>Tap to expand</Text>
+              </View>
+            </Pressable>
+
+            {/* Geographic Overview with Side Image */}
+            <GeographicOverviewCard
+              title="Geographic Overview"
+              description="Pre-Exilic Judah was a rugged, mountainous kingdom bordered by the Dead Sea to the east and Philistia to the west. Jerusalem, situated safely in the Judean hills, served as its highly fortified royal capital and spiritual heart."
+              image={require('../assets/Places/Ancient Jerusalem.jpg')}
+              imageCaption="Judean hill country\nFortified capital"
+              accentColor={ACCENT}
+            />
+
+            {/* More Places to Explore Horizontal Scroll */}
+            <View>
+              <View style={styles.sectionHeaderRow}>
+                <Text style={styles.sectionTitleText}>MORE PLACES TO EXPLORE</Text>
+              </View>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.placesScrollContent}
+                scrollEventThrottle={16}
+              >
+                {preExilicMorePlaces.map((place) => (
+                  <HorizontalPlaceCard key={place.id} place={place} accentColor={ACCENT} />
+                ))}
+              </ScrollView>
             </View>
           </Animated.View>
         )}
@@ -404,7 +441,7 @@ export default function PreExilicDetailScreen() {
         {activeTab === 'read' && (
           <ReadTabContent
             contextData={preExileContext}
-            accentColor="#D5A748"
+            accentColor={ACCENT}
             headerEyebrow="PRE-EXILIC JUDAH"
             scrollRef={scrollRef}
             scrollY={scrollY}
@@ -419,7 +456,7 @@ export default function PreExilicDetailScreen() {
       {activeTab === 'read' && rootOffset > 0 && (
         <OutlineScrubber
           headings={headings}
-          accentColor="#D5A748"
+          accentColor={ACCENT}
           scrollRef={scrollRef}
           scrollY={scrollY}
           scrollViewHeightRef={scrollViewHeightRef}
@@ -428,6 +465,12 @@ export default function PreExilicDetailScreen() {
           sectionPositions={sectionPositions}
         />
       )}
+      <MapModal
+        visible={mapModalVisible}
+        onClose={() => setMapModalVisible(false)}
+        source={require('../assets/Places/Canaanite Lands.jpg')}
+        accentColor={ACCENT}
+      />
     </View>
   );
 }
@@ -469,7 +512,7 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
   },
   heroEyebrow: {
-    color: '#D5A748',
+    color: ACCENT,
     fontFamily: 'Inter',
     fontSize: 12,
     fontWeight: '700',
@@ -486,13 +529,13 @@ const styles = StyleSheet.create({
   },
   badgeContainer: {
     borderWidth: 1.5,
-    borderColor: '#D5A748',
+    borderColor: ACCENT,
     borderRadius: 16,
     paddingHorizontal: 16,
     paddingVertical: 4,
   },
   badgeText: {
-    color: '#D5A748',
+    color: ACCENT,
     fontFamily: 'Inter',
     fontSize: 12,
     fontWeight: '600',
@@ -519,7 +562,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 4,
-    shadowColor: '#D5A748',
+    shadowColor: ACCENT,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.04,
     shadowRadius: 6,
@@ -550,7 +593,7 @@ const styles = StyleSheet.create({
     marginBottom: 14,
   },
   sectionTitleText: {
-    color: '#D5A748',
+    color: ACCENT,
     fontFamily: 'Inter',
     fontSize: 11,
     fontWeight: '800',
@@ -681,7 +724,7 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
   activeSubNavText: {
-    color: '#D5A748',
+    color: ACCENT,
     fontWeight: '700',
   },
   activeTabIndicator: {
@@ -690,7 +733,7 @@ const styles = StyleSheet.create({
     left: 20,
     right: 20,
     height: 2,
-    backgroundColor: '#D5A748',
+    backgroundColor: ACCENT,
     borderRadius: 1,
   },
 
@@ -714,58 +757,24 @@ const styles = StyleSheet.create({
     flex: 1,
     position: 'relative',
   },
-  mapPin: {
+  expandHint: {
     position: 'absolute',
-    alignItems: 'center',
-    justifyContent: 'center',
+    bottom: 10,
+    right: 10,
+    backgroundColor: 'rgba(7, 17, 31, 0.75)',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
   },
-  pulseContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    position: 'relative',
-  },
-  pulsePin: {
-    position: 'absolute',
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    backgroundColor: 'rgba(213, 167, 72, 0.3)',
-    borderWidth: 1,
-    borderColor: 'rgba(213, 167, 72, 0.5)',
-  },
-  mapPinLabel: {
+  expandHintText: {
     color: '#FFFFFF',
     fontFamily: 'Inter',
-    fontSize: 9,
-    fontWeight: '800',
-    backgroundColor: 'rgba(7, 17, 31, 0.85)',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 4,
-    marginTop: 2,
-    overflow: 'hidden',
-    borderWidth: 0.5,
-    borderColor: 'rgba(213, 167, 72, 0.3)',
+    fontSize: 10,
+    fontWeight: '600',
   },
-  mapInfoCard: {
-    backgroundColor: '#0C1420',
-    borderWidth: 1.2,
-    borderColor: 'rgba(213, 167, 72, 0.18)',
-    borderRadius: 10,
-    padding: 16,
-    gap: 8,
-  },
-  mapInfoTitle: {
-    color: '#D5A748',
-    fontFamily: 'Inter',
-    fontSize: 12,
-    fontWeight: '800',
-    letterSpacing: 0.8,
-  },
-  mapInfoText: {
-    color: 'rgba(255, 255, 255, 0.7)',
-    fontFamily: 'Inter',
-    fontSize: 12,
-    lineHeight: 18,
+  placesScrollContent: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    gap: 10,
   },
 });

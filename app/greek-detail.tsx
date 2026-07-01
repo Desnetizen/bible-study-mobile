@@ -2,6 +2,10 @@ import OutlineScrubber from '@/components/OutlineScrubber';
 import ReadTabContent from '@/components/ReadTabContent';
 import { extractHeadings } from '@/data/extractHeadings';
 import { greekContext } from '@/data/greekContext';
+import { keyPlaces as greekKeyPlaces, morePlaces as greekMorePlaces } from '@/data/greekPlaces';
+import GeographicOverviewCard from '@/components/GeographicOverviewCard';
+import HorizontalPlaceCard from '@/components/HorizontalPlaceCard';
+import MapModal from '@/components/MapModal';
 import { hexToRgba } from '@/lib/colors';
 import { ImageBackground } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -64,6 +68,7 @@ const EXPLORE_CARDS = [
 export default function GreekDetailScreen() {
   const insets = useSafeAreaInsets();
   const [activeTab, setActiveTab] = useState<'overview' | 'places' | 'read'>('overview');
+  const [mapModalVisible, setMapModalVisible] = useState(false);
 
   // Animations
   const scrollRef = useRef<ScrollView>(null);
@@ -306,15 +311,30 @@ export default function GreekDetailScreen() {
 
         {activeTab === 'places' && (
           <Animated.View style={[styles.tabContentContainer, { opacity: fadeAnim }]}>
-
-            {/* Section Header - ABOVE the map */}
-            <View style={styles.sectionHeaderRow}>
-              <Compass size={16} color={ACCENT} style={{ marginRight: 6 }} />
-              <Text style={styles.sectionTitleText}>GEOGRAPHIC OVERVIEW</Text>
+            {/* Key Places Horizontal Scroll */}
+            <View>
+              <View style={styles.sectionHeaderRow}>
+                <Text style={styles.sectionTitleText}>KEY PLACES OF THE GREEK EMPIRE</Text>
+              </View>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.placesScrollContent}
+                scrollEventThrottle={16}
+              >
+                {greekKeyPlaces.map((place) => (
+                  <HorizontalPlaceCard key={place.id} place={place} accentColor={ACCENT} />
+                ))}
+              </ScrollView>
             </View>
 
-            {/* Map */}
-            <View style={styles.mapContainer}>
+            {/* Map Without Pins */}
+            <Pressable
+              style={({ pressed }) => [styles.mapContainer, pressed && { opacity: 0.92 }]}
+              onPress={() => setMapModalVisible(true)}
+              accessibilityRole="button"
+              accessibilityLabel="Expand map"
+            >
               <ImageBackground
                 source={require('../assets/Maps/greek-empire-under-alexander-map.jpg')}
                 style={styles.mapVisual}
@@ -324,42 +344,36 @@ export default function GreekDetailScreen() {
                   colors={['rgba(7, 17, 31, 0.2)', 'rgba(7, 17, 31, 0.82)']}
                   style={StyleSheet.absoluteFillObject}
                 />
-                {/* Athens Pin */}
-                <View style={[styles.mapPin, { top: '44%', left: '44%' }]}>
-                  <View style={styles.pulseContainer}>
-                    <View style={styles.pulsePin} />
-                    <MapPin color={ACCENT} size={20} />
-                  </View>
-                  <Text style={styles.mapPinLabel}>Athens</Text>
-                </View>
-                {/* Alexandria Pin */}
-                <View style={[styles.mapPin, { top: '68%', left: '22%' }]}>
-                  <View style={styles.pulseContainer}>
-                    <MapPin color="#EF4444" size={16} />
-                  </View>
-                  <Text style={styles.mapPinLabel}>Alexandria</Text>
-                </View>
-                {/* Jerusalem Pin */}
-                <View style={[styles.mapPin, { top: '62%', left: '58%' }]}>
-                  <View style={styles.pulseContainer}>
-                    <MapPin color="#EF4444" size={16} />
-                  </View>
-                  <Text style={styles.mapPinLabel}>Jerusalem</Text>
-                </View>
-                {/* Antioch Pin */}
-                <View style={[styles.mapPin, { top: '34%', left: '66%' }]}>
-                  <View style={styles.pulseContainer}>
-                    <MapPin color="#EF4444" size={16} />
-                  </View>
-                  <Text style={styles.mapPinLabel}>Antioch</Text>
-                </View>
               </ImageBackground>
-            </View>
-            <View style={styles.mapInfoCard}>
-              <Text style={styles.mapInfoTitle}>Geographic Overview</Text>
-              <Text style={styles.mapInfoText}>
-                Alexander swept from Greece across the eastern Mediterranean, and his empire fractured into Hellenistic kingdoms after his death. Judea stood between rival powers, where Greek culture and covenant faith collided with lasting force.
-              </Text>
+              <View style={styles.expandHint}>
+                <Text style={styles.expandHintText}>Tap to expand</Text>
+              </View>
+            </Pressable>
+
+            {/* Geographic Overview with Side Image */}
+            <GeographicOverviewCard
+              title="Geographic Overview"
+              description="Alexander swept from Greece across the eastern Mediterranean, and his empire fractured into Hellenistic kingdoms after his death. Judea stood between rival powers, where Greek culture and covenant faith collided with lasting force."
+              image={require('../assets/Places/Athens.jpg')}
+              imageCaption="Mediterranean world\nHellenistic influence"
+              accentColor={ACCENT}
+            />
+
+            {/* More Places to Explore Horizontal Scroll */}
+            <View>
+              <View style={styles.sectionHeaderRow}>
+                <Text style={styles.sectionTitleText}>MORE PLACES TO EXPLORE</Text>
+              </View>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.placesScrollContent}
+                scrollEventThrottle={16}
+              >
+                {greekMorePlaces.map((place) => (
+                  <HorizontalPlaceCard key={place.id} place={place} accentColor={ACCENT} />
+                ))}
+              </ScrollView>
             </View>
           </Animated.View>
         )}
@@ -391,6 +405,12 @@ export default function GreekDetailScreen() {
           sectionPositions={sectionPositions}
         />
       )}
+      <MapModal
+        visible={mapModalVisible}
+        onClose={() => setMapModalVisible(false)}
+        source={require('../assets/Maps/greek-empire-under-alexander-map.jpg')}
+        accentColor={ACCENT}
+      />
     </View>
   );
 }
@@ -677,58 +697,24 @@ const styles = StyleSheet.create({
     flex: 1,
     position: 'relative',
   },
-  mapPin: {
+  expandHint: {
     position: 'absolute',
-    alignItems: 'center',
-    justifyContent: 'center',
+    bottom: 10,
+    right: 10,
+    backgroundColor: 'rgba(7, 17, 31, 0.75)',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
   },
-  pulseContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    position: 'relative',
-  },
-  pulsePin: {
-    position: 'absolute',
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    backgroundColor: hexToRgba(ACCENT, 0.3),
-    borderWidth: 1,
-    borderColor: hexToRgba(ACCENT, 0.5),
-  },
-  mapPinLabel: {
+  expandHintText: {
     color: '#FFFFFF',
     fontFamily: 'Inter',
-    fontSize: 9,
-    fontWeight: '800',
-    backgroundColor: 'rgba(7, 17, 31, 0.85)',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 4,
-    marginTop: 2,
-    overflow: 'hidden',
-    borderWidth: 0.5,
-    borderColor: hexToRgba(ACCENT, 0.3),
+    fontSize: 10,
+    fontWeight: '600',
   },
-  mapInfoCard: {
-    backgroundColor: '#0C1420',
-    borderWidth: 1.2,
-    borderColor: hexToRgba(ACCENT, 0.18),
-    borderRadius: 10,
-    padding: 16,
-    gap: 8,
-  },
-  mapInfoTitle: {
-    color: ACCENT,
-    fontFamily: 'Inter',
-    fontSize: 12,
-    fontWeight: '800',
-    letterSpacing: 0.8,
-  },
-  mapInfoText: {
-    color: 'rgba(255, 255, 255, 0.7)',
-    fontFamily: 'Inter',
-    fontSize: 12,
-    lineHeight: 18,
+  placesScrollContent: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    gap: 10,
   },
 });
