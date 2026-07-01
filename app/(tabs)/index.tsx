@@ -32,6 +32,7 @@ import { formatActivityTime, useRecentActivity } from '@/lib/activity-tracker';
 import { useDanielProgress } from '@/lib/daniel-progress';
 import { useStreak } from '@/lib/useStreak';
 import { useNewBadgeIds } from '@/lib/badges';
+import { parseBibleReference } from '@/lib/parseBibleReference';
 
 // expo-image doesn't need Animated wrapping — we wrap in Animated.View instead
 
@@ -74,33 +75,8 @@ type DailyVerse = {
   verse: number;
 };
 
-function normalizeBibleBookName(book: string) {
-  if (book === 'Psalm') {
-    return 'Psalms';
-  }
-
-  return book;
-}
-
-function parseVerseReference(reference: string) {
-  const match = reference.trim().match(/^(?:(\d)\s+)?(.+?)\s+(\d+):(\d+)(?:-(\d+))?$/);
-
-  if (!match) {
-    return null;
-  }
-
-  const [, bookPrefix, bookName, chapter, verse] = match;
-  const normalizedBookName = normalizeBibleBookName(`${bookPrefix ? `${bookPrefix} ` : ''}${bookName}`.trim());
-
-  return {
-    book: normalizedBookName,
-    chapter: Number(chapter),
-    verse: Number(verse),
-  };
-}
-
 const ROTATING_KEY_VERSES: DailyVerse[] = BIBLE_VERSES.map((verse) => {
-  const parsedReference = parseVerseReference(verse.reference);
+  const parsedReference = parseBibleReference(verse.reference);
 
   if (!parsedReference) {
     return {
@@ -115,7 +91,9 @@ const ROTATING_KEY_VERSES: DailyVerse[] = BIBLE_VERSES.map((verse) => {
   return {
     text: verse.text,
     ref: verse.reference,
-    ...parsedReference,
+    book: parsedReference.book,
+    chapter: parsedReference.chapter,
+    verse: parsedReference.verse ?? 1,
   };
 });
 

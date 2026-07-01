@@ -22,6 +22,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { characterProfiles } from '@/data/characterProfile';
 import { trackActivity } from '@/lib/activity-tracker';
+import { parseBibleReference } from '@/lib/parseBibleReference';
 
 const ICONS = {
   bible: require('../../assets/Icons/Bible.png'),
@@ -129,21 +130,6 @@ function getRoleIconSource(role = '') {
   if (value.includes('king') || value.includes('regent')) return ICONS.crown;
 
   return ICONS.bible;
-}
-
-function parseBibleReference(ref) {
-  const normalized = cleanText(ref).replace(/[–—]/g, '-');
-  const match = normalized.match(/^(.+?)\s+(\d+)(?::(\d+))?/);
-
-  if (!match) {
-    return null;
-  }
-
-  return {
-    book: match[1].trim(),
-    chapter: Number(match[2]),
-    verse: match[3] ? Number(match[3]) : null,
-  };
 }
 
 function getServedRegime(character) {
