@@ -14,6 +14,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { CHAPTER_COLORS, CHAPTERS_DATA, TABS } from '../data/danielStudyChapters';
 import StudyIcon from './daniel-study/StudyIcon';
 import { ImageSkeleton } from './ui/Skeleton';
+import { VerseLink } from '@/components/VerseLink';
+import { parseBibleReference } from '@/lib/parseBibleReference';
 
 function useTheme(controlled) {
   const systemDark = useColorScheme() === 'dark';
@@ -169,7 +171,17 @@ function OverviewCard({ chapter, dark }) {
       <View style={[styles.quoteBox, { backgroundColor: dark ? '#334155' : '#f8fafc' }]}>
         <Text style={[styles.quoteMark, { color: colors.cardBorder }]}>{'\u201C'}</Text>
         <Text style={[styles.quoteText, { color: colors.textSub }]}>{chapter.overview.quote}</Text>
-        <Text style={[styles.quoteRef, { color: colors.textMuted }]}>{chapter.overview.quoteRef}</Text>
+        {(() => {
+          const parsed = parseBibleReference(chapter.overview.quoteRef);
+          if (parsed) {
+            return (
+              <VerseLink book={parsed.book} chapter={parsed.chapter} verse={parsed.verse}>
+                <Text style={[styles.quoteRef, { color: colors.textMuted }]}>{chapter.overview.quoteRef}</Text>
+              </VerseLink>
+            );
+          }
+          return <Text style={[styles.quoteRef, { color: colors.textMuted }]}>{chapter.overview.quoteRef}</Text>;
+        })()}
         <Text style={[styles.quoteMark, styles.quoteMarkEnd, { color: colors.cardBorder }]}>{'\u201D'}</Text>
       </View>
     </Card>
