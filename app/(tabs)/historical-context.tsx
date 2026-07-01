@@ -22,6 +22,7 @@ import {
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { parseBibleReference } from '@/lib/parseBibleReference';
 import { HISTORICAL_ERAS } from '@/data/historicalContextData';
 
 // ─── Era config ────────────────────────────────────────────────────────────────
@@ -311,16 +312,15 @@ export default function HistoricalContextScreen() {
   };
 
   const handleScripturePress = (ref: string) => {
-    const normalized = ref.trim().replace(/–|—/g, '-').split(/[,;]/)[0].trim();
-    const match = normalized.match(/^(.+?)\s+(\d+)(?::(\d+))?/);
-    if (!match) return;
+    const parsed = parseBibleReference(ref);
+    if (!parsed) return;
     closeModal();
     router.push({
       pathname: '/bible',
       params: {
-        book: match[1].trim(),
-        chapter: match[2],
-        ...(match[3] ? { verse: match[3] } : {}),
+        book: parsed.book,
+        chapter: String(parsed.chapter),
+        ...(parsed.verse ? { verse: String(parsed.verse) } : {}),
       },
     });
   };

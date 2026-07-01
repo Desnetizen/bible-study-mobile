@@ -18,26 +18,12 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ImageSkeleton, TextSkeleton } from '@/components/ui/Skeleton';
 import { trackActivity } from '@/lib/activity-tracker';
+import { parseBibleReference } from '@/lib/parseBibleReference';
 import { TIMELINE_ITEMS } from '@/data/danielTimeline';
 
 const READ_EVENTS_KEY = 'bible-connection:timeline-read-events';
 const LAST_READ_EVENT_KEY = 'bible-connection:timeline-last-read';
 const TIMELINE_BEGUN_KEY = 'bible-connection:timeline-begun';
-
-function parseBibleReference(ref: string) {
-  const normalized = ref.trim().replace(/–|—/g, '-');
-  const match = normalized.match(/^(.+?)\s+(\d+)(?::(\d+))?/);
-
-  if (!match) {
-    return null;
-  }
-
-  return {
-    book: match[1].trim(),
-    chapter: Number(match[2]),
-    verse: match[3] ? Number(match[3]) : null,
-  };
-}
 
 export default function TimelineScreen() {
   const insets = useSafeAreaInsets();
