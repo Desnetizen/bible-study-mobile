@@ -14,6 +14,7 @@ import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import { VerseLink } from '@/components/VerseLink';
+import { LinkedText } from '@/components/LinkedText';
 import { parseBibleReference } from '@/lib/parseBibleReference';
 import {
   BookOpen,
@@ -214,7 +215,7 @@ function SubsectionView({
         <Text style={subsectionStyles.title}>{cleanTitle}</Text>
       </View>
       {paragraphs.map((p, i) => (
-        <Text key={`p-${i}`} style={subsectionStyles.para}>{p}</Text>
+        <LinkedText key={`p-${i}`} text={p} style={subsectionStyles.para} />
       ))}
       {quotes.map((q, i) => (
         <QuoteCard key={`q-${i}`} text={q.text} reference={q.reference} />
@@ -408,7 +409,7 @@ function SectionBody({
       <View style={IS_WIDE ? sectionBodyStyles.columns : undefined}>
         <View style={sectionBodyStyles.column}>
           {paragraphs.slice(0, IS_WIDE ? Math.ceil(paragraphs.length / 2) : paragraphs.length).map((p, i) => (
-            <Text key={`p-${i}`} style={sectionBodyStyles.para}>{p}</Text>
+            <LinkedText key={`p-${i}`} text={p} style={sectionBodyStyles.para} />
           ))}
           {quotes.slice(0, IS_WIDE ? Math.ceil(quotes.length / 2) : quotes.length).map((q, i) => (
             <QuoteCard key={`q-${i}`} text={q.text} reference={q.reference} />
@@ -418,7 +419,7 @@ function SectionBody({
         {IS_WIDE && (
           <View style={sectionBodyStyles.column}>
             {paragraphs.slice(Math.ceil(paragraphs.length / 2)).map((p, i) => (
-              <Text key={`pr-${i}`} style={sectionBodyStyles.para}>{p}</Text>
+              <LinkedText key={`pr-${i}`} text={p} style={sectionBodyStyles.para} />
             ))}
             {quotes.slice(Math.ceil(quotes.length / 2)).map((q, i) => (
               <QuoteCard key={`qr-${i}`} text={q.text} reference={q.reference} />

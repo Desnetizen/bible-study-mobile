@@ -23,6 +23,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { parseBibleReference } from '@/lib/parseBibleReference';
+import { LinkedText } from '@/components/LinkedText';
 import { HISTORICAL_ERAS } from '@/data/historicalContextData';
 
 // ─── Era config ────────────────────────────────────────────────────────────────
@@ -455,7 +456,7 @@ export default function HistoricalContextScreen() {
               {/* Description */}
               {activeEvent?.description
                 ? activeEvent.description.split('\n\n').map((para, i) => (
-                    <Text key={i} style={styles.descParagraph}>{para}</Text>
+                    <LinkedText key={i} text={para} style={styles.descParagraph} />
                   ))
                 : null}
 
