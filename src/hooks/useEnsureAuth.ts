@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 
-import { supabase, initSupabaseSession } from '@/lib/supabase';
+import { supabase } from '@/lib/supabase';
 
 export function useEnsureAuth() {
   useEffect(() => {
@@ -14,8 +14,6 @@ export function useEnsureAuth() {
           console.error('[auth] Anonymous sign-in failed:', error.message);
         }
       }
-
-      await initSupabaseSession();
     }
     ensureAnonymousSession();
   }, []);

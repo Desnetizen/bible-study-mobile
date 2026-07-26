@@ -99,20 +99,7 @@ export function useNewBadgeIds(): number[] {
   const [newIds, setNewIds] = useState<number[]>([]);
 
   useEffect(() => {
-    const current = getDanielProgressSnapshot();
-    const currentFiltered = current.filter((ch) => ch in BADGE_MAP);
-
-    loadBadgeSnapshot().then((snapshot) => {
-      const newlyUnlocked = currentFiltered.filter((ch) => !snapshot.includes(ch));
-      if (newlyUnlocked.length > 0) {
-        setNewIds(newlyUnlocked);
-        saveBadgeSnapshot(currentFiltered);
-      }
-    });
-  }, []);
-
-  useEffect(() => {
-    const unsubscribe = subscribeDanielProgress(() => {
+    const check = () => {
       const current = getDanielProgressSnapshot();
       const currentFiltered = current.filter((ch) => ch in BADGE_MAP);
 
@@ -126,7 +113,11 @@ export function useNewBadgeIds(): number[] {
           saveBadgeSnapshot(currentFiltered);
         }
       });
-    });
+    };
+
+    check();
+
+    const unsubscribe = subscribeDanielProgress(check);
 
     return () => { unsubscribe(); };
   }, []);
