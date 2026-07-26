@@ -2,6 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useEffect, useSyncExternalStore } from 'react';
 
 import { logActivity, getActivityFeed, type ActivityType } from '@/services/activityService';
+import { withRetry } from './retry-helper';
 
 const STORAGE_KEY = 'bible-connection:user-activity:v1';
 const MAX_LOCAL_ITEMS = 100;
@@ -10,12 +11,16 @@ const MAX_LOCAL_ITEMS = 100;
 
 export type { ActivityType };
 
+export type SyncStatus = 'pending' | 'synced' | 'failed';
+
 export type ActivityItem = {
+  client_id: string;
   id?: number;
   activity_type: ActivityType;
   label: string;
   metadata?: Record<string, unknown>;
   created_at: string;
+  syncStatus?: SyncStatus;
 };
 
 // ─── In-memory store (useSyncExternalStore pattern) ─────────────────────────
@@ -58,6 +63,15 @@ async function saveToStorage(items: ActivityItem[]) {
   } catch {
     // Silently ignore storage quota / availability issues.
   }
+}
+
+// ─── UUID generation ────────────────────────────────────────────────────────
+
+function generateClientId(): string {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID();
+  }
+  return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
 }
 
 // ─── Time formatting ────────────────────────────────────────────────────────
@@ -104,10 +118,12 @@ export async function trackActivity(
 ) {
   const now = new Date().toISOString();
   const item: ActivityItem = {
+    client_id: generateClientId(),
     activity_type: activityType,
     label,
     metadata: metadata ?? {},
     created_at: now,
+    syncStatus: 'pending',
   };
 
   // Update in-memory cache immediately
@@ -119,9 +135,18 @@ export async function trackActivity(
 
   // Fire-and-forget Supabase insert via the service layer
   try {
-    await logActivity(activityType, label, metadata ?? {});
-  } catch (err: any) {
-    console.warn('Failed to log activity to Supabase:', err?.message ?? err);
+    await withRetry(
+      () => logActivity(activityType, label, metadata ?? {}, item.client_id),
+      (err) => err instanceof TypeError,
+    );
+
+    item.syncStatus = 'synced';
+    emitChange();
+    await saveToStorage(cachedActivities);
+  } catch {
+    item.syncStatus = 'failed';
+    emitChange();
+    await saveToStorage(cachedActivities);
   }
 }
 
@@ -143,22 +168,22 @@ export async function refreshActivities(limit = MAX_LOCAL_ITEMS) {
     const data = await getActivityFeed(limit);
 
     if (data.length > 0) {
-      const supabaseIds = new Set(data.map((r) => r.id));
-      const latestSupabaseTime = data[0]!.created_at;
+      const serverClientIds = new Set(data.map((r) => r.client_id).filter(Boolean));
 
-      const localOnlyNewer = cachedActivities.filter(
-        (item) =>
-          !item.id && item.created_at > latestSupabaseTime,
+      const localOnlyItems = cachedActivities.filter(
+        (item) => !item.client_id || !serverClientIds.has(item.client_id),
       );
 
       const merged: ActivityItem[] = [
-        ...localOnlyNewer,
+        ...localOnlyItems,
         ...data.map((row) => ({
+          client_id: row.client_id ?? '',
           id: row.id,
           activity_type: row.activity_type,
           label: row.label,
           metadata: row.metadata ?? {},
           created_at: row.created_at,
+          syncStatus: 'synced' as const,
         })),
       ].slice(0, MAX_LOCAL_ITEMS);
 
@@ -188,6 +213,13 @@ export function getRecentActivities(limit?: number) {
  */
 export function formatActivityTime(item: ActivityItem): string {
   return formatRelativeTime(item.created_at);
+}
+
+/**
+ * Return items that failed to sync.
+ */
+export function getFailedActivities(): ActivityItem[] {
+  return cachedActivities.filter((item) => item.syncStatus === 'failed');
 }
 
 // ─── React Hook ─────────────────────────────────────────────────────────────

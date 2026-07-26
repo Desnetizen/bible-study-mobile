@@ -20,6 +20,7 @@ export interface ActivityMetadata {
 
 export interface Activity {
   id:            number;
+  client_id:     string;
   activity_type: ActivityType;
   label:         string;
   metadata:      ActivityMetadata;
@@ -30,17 +31,22 @@ export async function logActivity(
   type:     ActivityType,
   label:    string,
   metadata: ActivityMetadata = {},
+  client_id: string,
 ): Promise<void> {
   if (!supabase) return;
 
   const { error } = await supabase
     .from('recent_activity')
-    .insert({
-      device_id: getOrCreateDeviceId(),
-      activity_type: type,
-      label,
-      metadata,
-    });
+    .upsert(
+      {
+        client_id,
+        device_id: getOrCreateDeviceId(),
+        activity_type: type,
+        label,
+        metadata,
+      },
+      { onConflict: 'client_id' },
+    );
 
   if (error) throw new Error(`[activityService.logActivity] ${error.message}`);
 }
