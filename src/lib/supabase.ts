@@ -1,14 +1,13 @@
 import 'react-native-url-polyfill/auto';
-
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { AppState } from 'react-native';
 import { createClient } from '@supabase/supabase-js';
-
-import { HAS_SUPABASE_CONFIG, SUPABASE_CONFIG, SUPABASE_PUBLIC_KEY } from '../constants/mobile-env';
+import { SUPABASE_CONFIG, SUPABASE_PUBLIC_KEY, HAS_SUPABASE_CONFIG } from '../constants/mobile-env';
+import { largeSecureStore } from './large-secure-store';
 
 export const supabase = HAS_SUPABASE_CONFIG
   ? createClient(SUPABASE_CONFIG.url, SUPABASE_PUBLIC_KEY, {
       auth: {
-        storage: AsyncStorage,
+        storage: largeSecureStore,
         autoRefreshToken: true,
         persistSession: true,
         detectSessionInUrl: false,
@@ -16,18 +15,20 @@ export const supabase = HAS_SUPABASE_CONFIG
     })
   : null;
 
-/**
- * Initialize the Supabase session by setting the device_id
- * as a session variable for RLS policy checks.
- */
-export async function initSupabaseSession(): Promise<void> {
+let appStateSubscription: ReturnType<typeof AppState.addEventListener> | null = null;
+
+export function startAuthListeners(): void {
   if (!supabase) return;
-  try {
-    const { getOrCreateDeviceId } = await import('./device-id');
-    const deviceId = getOrCreateDeviceId();
-    await supabase.rpc('set_app_device_id', { device_id: deviceId });
-  } catch {
-    // Session init is non-critical; queries without it
-    // will simply return empty results under the RLS policy.
-  }
+  appStateSubscription = AppState.addEventListener('change', (state) => {
+    if (state === 'active') {
+      supabase.auth.startAutoRefresh();
+    } else {
+      supabase.auth.stopAutoRefresh();
+    }
+  });
+}
+
+export function stopAuthListeners(): void {
+  appStateSubscription?.remove();
+  appStateSubscription = null;
 }
