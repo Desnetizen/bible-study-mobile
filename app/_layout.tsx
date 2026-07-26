@@ -1,5 +1,5 @@
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
-import { Stack } from 'expo-router';
+import { Stack, router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useState } from 'react';
 import * as SplashScreen from 'expo-splash-screen';
@@ -13,26 +13,32 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import AnimatedSplashScreen from '@/components/AnimatedSplashScreen';
 import { AppReadinessProvider, useAppReadiness } from '@/lib/app-readiness';
 import { preloadStartupImages } from '@/lib/startup-assets';
-import { useEnsureAuth } from '@/hooks/useEnsureAuth';
+import { AuthProvider, useAuth } from '@/hooks/useAuth';
+import { startAuthListeners, stopAuthListeners } from '@/lib/supabase';
 
-// Prevent the native splash screen from auto-hiding
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
 export const unstable_settings = {
   anchor: '(tabs)',
 };
 
-export default function RootLayout() {
-  return (
-    <AppReadinessProvider>
-      <RootLayoutContent />
-    </AppReadinessProvider>
-  );
+function AuthGate() {
+  const { session, loading } = useAuth();
+
+  useEffect(() => {
+    if (loading) return;
+
+    if (!session) {
+      router.replace('/auth/login');
+    } else {
+      router.replace('/(tabs)');
+    }
+  }, [session, loading]);
+
+  return null;
 }
 
 function RootLayoutContent() {
-  useEnsureAuth();
-
   const colorScheme = useColorScheme();
   const { appContentReady, splashAnimationComplete, markAppContentReady, markSplashAnimationComplete } = useAppReadiness();
   const [nativeSplashHidden, setNativeSplashHidden] = useState(false);
@@ -73,13 +79,20 @@ function RootLayoutContent() {
     };
   }, [markAppContentReady]);
 
+  useEffect(() => {
+    startAuthListeners();
+    return () => stopAuthListeners();
+  }, []);
+
   const appIsReady = nativeSplashHidden && appContentReady;
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+        <AuthGate />
         <Stack>
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+          <Stack.Screen name="auth" options={{ headerShown: false }} />
           <Stack.Screen name="daniel-study/[chapter]" options={{ presentation: 'modal', title: 'Daniel Study' }} />
           <Stack.Screen name="recent-activity" options={{ headerShown: false }} />
           <Stack.Screen name="badges" options={{ headerShown: false }} />
@@ -99,5 +112,15 @@ function RootLayoutContent() {
         )}
       </ThemeProvider>
     </GestureHandlerRootView>
+  );
+}
+
+export default function RootLayout() {
+  return (
+    <AppReadinessProvider>
+      <AuthProvider>
+        <RootLayoutContent />
+      </AuthProvider>
+    </AppReadinessProvider>
   );
 }
