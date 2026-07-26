@@ -25,13 +25,11 @@ function encrypt(key: Uint8Array, plaintext: string): string {
   const combined = new Uint8Array(nonce.length + encrypted.length);
   combined.set(nonce, 0);
   combined.set(encrypted, nonce.length);
-  return btoa(String.fromCharCode(...combined));
+  return arrayToBase64(combined);
 }
 
 function decrypt(key: Uint8Array, ciphertext: string): string {
-  const combined = new Uint8Array(
-    atob(ciphertext).split('').map(c => c.charCodeAt(0))
-  );
+  const combined = base64ToArray(ciphertext);
   const nonce = combined.slice(0, 16);
   const encrypted = combined.slice(16);
   const counter = new AES.ModeOfOperation.ctr(key, nonce);
@@ -39,26 +37,63 @@ function decrypt(key: Uint8Array, ciphertext: string): string {
   return new TextDecoder().decode(decrypted);
 }
 
+function arrayToBase64(bytes: Uint8Array): string {
+  let binary = '';
+  for (let i = 0; i < bytes.length; i++) {
+    binary += String.fromCharCode(bytes[i]);
+  }
+  return btoa(binary);
+}
+
+function base64ToArray(b64: string): Uint8Array {
+  const binary = atob(b64);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) {
+    bytes[i] = binary.charCodeAt(i);
+  }
+  return bytes;
+}
+
 export const largeSecureStore = {
   getItem: async (key: string): Promise<string | null> => {
-    const encrypted = await AsyncStorage.getItem(key);
-    if (!encrypted) return null;
-    const encryptionKey = getOrCreateKey();
-    return decrypt(encryptionKey, encrypted);
+    try {
+      const encrypted = await AsyncStorage.getItem(key);
+      if (!encrypted) return null;
+      const encryptionKey = getOrCreateKey();
+      return decrypt(encryptionKey, encrypted);
+    } catch (err) {
+      console.error('[LargeSecureStore] getItem error:', err);
+      return null;
+    }
   },
   setItem: async (key: string, value: string): Promise<void> => {
-    const encryptionKey = getOrCreateKey();
-    const encrypted = encrypt(encryptionKey, value);
-    await AsyncStorage.setItem(key, encrypted);
+    try {
+      const encryptionKey = getOrCreateKey();
+      const encrypted = encrypt(encryptionKey, value);
+      await AsyncStorage.setItem(key, encrypted);
+    } catch (err) {
+      console.error('[LargeSecureStore] setItem error:', err);
+      throw err;
+    }
   },
   removeItem: async (key: string): Promise<void> => {
-    await AsyncStorage.removeItem(key);
+    try {
+      await AsyncStorage.removeItem(key);
+    } catch (err) {
+      console.error('[LargeSecureStore] removeItem error:', err);
+    }
   },
 };
 
 export async function clearAllAuthData(): Promise<void> {
-  await SecureStore.deleteItemAsync(KEY_ALIAS);
-  const keys = await AsyncStorage.getAllKeys();
-  const authKeys = keys.filter(k => k.includes('supabase'));
-  await AsyncStorage.multiRemove(authKeys);
+  try {
+    const keys = await AsyncStorage.getAllKeys();
+    const authKeys = keys.filter(k => k.startsWith('sb-'));
+    if (authKeys.length > 0) {
+      await AsyncStorage.multiRemove(authKeys);
+    }
+    await SecureStore.deleteItemAsync(KEY_ALIAS);
+  } catch (err) {
+    console.error('[LargeSecureStore] clearAllAuthData error:', err);
+  }
 }
