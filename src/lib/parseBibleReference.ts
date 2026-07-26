@@ -102,14 +102,14 @@ export function findBibleReferences(text: string): ReferenceMatch[] {
   return results;
 }
 
-function isRequestContainedInDefined(
+export function isRequestContainedInDefined(
   definedVerse?: number,
   definedEndVerse?: number,
   requestVerse?: number,
   requestEndVerse?: number
 ): boolean {
   const ds = definedVerse ?? 0;
-  const de = definedEndVerse ?? definedVerse ?? 0;
+  const de = definedEndVerse ?? definedVerse ?? Infinity;
   const rs = requestVerse ?? 0;
   const re = requestEndVerse ?? requestVerse ?? rs;
   return rs >= ds && re <= de;

@@ -10,7 +10,8 @@
     "web": "expo start --web",
     "lint": "expo lint",
     "generate:preparation-logo-animation": "node ./scripts/generate-preparation-logo-lottie.mjs",
-    "doctor": "npx react-doctor@latest"
+    "doctor": "npx react-doctor@latest",
+    "test": "jest"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.0.3",
@@ -45,6 +46,7 @@
     "expo-web-browser": "~15.0.10",
     "framer-motion": "^12.40.0",
     "gsap": "^3.15.0",
+    "jest-expo": "~54.0.17",
     "lottie-react-native": "~7.3.1",
     "lucide-react-native": "^1.16.0",
     "moti": "^0.30.0",
@@ -67,12 +69,23 @@
     "tailwind-merge": "^3.6.0"
   },
   "devDependencies": {
+    "@types/jest": "^30.0.0",
     "@types/node": "^25.9.2",
     "@types/react": "~19.1.0",
     "eslint": "^9.25.0",
     "eslint-config-expo": "~10.0.0",
     "react-doctor": "^0.4.0",
     "typescript": "~5.9.2"
+  },
+  "jest": {
+    "preset": "jest-expo",
+    "moduleNameMapper": {
+      "^@/(.*)$": "<rootDir>/src/$1"
+    },
+    "testMatch": [
+      "<rootDir>/src/**/__tests__/**/*.{js,ts,tsx}",
+      "<rootDir>/src/**/*.test.{js,ts,tsx}"
+    ]
   },
   "private": true
 }
