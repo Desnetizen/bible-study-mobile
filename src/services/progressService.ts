@@ -6,6 +6,7 @@ export type ProgressRow = {
   device_id: string;
   completed_chapters: number[];
   updated_at: string;
+  user_id?: string;
 };
 
 export async function getProgress(deviceId: string): Promise<ProgressRow | null> {
@@ -29,11 +30,15 @@ export async function upsertProgress(
 ): Promise<void> {
   if (!supabase) return;
 
+  const { data: { user } } = await supabase.auth.getUser();
+  const userId = user?.id;
+
   const { error } = await supabase
     .from(PROGRESS_TABLE)
     .upsert(
       {
         device_id: deviceId,
+        user_id: userId,
         completed_chapters: completedChapters,
         updated_at: new Date().toISOString(),
       },

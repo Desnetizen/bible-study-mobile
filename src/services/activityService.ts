@@ -35,12 +35,16 @@ export async function logActivity(
 ): Promise<void> {
   if (!supabase) return;
 
+  const { data: { user } } = await supabase.auth.getUser();
+  const userId = user?.id;
+
   const { error } = await supabase
     .from('recent_activity')
     .upsert(
       {
         client_id,
         device_id: getOrCreateDeviceId(),
+        user_id: userId,
         activity_type: type,
         label,
         metadata,
