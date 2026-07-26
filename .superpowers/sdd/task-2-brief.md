@@ -1,63 +1,88 @@
-﻿### Task 2: Create `VerseLink` component (`src/components/VerseLink.tsx`)
+﻿### Task 2: Create Encrypted Storage Adapter
 
 **Files:**
-- Create: `src/components/VerseLink.tsx`
+- Create: `src/lib/large-secure-store.ts`
 
 **Interfaces:**
-- Consumes: `ParsedReference` from Task 1
-- Produces: `<VerseLink book chapter verse? style?>`
+- Produces: `largeSecureStore` â€” object with `getItem(key)` and `setItem(key, value)` matching Supabase's Storage interface
+- Produces: `clearAllAuthData()` â€” utility to clear all encrypted auth data
 
-- [ ] **Step 1: Write the file**
+- [ ] **Step 1: Create the LargeSecureStore adapter**
 
-```tsx
-import { useCallback, type ReactNode } from 'react';
-import { Text, Pressable, StyleSheet } from 'react-native';
-import { router } from 'expo-router';
-import { useThemeColor } from '@/hooks/use-theme-color';
+```typescript
+// src/lib/large-secure-store.ts
+import * as SecureStore from 'expo-secure-store';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import AES from 'aes-js';
+import 'react-native-get-random-values';
 
-interface VerseLinkProps {
-  book: string;
-  chapter: number;
-  verse?: number;
-  children: ReactNode;
-  style?: any;
+const KEY_ALIAS = 'bibleconnection-encryption-key';
+
+function getOrCreateKey(): Uint8Array {
+  const existing = SecureStore.getItem(KEY_ALIAS);
+  if (existing) {
+    return new Uint8Array(JSON.parse(existing));
+  }
+  const key = new Uint8Array(32);
+  crypto.getRandomValues(key);
+  SecureStore.setItem(KEY_ALIAS, JSON.stringify(Array.from(key)));
+  return key;
 }
 
-export function VerseLink({ book, chapter, verse, children, style }: VerseLinkProps) {
-  const tintColor = useThemeColor({}, 'tint');
+function encrypt(key: Uint8Array, plaintext: string): string {
+  const textBytes = new TextEncoder().encode(plaintext);
+  const nonce = new Uint8Array(16);
+  crypto.getRandomValues(nonce);
+  const counter = new AES.ModeOfOperation.ctr(key, nonce);
+  const encrypted = counter.encrypt(textBytes);
+  const combined = new Uint8Array(nonce.length + encrypted.length);
+  combined.set(nonce, 0);
+  combined.set(encrypted, nonce.length);
+  return btoa(String.fromCharCode(...combined));
+}
 
-  const handlePress = useCallback(() => {
-    router.push({
-      pathname: '/bible',
-      params: {
-        book,
-        chapter: String(chapter),
-        ...(verse ? { verse: String(verse) } : {}),
-      },
-    });
-  }, [book, chapter, verse]);
-
-  return (
-    <Pressable onPress={handlePress} style={({ pressed }) => [pressed && styles.pressed]}>
-      <Text style={[styles.link, { color: tintColor }, style]}>{children}</Text>
-    </Pressable>
+function decrypt(key: Uint8Array, ciphertext: string): string {
+  const combined = new Uint8Array(
+    atob(ciphertext).split('').map(c => c.charCodeAt(0))
   );
+  const nonce = combined.slice(0, 16);
+  const encrypted = combined.slice(16);
+  const counter = new AES.ModeOfOperation.ctr(key, nonce);
+  const decrypted = counter.decrypt(encrypted);
+  return new TextDecoder().decode(decrypted);
 }
 
-const styles = StyleSheet.create({
-  link: {
-    textDecorationLine: 'underline',
-    textDecorationColor: 'currentColor',
+export const largeSecureStore = {
+  getItem: async (key: string): Promise<string | null> => {
+    const encrypted = await AsyncStorage.getItem(key);
+    if (!encrypted) return null;
+    const encryptionKey = getOrCreateKey();
+    return decrypt(encryptionKey, encrypted);
   },
-  pressed: {
-    opacity: 0.7,
+  setItem: async (key: string, value: string): Promise<void> => {
+    const encryptionKey = getOrCreateKey();
+    const encrypted = encrypt(encryptionKey, value);
+    await AsyncStorage.setItem(key, encrypted);
   },
-});
+  removeItem: async (key: string): Promise<void> => {
+    await AsyncStorage.removeItem(key);
+  },
+};
+
+export async function clearAllAuthData(): Promise<void> {
+  await SecureStore.deleteItemAsync(KEY_ALIAS);
+  const keys = await AsyncStorage.getAllKeys();
+  const authKeys = keys.filter(k => k.includes('supabase'));
+  await AsyncStorage.multiRemove(authKeys);
+}
 ```
 
-- [ ] **Step 2: Verify the component builds**
+- [ ] **Step 2: Commit**
 
-Run: `npx tsc --noEmit src/components/VerseLink.tsx 2>&1 | head -30`
-Expected: No type errors
+```bash
+git add src/lib/large-secure-store.ts
+git commit -m "feat: add LargeSecureStore encrypted storage adapter"
+```
 
 ---
+
