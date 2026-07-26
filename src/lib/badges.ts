@@ -4,6 +4,11 @@ import { useEffect, useState } from 'react';
 import { CHAPTER_COLORS } from '../data/danielStudyChapters';
 import { getDanielProgressSnapshot, subscribeDanielProgress } from './daniel-progress';
 
+// The badge-seen snapshot (which "new" badges have already been shown) is
+// stored only in AsyncStorage. This is a deliberate local-only design:
+// badge toast state is cosmetic — re-showing a few toasts on a new device
+// is harmless, and syncing this state adds complexity for no user-visible
+// correctness gain. See Bug #7 in the review for context.
 const BADGE_SNAPSHOT_KEY = 'bible-connection:badge-snapshot:v1';
 
 export type Badge = {

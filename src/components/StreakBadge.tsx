@@ -51,6 +51,7 @@ export function StreakBadge({ count, style }: { count: number; style?: StyleProp
           {isActive ? `${count} Day Streak` : 'Start your streak'}
         </Text>
       </View>
+      <Text style={styles.disclosure}>per device</Text>
     </Animated.View>
   );
 }
@@ -89,5 +90,14 @@ const styles = StyleSheet.create({
   },
   labelInactive: {
     color: '#6b7a94',
+  },
+  disclosure: {
+    fontSize: 9,
+    color: '#6b7a94',
+    textAlign: 'center',
+    marginTop: 2,
+    letterSpacing: 0.3,
+    fontWeight: '500',
+    fontFamily: 'Inter',
   },
 });

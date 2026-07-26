@@ -1,5 +1,18 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
+// ─── Design decision: local-only ─────────────────────────────────────────────
+// Streak data lives solely in AsyncStorage — it is not synced to Supabase.
+// Streaks are timezone-dependent, device-specific usage metrics, not
+// authoritative user progress. Syncing them would add disproportionate
+// complexity (a user_streak table, conflict resolution for different
+// timezones, etc.) for a cosmetic-adjacent feature.
+//
+// If user feedback shows streaks are valued enough to preserve across
+// devices or reinstalls, add a user_streak table keyed by user_id and
+// sync it alongside progress/activity. Until then, the disclosure
+// in StreakBadge makes the trade-off visible.
+// ──────────────────────────────────────────────────────────────────────────────
+
 const STREAK_COUNT_KEY = 'streak_count';
 const STREAK_LAST_DATE_KEY = 'streak_last_date';
 const STREAK_BEST_KEY = 'streak_best';
