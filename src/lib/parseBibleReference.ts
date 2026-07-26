@@ -1,4 +1,5 @@
-import { BIBLE_BOOKS } from '@/constants/bible-connection';
+import { BIBLE_BOOKS, DAILY_DANIEL_VERSES } from '@/constants/bible-connection';
+import { BIBLE_VERSES } from '@/constants/bible-verse';
 
 export interface ParsedReference {
   book: string;
@@ -18,12 +19,14 @@ function escapeRegex(s: string): string {
 }
 
 const BOOK_ALIASES: Record<string, string> = {
-  'Psalm': 'Psalms',
+  Psalm: 'Psalms',
+  'Deut.': 'Deuteronomy',
+  Deut: 'Deuteronomy',
 };
 
 const ALL_BOOK_NAMES = (() => {
   const names = BIBLE_BOOKS.map((b) => b.name);
-  for (const [alias, canonical] of Object.entries(BOOK_ALIASES)) {
+  for (const alias of Object.keys(BOOK_ALIASES)) {
     if (!names.includes(alias)) {
       names.push(alias);
     }
@@ -31,7 +34,7 @@ const ALL_BOOK_NAMES = (() => {
   return names.sort((a, b) => b.length - a.length).map(escapeRegex).join('|');
 })();
 
-const VERSE_RANGE_SEP = '[-–]';
+const VERSE_RANGE_SEP = '[-\\u2013\\u2014]';
 
 const SINGLE_REF_REGEX = new RegExp(
   `^(${ALL_BOOK_NAMES})\\s+(\\d+)(?::(\\d+)(?:${VERSE_RANGE_SEP}(\\d+))?)?$`,
@@ -97,4 +100,66 @@ export function findBibleReferences(text: string): ReferenceMatch[] {
   }
 
   return results;
+}
+
+function isRequestContainedInDefined(
+  definedVerse?: number,
+  definedEndVerse?: number,
+  requestVerse?: number,
+  requestEndVerse?: number
+): boolean {
+  const ds = definedVerse ?? 0;
+  const de = definedEndVerse ?? definedVerse ?? 0;
+  const rs = requestVerse ?? 0;
+  const re = requestEndVerse ?? requestVerse ?? rs;
+  return rs >= ds && re <= de;
+}
+
+const verseTextCache = new Map<string, string | null>();
+
+function buildVerseTextKey(
+  book: string,
+  chapter: number,
+  verse?: number,
+  endVerse?: number
+): string {
+  return `${book}|${chapter}|${verse ?? ''}|${endVerse ?? ''}`;
+}
+
+export function getDefinedVerseText(
+  book: string,
+  chapter: number,
+  verse?: number,
+  endVerse?: number
+): string | null {
+  const key = buildVerseTextKey(book, chapter, verse, endVerse);
+  const cached = verseTextCache.get(key);
+  if (cached !== undefined) return cached;
+
+  for (const entry of BIBLE_VERSES) {
+    const parsed = parseBibleReference(entry.reference);
+    if (!parsed) continue;
+    if (
+      parsed.book === book &&
+      parsed.chapter === chapter &&
+      isRequestContainedInDefined(parsed.verse, parsed.endVerse, verse, endVerse)
+    ) {
+      verseTextCache.set(key, entry.text);
+      return entry.text;
+    }
+  }
+
+  for (const entry of DAILY_DANIEL_VERSES) {
+    if (
+      entry.book === book &&
+      entry.chapter === chapter &&
+      isRequestContainedInDefined(entry.verse, undefined, verse, endVerse)
+    ) {
+      verseTextCache.set(key, entry.text);
+      return entry.text;
+    }
+  }
+
+  verseTextCache.set(key, null);
+  return null;
 }

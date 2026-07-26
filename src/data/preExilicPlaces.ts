@@ -21,21 +21,21 @@ export const keyPlaces: PlaceEntry[] = [
     name: 'Lachish',
     role: 'Fortified Judean city',
     blurb: 'A key stronghold in the Shephelah, conquered by the Assyrians during Hezekiah\'s reign.',
-    image: require('../../assets/Places/Canaanite Lands.jpg'),
+    image: require('../../assets/Places/lachish.png'),
   },
   {
     id: 'bethel',
     name: 'Bethel',
     role: 'Religious center of Israel',
     blurb: 'A significant worship site where Jeroboam set up a golden calf, representing Israel\'s apostasy.',
-    image: require('../../assets/Places/Canaanite Lands.jpg'),
+    image: require('../../assets/Places/bethel.png'),
   },
   {
     id: 'samaria',
     name: 'Samaria',
     role: 'Capital of the northern kingdom',
     blurb: 'The capital of the ten northern tribes, destroyed by Assyria in 722 BC as judgment for idolatry.',
-    image: require('../../assets/Places/Canaanite Lands.jpg'),
+    image: require('../../assets/Places/Samaria.png'),
   },
 ];
 
@@ -45,7 +45,7 @@ export const morePlaces: PlaceEntry[] = [
     name: 'Megiddo',
     role: 'Strategic fortress and battle site',
     blurb: 'A crucial fortified city controlling the Valley of Jezreel, often a battleground for regional powers.',
-    image: require('../../assets/Places/Canaanite Lands.jpg'),
+    image: require('../../assets/Places/Megiddo.png'),
   },
   {
     id: 'beersheba',

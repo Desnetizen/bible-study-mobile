@@ -1,8 +1,19 @@
 import { Image } from 'expo-image';
 import { X } from 'lucide-react-native';
+import { useEffect, useRef, useState } from 'react';
 import type { ImageSourcePropType } from 'react-native';
-import { Dimensions, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
-import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
+import {
+  Dimensions,
+  Modal,
+  NativeScrollEvent,
+  NativeSyntheticEvent,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -11,36 +22,21 @@ const MODAL_IMAGE_HEIGHT = SCREEN_H * 0.8;
 const MAX_SCALE = 5;
 const DOUBLE_TAP_SCALE = 2.5;
 
-interface MapModalProps {
+interface ImageModalProps {
   visible: boolean;
   onClose: () => void;
-  source: ImageSourcePropType;
+  images: ImageSourcePropType[];
+  initialIndex?: number;
   accentColor: string;
 }
 
-export default function MapModal({ visible, onClose, source, accentColor }: MapModalProps) {
-  const insets = useSafeAreaInsets();
-
+function ZoomableImage({ source }: { source: ImageSourcePropType }) {
   const scale = useSharedValue(1);
   const savedScale = useSharedValue(1);
   const translateX = useSharedValue(0);
   const translateY = useSharedValue(0);
   const savedTranslateX = useSharedValue(0);
   const savedTranslateY = useSharedValue(0);
-
-  const resetTransform = () => {
-    scale.value = 1;
-    savedScale.value = 1;
-    translateX.value = 0;
-    translateY.value = 0;
-    savedTranslateX.value = 0;
-    savedTranslateY.value = 0;
-  };
-
-  const handleClose = () => {
-    resetTransform();
-    onClose();
-  };
 
   const pinchGesture = Gesture.Pinch()
     .onUpdate((e) => {
@@ -60,8 +56,6 @@ export default function MapModal({ visible, onClose, source, accentColor }: MapM
       savedTranslateY.value = translateY.value;
     });
 
-  // Pan only does anything once the image is zoomed in, and clamps the
-  // result so the image can never be dragged fully off-screen.
   const panGesture = Gesture.Pan()
     .onUpdate((e) => {
       if (savedScale.value <= 1) return;
@@ -115,8 +109,6 @@ export default function MapModal({ visible, onClose, source, accentColor }: MapM
       savedScale.value = nextScale;
     });
 
-  // Exclusive (not Simultaneous) so a double-tap is recognized outright
-  // rather than being partially consumed by the pan gesture starting first.
   const composedGesture = Gesture.Exclusive(
     doubleTapGesture,
     Gesture.Simultaneous(pinchGesture, panGesture)
@@ -131,38 +123,93 @@ export default function MapModal({ visible, onClose, source, accentColor }: MapM
   }));
 
   return (
-    <Modal visible={visible} transparent animationType="fade" onRequestClose={handleClose}>
-      {/* react-native-gesture-handler does not automatically bridge into a
-          react-native Modal's separate native view tree on Android — this
-          inner root is required or pinch/pan will silently fail to register. */}
-      <GestureHandlerRootView style={styles.root}>
-        <View style={styles.backdrop}>
-          <Pressable
-            style={[styles.closeButton, { top: insets.top + 12, borderColor: accentColor }]}
-            onPress={handleClose}
-            accessibilityRole="button"
-            accessibilityLabel="Close map"
-          >
-            <X size={22} color={accentColor} />
-          </Pressable>
+    <GestureDetector gesture={composedGesture}>
+      <Animated.View style={[styles.imageWrap, animatedStyle]}>
+        <Image source={source} style={styles.fullImage} contentFit="contain" />
+      </Animated.View>
+    </GestureDetector>
+  );
+}
 
-          <GestureDetector gesture={composedGesture}>
-            <Animated.View style={[styles.imageWrap, animatedStyle]}>
-              <Image source={source} style={styles.fullImage} contentFit="contain" />
-            </Animated.View>
-          </GestureDetector>
+export default function ImageModal({
+  visible,
+  onClose,
+  images,
+  initialIndex = 0,
+  accentColor,
+}: ImageModalProps) {
+  const insets = useSafeAreaInsets();
+  const scrollRef = useRef<ScrollView>(null);
+  const [activeIndex, setActiveIndex] = useState(initialIndex);
 
-          <Text style={styles.hint}>Double-tap or pinch to zoom</Text>
-        </View>
-      </GestureHandlerRootView>
+  useEffect(() => {
+    if (visible && scrollRef.current) {
+      setActiveIndex(initialIndex);
+      setTimeout(() => {
+        scrollRef.current?.scrollTo({ x: initialIndex * SCREEN_W, animated: false });
+      }, 100);
+    }
+  }, [visible, initialIndex]);
+
+  const onScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
+    const index = Math.round(e.nativeEvent.contentOffset.x / SCREEN_W);
+    setActiveIndex(index);
+  };
+
+  return (
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
+      <View style={styles.backdrop}>
+        <Pressable
+          style={[styles.closeButton, { top: insets.top + 12, borderColor: accentColor }]}
+          onPress={onClose}
+          accessibilityRole="button"
+          accessibilityLabel="Close image viewer"
+        >
+          <X size={22} color={accentColor} />
+        </Pressable>
+
+        <ScrollView
+          ref={scrollRef}
+          horizontal
+          pagingEnabled
+          showsHorizontalScrollIndicator={false}
+          onMomentumScrollEnd={onScroll}
+          scrollEventThrottle={16}
+        >
+          {images.map((source, i) => (
+            <View key={`image-${i}`} style={styles.page}>
+              <ZoomableImage source={source} />
+            </View>
+          ))}
+        </ScrollView>
+
+        {images.length > 1 && (
+          <View style={styles.dotsRow}>
+            {images.map((_, i) => (
+              <View
+                key={i}
+                style={[
+                  styles.dot,
+                  i === activeIndex
+                    ? [styles.dotActive, { backgroundColor: accentColor }]
+                    : styles.dotInactive,
+                ]}
+              />
+            ))}
+          </View>
+        )}
+
+        <Text style={styles.hint}>
+          {images.length > 1
+            ? 'Swipe to browse · Double-tap or pinch to zoom'
+            : 'Double-tap or pinch to zoom'}
+        </Text>
+      </View>
     </Modal>
   );
 }
 
 const styles = StyleSheet.create({
-  root: {
-    flex: 1,
-  },
   backdrop: {
     flex: 1,
     backgroundColor: 'rgba(7, 17, 31, 0.97)',
@@ -181,6 +228,12 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(7, 17, 31, 0.6)',
     zIndex: 10,
   },
+  page: {
+    width: SCREEN_W,
+    height: MODAL_IMAGE_HEIGHT,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   imageWrap: {
     width: SCREEN_W,
     height: MODAL_IMAGE_HEIGHT,
@@ -188,6 +241,22 @@ const styles = StyleSheet.create({
   fullImage: {
     width: '100%',
     height: '100%',
+  },
+  dotsRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 16,
+  },
+  dot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+  },
+  dotActive: {
+    opacity: 1,
+  },
+  dotInactive: {
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
   },
   hint: {
     position: 'absolute',

@@ -15,6 +15,7 @@ import { CHAPTER_COLORS, CHAPTERS_DATA, TABS } from '../data/danielStudyChapters
 import StudyIcon from './daniel-study/StudyIcon';
 import { ImageSkeleton } from './ui/Skeleton';
 import { VerseLink } from '@/components/VerseLink';
+import { LinkedText } from '@/components/LinkedText';
 import { parseBibleReference } from '@/lib/parseBibleReference';
 
 function useTheme(controlled) {
@@ -149,9 +150,10 @@ function OverviewCard({ chapter, dark }) {
             </View>
           )}
         </View>
-        <Text style={[styles.bodyText, styles.overviewDescription, { color: colors.textSub }]}>
-          {chapter.overview.description}
-        </Text>
+        <LinkedText
+          text={chapter.overview.description}
+          style={[styles.bodyText, styles.overviewDescription, { color: colors.textSub }]}
+        />
       </View>
 
       <View style={styles.tagsRow}>
@@ -175,7 +177,12 @@ function OverviewCard({ chapter, dark }) {
           const parsed = parseBibleReference(chapter.overview.quoteRef);
           if (parsed) {
             return (
-              <VerseLink book={parsed.book} chapter={parsed.chapter} verse={parsed.verse}>
+              <VerseLink
+                book={parsed.book}
+                chapter={parsed.chapter}
+                verse={parsed.verse}
+                endVerse={parsed.endVerse}
+              >
                 <Text style={[styles.quoteRef, { color: colors.textMuted }]}>{chapter.overview.quoteRef}</Text>
               </VerseLink>
             );
@@ -202,9 +209,10 @@ function DiscoveriesCard({ chapter, dark, onChapterLink }) {
             </View>
             <View style={styles.discoveryCopy}>
               <Text style={[styles.discoveryTitle, { color: colors.text }]}>{item.title}</Text>
-              <Text style={[styles.bodyText, styles.discoveryDescription, { color: colors.textMuted }]}>
-                {item.description}
-              </Text>
+              <LinkedText
+                text={item.description}
+                style={[styles.bodyText, styles.discoveryDescription, { color: colors.textMuted }]}
+              />
               {item.links?.map((link) => (
                 <TouchableOpacity key={link.label} onPress={() => onChapterLink(link.chapter)}>
                   <Text style={styles.discoveryLink}>{link.label}</Text>
@@ -260,6 +268,7 @@ export default function DanielStudyPage({
   darkMode: controlledDark,
   initialChapter = 5,
   completedChapters = [],
+  openChapterOnPress = false,
 }) {
   const insets = useSafeAreaInsets();
   const { dark } = useTheme(controlledDark);
@@ -329,13 +338,18 @@ export default function DanielStudyPage({
 
   const selectChapter = useCallback(
     (id) => {
+      if (openChapterOnPress) {
+        onNavigate?.('StudyChapter', id);
+        return;
+      }
+
       setSelectedChapter(id);
       const index = chapters.findIndex((item) => item.id === id);
       if (index >= 0) {
         chapterListRef.current?.scrollToIndex({ index, animated: true, viewPosition: 0.5 });
       }
     },
-    [chapters]
+    [chapters, onNavigate, openChapterOnPress]
   );
 
   return (

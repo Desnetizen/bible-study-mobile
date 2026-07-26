@@ -7,11 +7,12 @@ interface VerseLinkProps {
   book: string;
   chapter: number;
   verse?: number;
+  endVerse?: number;
   children: ReactNode;
   style?: import('react-native').StyleProp<import('react-native').TextStyle>;
 }
 
-export function VerseLink({ book, chapter, verse, children, style }: VerseLinkProps) {
+export function VerseLink({ book, chapter, verse, endVerse, children, style }: VerseLinkProps) {
   const tintColor = useThemeColor({}, 'tint');
 
   const handlePress = useCallback(() => {
@@ -21,9 +22,10 @@ export function VerseLink({ book, chapter, verse, children, style }: VerseLinkPr
         book,
         chapter: String(chapter),
         ...(verse ? { verse: String(verse) } : {}),
+        ...(endVerse ? { endVerse: String(endVerse) } : {}),
       },
     });
-  }, [book, chapter, verse]);
+  }, [book, chapter, verse, endVerse]);
 
   return (
     <Pressable onPress={handlePress} style={({ pressed }) => [pressed && styles.pressed]}>

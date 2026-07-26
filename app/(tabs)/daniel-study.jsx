@@ -31,6 +31,14 @@ export default function DanielStudyTab() {
   );
 
   const handleNavigate = (page, chapterNum) => {
+    if (page === 'StudyChapter') {
+      router.push({
+        pathname: '/daniel-study/[chapter]',
+        params: { chapter: String(chapterNum ?? initialChapter) },
+      });
+      return;
+    }
+
     if (page === 'Bible') {
       router.push({
         pathname: '/bible',
@@ -57,6 +65,7 @@ export default function DanielStudyTab() {
       initialChapter={initialChapter}
       completedChapters={completedChapters}
       onNavigate={handleNavigate}
+      openChapterOnPress
     />
   );
 }

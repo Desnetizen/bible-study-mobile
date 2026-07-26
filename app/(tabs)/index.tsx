@@ -73,6 +73,7 @@ type DailyVerse = {
   book: string;
   chapter: number;
   verse: number;
+  endVerse?: number;
 };
 
 const ROTATING_KEY_VERSES: DailyVerse[] = BIBLE_VERSES.map((verse) => {
@@ -94,6 +95,7 @@ const ROTATING_KEY_VERSES: DailyVerse[] = BIBLE_VERSES.map((verse) => {
     book: parsedReference.book,
     chapter: parsedReference.chapter,
     verse: parsedReference.verse ?? 1,
+    endVerse: parsedReference.endVerse,
   };
 });
 
@@ -758,6 +760,7 @@ export default function HomeTabScreen() {
                       book: dailyVerse.book,
                       chapter: String(dailyVerse.chapter),
                       verse: String(dailyVerse.verse),
+                      ...(dailyVerse.endVerse ? { endVerse: String(dailyVerse.endVerse) } : {}),
                     },
                   })
                 }

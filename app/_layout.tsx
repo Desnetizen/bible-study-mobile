@@ -3,6 +3,9 @@ import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useState } from 'react';
 import * as SplashScreen from 'expo-splash-screen';
+import * as SystemUI from 'expo-system-ui';
+import * as NavigationBar from 'expo-navigation-bar';
+import { Platform } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import 'react-native-reanimated';
 
@@ -45,6 +48,12 @@ function RootLayoutContent() {
         }
       });
 
+    SystemUI.setBackgroundColorAsync('#07111F').catch(() => {});
+    if (Platform.OS === 'android') {
+      NavigationBar.setBackgroundColorAsync('#07111F').catch(() => {});
+      NavigationBar.setButtonStyleAsync('light').catch(() => {});
+    }
+
     return () => {
       isMounted = false;
     };
@@ -71,7 +80,7 @@ function RootLayoutContent() {
       <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
         <Stack>
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-          <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
+          <Stack.Screen name="daniel-study/[chapter]" options={{ presentation: 'modal', title: 'Daniel Study' }} />
           <Stack.Screen name="recent-activity" options={{ headerShown: false }} />
           <Stack.Screen name="badges" options={{ headerShown: false }} />
           <Stack.Screen name="pre-exilic-detail" options={{ headerShown: false }} />

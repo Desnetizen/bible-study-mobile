@@ -1,12 +1,12 @@
 import { CastleIcon } from '@/components/CastleIcon';
-import OutlineScrubber from '@/components/OutlineScrubber';
-import ReadTabContent from '@/components/ReadTabContent';
-import { preExileContext } from '@/data/preExileContext';
-import { keyPlaces as preExilicKeyPlaces, morePlaces as preExilicMorePlaces } from '@/data/preExilicPlaces';
 import GeographicOverviewCard from '@/components/GeographicOverviewCard';
 import HorizontalPlaceCard from '@/components/HorizontalPlaceCard';
-import MapModal from '@/components/MapModal';
+import ImageModal from '@/components/ImageModal';
+import OutlineScrubber from '@/components/OutlineScrubber';
+import ReadTabContent from '@/components/ReadTabContent';
 import { extractHeadings } from '@/data/extractHeadings';
+import { preExileContext } from '@/data/preExileContext';
+import { keyPlaces as preExilicKeyPlaces, morePlaces as preExilicMorePlaces } from '@/data/preExilicPlaces';
 import { ImageBackground } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
@@ -129,6 +129,10 @@ export default function PreExilicDetailScreen() {
   const insets = useSafeAreaInsets();
   const [activeTab, setActiveTab] = useState<'overview' | 'places' | 'read'>('overview');
   const [mapModalVisible, setMapModalVisible] = useState(false);
+  const [exploreModalVisible, setExploreModalVisible] = useState(false);
+  const [exploreModalIndex, setExploreModalIndex] = useState(0);
+  const [placesModalVisible, setPlacesModalVisible] = useState(false);
+  const [placesModalIndex, setPlacesModalIndex] = useState(0);
 
   // Animations
   const scrollRef = useRef<ScrollView>(null);
@@ -164,6 +168,24 @@ export default function PreExilicDetailScreen() {
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
+
+      {/* Solid header background to prevent text overlapping status bar */}
+      <Animated.View
+        style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          height: insets.top,
+          backgroundColor: '#07111F',
+          opacity: scrollY.interpolate({
+            inputRange: [50, 150],
+            outputRange: [0, 1],
+            extrapolate: 'clamp',
+          }),
+          zIndex: 100,
+        }}
+      />
 
       <ScrollView
         ref={scrollRef}
@@ -217,7 +239,7 @@ export default function PreExilicDetailScreen() {
             ]}
           >
             <Text style={styles.heroEyebrow}>PRE-EXILIC JUDAH</Text>
-            <Text style={styles.heroTitle}>The Southern Kingdom</Text>
+            <Text style={styles.heroTitle}>THE FALL OF JUDAH TO BABYLON</Text>
             <View style={styles.badgeContainer}>
               <Text style={styles.badgeText}>931–605 BC</Text>
             </View>
@@ -334,7 +356,7 @@ export default function PreExilicDetailScreen() {
             </View>
 
             <View style={styles.exploreGrid}>
-              {EXPLORE_CARDS.map((card) => {
+              {EXPLORE_CARDS.map((card, index) => {
                 const IconComponent = card.icon;
                 return (
                   <Pressable
@@ -343,6 +365,10 @@ export default function PreExilicDetailScreen() {
                       styles.exploreCard,
                       pressed && { transform: [{ scale: 0.98 }], opacity: 0.9 },
                     ]}
+                    onPress={() => {
+                      setExploreModalIndex(index);
+                      setExploreModalVisible(true);
+                    }}
                   >
                     <ImageBackground
                       source={card.image}
@@ -382,8 +408,11 @@ export default function PreExilicDetailScreen() {
                 contentContainerStyle={styles.placesScrollContent}
                 scrollEventThrottle={16}
               >
-                {preExilicKeyPlaces.map((place) => (
-                  <HorizontalPlaceCard key={place.id} place={place} accentColor={ACCENT} />
+                {preExilicKeyPlaces.map((place, index) => (
+                  <HorizontalPlaceCard key={place.id} place={place} accentColor={ACCENT} onPress={() => {
+                    setPlacesModalIndex(index);
+                    setPlacesModalVisible(true);
+                  }} />
                 ))}
               </ScrollView>
             </View>
@@ -396,7 +425,7 @@ export default function PreExilicDetailScreen() {
               accessibilityLabel="Expand map"
             >
               <ImageBackground
-                source={require('../assets/Places/Canaanite Lands.jpg')}
+                source={require('../assets/Maps/pre_Exile.png')}
                 style={styles.mapVisual}
                 contentFit="cover"
               >
@@ -430,8 +459,11 @@ export default function PreExilicDetailScreen() {
                 contentContainerStyle={styles.placesScrollContent}
                 scrollEventThrottle={16}
               >
-                {preExilicMorePlaces.map((place) => (
-                  <HorizontalPlaceCard key={place.id} place={place} accentColor={ACCENT} />
+                {preExilicMorePlaces.map((place, index) => (
+                  <HorizontalPlaceCard key={place.id} place={place} accentColor={ACCENT} onPress={() => {
+                    setPlacesModalIndex(preExilicKeyPlaces.length + index);
+                    setPlacesModalVisible(true);
+                  }} />
                 ))}
               </ScrollView>
             </View>
@@ -465,10 +497,24 @@ export default function PreExilicDetailScreen() {
           sectionPositions={sectionPositions}
         />
       )}
-      <MapModal
+      <ImageModal
         visible={mapModalVisible}
         onClose={() => setMapModalVisible(false)}
-        source={require('../assets/Places/Canaanite Lands.jpg')}
+        images={[require('../assets/Maps/pre_Exile.png')]}
+        accentColor={ACCENT}
+      />
+      <ImageModal
+        visible={exploreModalVisible}
+        onClose={() => setExploreModalVisible(false)}
+        images={EXPLORE_CARDS.map((c) => c.image)}
+        initialIndex={exploreModalIndex}
+        accentColor={ACCENT}
+      />
+      <ImageModal
+        visible={placesModalVisible}
+        onClose={() => setPlacesModalVisible(false)}
+        images={[...preExilicKeyPlaces.map((p) => p.image), ...preExilicMorePlaces.map((p) => p.image)]}
+        initialIndex={placesModalIndex}
         accentColor={ACCENT}
       />
     </View>

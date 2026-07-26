@@ -5,7 +5,7 @@ import { greekContext } from '@/data/greekContext';
 import { keyPlaces as greekKeyPlaces, morePlaces as greekMorePlaces } from '@/data/greekPlaces';
 import GeographicOverviewCard from '@/components/GeographicOverviewCard';
 import HorizontalPlaceCard from '@/components/HorizontalPlaceCard';
-import MapModal from '@/components/MapModal';
+import ImageModal from '@/components/ImageModal';
 import { hexToRgba } from '@/lib/colors';
 import { ImageBackground } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -69,6 +69,10 @@ export default function GreekDetailScreen() {
   const insets = useSafeAreaInsets();
   const [activeTab, setActiveTab] = useState<'overview' | 'places' | 'read'>('overview');
   const [mapModalVisible, setMapModalVisible] = useState(false);
+  const [exploreModalVisible, setExploreModalVisible] = useState(false);
+  const [exploreModalIndex, setExploreModalIndex] = useState(0);
+  const [placesModalVisible, setPlacesModalVisible] = useState(false);
+  const [placesModalIndex, setPlacesModalIndex] = useState(0);
 
   // Animations
   const scrollRef = useRef<ScrollView>(null);
@@ -274,7 +278,7 @@ export default function GreekDetailScreen() {
             </View>
 
             <View style={styles.exploreGrid}>
-              {EXPLORE_CARDS.map((card) => {
+              {EXPLORE_CARDS.map((card, index) => {
                 const IconComponent = card.icon;
                 return (
                   <Pressable
@@ -283,6 +287,10 @@ export default function GreekDetailScreen() {
                       styles.exploreCard,
                       pressed && { transform: [{ scale: 0.98 }], opacity: 0.9 },
                     ]}
+                    onPress={() => {
+                      setExploreModalIndex(index);
+                      setExploreModalVisible(true);
+                    }}
                   >
                     <ImageBackground
                       source={card.image}
@@ -322,8 +330,11 @@ export default function GreekDetailScreen() {
                 contentContainerStyle={styles.placesScrollContent}
                 scrollEventThrottle={16}
               >
-                {greekKeyPlaces.map((place) => (
-                  <HorizontalPlaceCard key={place.id} place={place} accentColor={ACCENT} />
+                {greekKeyPlaces.map((place, index) => (
+                  <HorizontalPlaceCard key={place.id} place={place} accentColor={ACCENT} onPress={() => {
+                    setPlacesModalIndex(index);
+                    setPlacesModalVisible(true);
+                  }} />
                 ))}
               </ScrollView>
             </View>
@@ -370,8 +381,11 @@ export default function GreekDetailScreen() {
                 contentContainerStyle={styles.placesScrollContent}
                 scrollEventThrottle={16}
               >
-                {greekMorePlaces.map((place) => (
-                  <HorizontalPlaceCard key={place.id} place={place} accentColor={ACCENT} />
+                {greekMorePlaces.map((place, index) => (
+                  <HorizontalPlaceCard key={place.id} place={place} accentColor={ACCENT} onPress={() => {
+                    setPlacesModalIndex(greekKeyPlaces.length + index);
+                    setPlacesModalVisible(true);
+                  }} />
                 ))}
               </ScrollView>
             </View>
@@ -405,10 +419,24 @@ export default function GreekDetailScreen() {
           sectionPositions={sectionPositions}
         />
       )}
-      <MapModal
+      <ImageModal
         visible={mapModalVisible}
         onClose={() => setMapModalVisible(false)}
-        source={require('../assets/Maps/greek-empire-under-alexander-map.jpg')}
+        images={[require('../assets/Maps/greek-empire-under-alexander-map.jpg')]}
+        accentColor={ACCENT}
+      />
+      <ImageModal
+        visible={exploreModalVisible}
+        onClose={() => setExploreModalVisible(false)}
+        images={EXPLORE_CARDS.map((c) => c.image)}
+        initialIndex={exploreModalIndex}
+        accentColor={ACCENT}
+      />
+      <ImageModal
+        visible={placesModalVisible}
+        onClose={() => setPlacesModalVisible(false)}
+        images={[...greekKeyPlaces.map((p) => p.image), ...greekMorePlaces.map((p) => p.image)]}
+        initialIndex={placesModalIndex}
         accentColor={ACCENT}
       />
     </View>

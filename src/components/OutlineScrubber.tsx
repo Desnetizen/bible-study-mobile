@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import { BlurView } from 'expo-blur';
 import type { HeadingEntry } from '@/data/extractHeadings';
+import { hexToRgba } from '@/lib/colors';
 
 export interface OutlineScrubberProps {
   headings: HeadingEntry[];
@@ -119,14 +120,8 @@ const OutlineScrubber: React.FC<OutlineScrubberProps> = ({
     const contentHeight = scrollViewContentHeightRef?.current || 0;
     const maxScroll = Math.max(0, contentHeight - viewportHeight);
 
-    // Dynamic track positioning and bounds
-    const scrollYValNum = scrollYVal.current;
-    const Y_track_screen = Math.max(0, rootOffset - scrollYValNum);
-    const H_scrubber = viewportHeight - Y_track_screen;
-
-    // Relative vertical coordinates
-    const Y_drag = Math.min(Math.max(moveY - Y_track_screen, 0), H_scrubber);
-    const pct = H_scrubber > 0 ? Y_drag / H_scrubber : 0;
+    // Direct viewport mapping — moveY is in screen coordinates, scrubber spans full viewport
+    const pct = Math.min(Math.max(moveY / viewportHeight, 0), 1);
 
     // Direct scroll update (no animations for real-time tracking)
     const Y_target = pct * maxScroll;
@@ -144,7 +139,23 @@ const OutlineScrubber: React.FC<OutlineScrubberProps> = ({
       lastActiveIndexRef.current = index;
       setActiveIndex(index);
     }
-  }, [headings, rootOffset, scrollRef, scrollViewHeightRef, scrollViewContentHeightRef]);
+  }, [headings, scrollRef, scrollViewHeightRef, scrollViewContentHeightRef]);
+
+  // Stale-safe wrapper refs for the PanResponder (created once, reads latest via .current)
+  const handleDragRef = useRef(handleDrag);
+  const headingsRef = useRef(headings);
+  const rootOffsetRef = useRef(rootOffset);
+  const scrollRefRef = useRef(scrollRef);
+  const sectionPositionsRef = useRef(sectionPositions);
+  const resetHideTimerRef = useRef(resetHideTimer);
+
+  // Keep refs in sync so the PanResponder (created once) always reads latest values
+  handleDragRef.current = handleDrag;
+  headingsRef.current = headings;
+  rootOffsetRef.current = rootOffset;
+  scrollRefRef.current = scrollRef;
+  sectionPositionsRef.current = sectionPositions;
+  resetHideTimerRef.current = resetHideTimer;
 
   // Gestures setup
   const panResponder = useRef(
@@ -157,29 +168,46 @@ const OutlineScrubber: React.FC<OutlineScrubberProps> = ({
         if (hideTimerRef.current) {
           clearTimeout(hideTimerRef.current);
         }
-        handleDrag(gestureState.moveY || gestureState.y0);
+        handleDragRef.current(gestureState.moveY || gestureState.y0);
       },
       onPanResponderMove: (e, gestureState) => {
-        handleDrag(gestureState.moveY);
+        handleDragRef.current(gestureState.moveY);
       },
       onPanResponderRelease: () => {
         isDraggingRef.current = false;
         // Snap scroll view to the exact coordinate of the chosen heading
-        const activeHeading = headings[lastActiveIndexRef.current];
-        if (activeHeading && scrollRef?.current) {
-          const targetY = sectionPositions.current[activeHeading.id];
-          if (targetY !== undefined) {
-            scrollRef.current.scrollTo({
-              y: rootOffset + targetY,
-              animated: true,
-            });
+        const releaseIdx = lastActiveIndexRef.current;
+        const activeHeading = headingsRef.current[releaseIdx];
+        if (activeHeading && scrollRefRef.current?.current) {
+          let targetY = sectionPositionsRef.current.current[activeHeading.id];
+
+          if (targetY === undefined) {
+            let anchorY = 0;
+            let anchorIdx = 0;
+            for (let j = releaseIdx; j >= 0; j--) {
+              const known = sectionPositionsRef.current.current[headingsRef.current[j]?.id ?? ''];
+              if (known !== undefined) {
+                anchorY = known;
+                anchorIdx = j;
+                break;
+              }
+            }
+            const avgSpacing = scrollViewContentHeightRef?.current
+              ? scrollViewContentHeightRef.current / Math.max(headingsRef.current.length, 1)
+              : 100;
+            targetY = anchorY + (releaseIdx - anchorIdx) * avgSpacing;
           }
+
+          scrollRefRef.current.current.scrollTo({
+            y: rootOffsetRef.current + targetY,
+            animated: true,
+          });
         }
-        resetHideTimer();
+        resetHideTimerRef.current();
       },
       onPanResponderTerminate: () => {
         isDraggingRef.current = false;
-        resetHideTimer();
+        resetHideTimerRef.current();
       },
     })
   ).current;
@@ -256,20 +284,37 @@ const OutlineScrubber: React.FC<OutlineScrubberProps> = ({
                     style={({ pressed }) => [
                       styles.headingItem,
                       isSub && styles.subHeadingItem,
-                      isActive && [styles.activeHeadingItem, { backgroundColor: accentColor + '1D' }],
+                      isActive && [styles.activeHeadingItem, { backgroundColor: hexToRgba(accentColor, 0.11), borderLeftColor: accentColor }],
                       pressed && { opacity: 0.7 },
                     ]}
                     onPress={() => {
                       setActiveIndex(i);
                       lastActiveIndexRef.current = i;
+
                       if (scrollRef?.current) {
-                        const targetY = sectionPositions.current[h.id];
-                        if (targetY !== undefined) {
-                          scrollRef.current.scrollTo({
-                            y: rootOffset + targetY,
-                            animated: true,
-                          });
+                        let targetY = sectionPositions.current[h.id];
+
+                        if (targetY === undefined) {
+                          let anchorY = 0;
+                          let anchorIdx = 0;
+                          for (let j = i; j >= 0; j--) {
+                            const known = sectionPositions.current[headings[j].id];
+                            if (known !== undefined) {
+                              anchorY = known;
+                              anchorIdx = j;
+                              break;
+                            }
+                          }
+                          const avgSpacing = scrollViewContentHeightRef?.current
+                            ? scrollViewContentHeightRef.current / Math.max(headings.length, 1)
+                            : 100;
+                          targetY = anchorY + (i - anchorIdx) * avgSpacing;
                         }
+
+                        scrollRef.current.scrollTo({
+                          y: rootOffset + targetY,
+                          animated: true,
+                        });
                       }
                       resetHideTimer();
                     }}
@@ -355,7 +400,6 @@ const styles = StyleSheet.create({
   },
   activeHeadingItem: {
     borderLeftWidth: 2.5,
-    borderLeftColor: '#FFFFFF',
   },
   headingText: {
     color: 'rgba(255, 255, 255, 0.9)',

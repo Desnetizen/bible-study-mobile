@@ -34,7 +34,7 @@ export async function logActivity(
   if (!supabase) return;
 
   const { error } = await supabase
-    .from('user_activity')
+    .from('recent_activity')
     .insert({
       device_id: getOrCreateDeviceId(),
       activity_type: type,
@@ -49,7 +49,7 @@ export async function getActivityFeed(limit = 50): Promise<Activity[]> {
   if (!supabase) return [];
 
   const { data, error } = await supabase
-    .from('user_activity')
+    .from('recent_activity')
     .select('*')
     .order('created_at', { ascending: false })
     .limit(limit);
@@ -62,7 +62,7 @@ export async function getActivitiesByType(type: ActivityType): Promise<Activity[
   if (!supabase) return [];
 
   const { data, error } = await supabase
-    .from('user_activity')
+    .from('recent_activity')
     .select('*')
     .eq('activity_type', type)
     .order('created_at', { ascending: false });

@@ -19,6 +19,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ImageSkeleton, TextSkeleton } from '@/components/ui/Skeleton';
 import { trackActivity } from '@/lib/activity-tracker';
 import { parseBibleReference } from '@/lib/parseBibleReference';
+import { LinkedText } from '@/components/LinkedText';
 import { TIMELINE_ITEMS } from '@/data/danielTimeline';
 
 const READ_EVENTS_KEY = 'bible-connection:timeline-read-events';
@@ -207,6 +208,7 @@ export default function TimelineScreen() {
         book: parsed.book,
         chapter: String(parsed.chapter),
         ...(parsed.verse ? { verse: String(parsed.verse) } : {}),
+        ...(parsed.endVerse ? { endVerse: String(parsed.endVerse) } : {}),
       },
     });
   };
@@ -437,9 +439,7 @@ export default function TimelineScreen() {
             >
               <View style={styles.descriptionContainer}>
                 {activeEvent?.description ? activeEvent.description.split('\n\n').map((paragraph, idx) => (
-                  <Text key={idx} style={styles.descriptionParagraph}>
-                    {paragraph}
-                  </Text>
+                  <LinkedText key={idx} text={paragraph} style={styles.descriptionParagraph} />
                 )) : null}
               </View>
 
@@ -471,9 +471,7 @@ export default function TimelineScreen() {
                     <Crown size={16} color="#E8A838" />
                     <Text style={styles.connectionTitle}>Daniel Connection</Text>
                   </View>
-                  <Text style={styles.connectionText}>
-                    {activeEvent.danielConnection}
-                  </Text>
+                  <LinkedText text={activeEvent.danielConnection} style={styles.connectionText} />
                 </View>
               )}
             </ScrollView>

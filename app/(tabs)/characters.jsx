@@ -23,6 +23,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { characterProfiles } from '@/data/characterProfile';
 import { trackActivity } from '@/lib/activity-tracker';
 import { parseBibleReference } from '@/lib/parseBibleReference';
+import { LinkedText } from '@/components/LinkedText';
 
 const ICONS = {
   bible: require('../../assets/Icons/Bible.png'),
@@ -267,6 +268,7 @@ const openScripture = (ref) => {
       book: parsed.book,
       chapter: String(parsed.chapter),
       ...(parsed.verse ? { verse: String(parsed.verse) } : {}),
+      ...(parsed.endVerse ? { endVerse: String(parsed.endVerse) } : {}),
     },
   });
 };
@@ -317,7 +319,7 @@ export default function CharactersTabScreen() {
               </View>
               <Text selectable style={styles.profileName}>{selectedCharacter.name}</Text>
               <Text selectable style={styles.profileMeaning}>{cleanText(selectedCharacter.hebrewMeaning)}</Text>
-              <Text selectable style={styles.profileDescription}>{cleanText(selectedCharacter.description)}</Text>
+              <LinkedText text={cleanText(selectedCharacter.description)} style={styles.profileDescription} />
             </View>
           </View>
 
@@ -366,7 +368,7 @@ export default function CharactersTabScreen() {
                   </View>
                   <View style={styles.momentCopy}>
                     <Text selectable style={styles.momentTitle}>{cleanText(moment.title)}</Text>
-                    <Text selectable style={styles.momentText}>{cleanText(moment.description)}</Text>
+                    <LinkedText text={cleanText(moment.description)} style={styles.momentText} />
                   </View>
                 </View>
               ))}
@@ -379,7 +381,7 @@ export default function CharactersTabScreen() {
                 <Pressable key={entry.ref} onPress={() => openScripture(entry.ref)} style={styles.scriptureRow}>
                   <View style={styles.scriptureCopy}>
                     <Text selectable style={styles.scriptureRef}>{cleanText(entry.ref)}</Text>
-                    <Text selectable style={styles.scriptureDescription}>{cleanText(entry.description)}</Text>
+                    <LinkedText text={cleanText(entry.description)} style={styles.scriptureDescription} />
                   </View>
                   <BookOpenText size={18} color="#e1b64b" />
                 </Pressable>
@@ -388,7 +390,7 @@ export default function CharactersTabScreen() {
           </Section>
 
           <Section title="Quick Note">
-            <Text selectable style={styles.quickNote}>{cleanText(selectedCharacter.quickNote)}</Text>
+            <LinkedText text={cleanText(selectedCharacter.quickNote)} style={styles.quickNote} />
           </Section>
         </ScrollView>
       </View>

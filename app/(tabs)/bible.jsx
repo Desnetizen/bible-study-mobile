@@ -43,6 +43,7 @@ import { trackActivity } from '@/lib/activity-tracker';
 import { getEarnedBadges } from '@/lib/badges';
 import { loadDanielCrossReferences } from '@/lib/daniel-cross-references';
 import { saveDanielProgress, useDanielProgress } from '@/lib/daniel-progress';
+import { fetchJsonWithRetry, HttpError } from '@/lib/fetch-with-retry';
 
 const API_ROOT = 'https://bible-api.com/data';
 const DEFAULT_TRANSLATION_ID = 'kjv';
@@ -102,16 +103,6 @@ function setCacheEntry(cacheRef, key, value) {
     delete cacheRef.current[keys[0]];
   }
   cacheRef.current[key] = value;
-}
-
-async function fetchJson(url, signal) {
-  const response = await fetch(url, { signal });
-
-  if (!response.ok) {
-    throw new Error(`Request failed with status ${response.status}`);
-  }
-
-  return response.json();
 }
 
 function LoadingSkeleton({ bibleChapterCount, colors, dark }) {
@@ -237,6 +228,7 @@ function BibleReaderScreen({
   bibleChapterCount,
   loading,
   error,
+  onRetry,
   bibleText,
   verseRefs,
   selectionStart,
@@ -301,30 +293,22 @@ function BibleReaderScreen({
     const currentY = event.contentOffset.y;
     const delta = currentY - lastScrollY.value;
 
-    if (currentY <= 8) {
-      headerVisible.value = withTiming(1, {
-        duration: 180,
-        easing: Easing.out(Easing.cubic),
-      });
-    } else if (delta > 5 && headerVisible.value !== 0) {
-      headerVisible.value = withTiming(0, {
-        duration: 180,
-        easing: Easing.out(Easing.cubic),
-      });
-    } else if (delta < -5 && headerVisible.value !== 1) {
-      headerVisible.value = withTiming(1, {
-        duration: 180,
-        easing: Easing.out(Easing.cubic),
-      });
+    if (currentY <= 10) {
+      if (headerVisible.value !== 1) {
+        headerVisible.value = withTiming(1, { duration: 200 });
+      }
+    } else if (delta > 6 && currentY > 60 && headerVisible.value !== 0) {
+      headerVisible.value = withTiming(0, { duration: 200 });
+    } else if (delta < -6 && headerVisible.value !== 1) {
+      headerVisible.value = withTiming(1, { duration: 200 });
     }
 
     lastScrollY.value = currentY;
   });
 
   const headerAnimatedStyle = useAnimatedStyle(() => ({
-    maxHeight: interpolate(headerVisible.value, [0, 1], [0, 110]),
     opacity: headerVisible.value,
-    transform: [{ translateY: interpolate(headerVisible.value, [0, 1], [-18, 0]) }],
+    transform: [{ translateY: interpolate(headerVisible.value, [0, 1], [-120, 0]) }],
   }));
 
   const toolbarRowAnimatedStyle = useAnimatedStyle(() => ({
@@ -719,121 +703,280 @@ function BibleReaderScreen({
 
   return (
     <SafeAreaView style={[styles.root, { backgroundColor: colors.bg }]}>
+      <Reanimated.ScrollView
+        ref={scrollViewRef}
+        style={styles.scroll}
+        contentContainerStyle={[styles.scrollContent, { paddingTop: 116, paddingBottom: screenWidth >= 768 ? 40 : 96 }]}
+        keyboardShouldPersistTaps="handled"
+        onScroll={handleScroll}
+        scrollEventThrottle={16}>
+        <Pressable onPress={clearOutsideSelection}>
+          {error ? (
+            <View style={styles.errorContainer}>
+              <Text style={[styles.statusText, styles.errorText]}>{error}</Text>
+              {onRetry ? (
+                <TouchableOpacity
+                  onPress={onRetry}
+                  disabled={loading}
+                  style={[styles.retryButton, !loading && { backgroundColor: colors.blueText }]}
+                >
+                  <Text style={styles.retryText}>{loading ? 'Retrying...' : 'Tap to Retry'}</Text>
+                </TouchableOpacity>
+              ) : null}
+            </View>
+          ) : null}
+
+          {loading && !error ? (
+            <LoadingSkeleton bibleChapterCount={bibleChapterCount} colors={colors} dark={dark} />
+          ) : null}
+
+          {!loading && !error ? (
+            <View
+              style={styles.readingArea}
+              onLayout={(event) => {
+                readingAreaYRef.current = event.nativeEvent.layout.y;
+                updateMeasuredVersePositions();
+              }}>
+              {crossReferenceOrigin ? (
+                <TouchableOpacity
+                  activeOpacity={0.82}
+                  style={[
+                    styles.returnBanner,
+                    { backgroundColor: colors.bannerBg, borderColor: colors.bannerBorder },
+                  ]}
+                  onPress={returnToCrossReferenceOrigin}>
+                  <View style={styles.returnCopy}>
+                    <Text style={[styles.returnKicker, { color: colors.blueText }]}>RETURN</Text>
+                    <Text style={[styles.returnText, { color: colors.text }]}>
+                      Back to {crossReferenceOrigin.book} {crossReferenceOrigin.chapter}:
+                      {crossReferenceOrigin.startVerse}
+                      {crossReferenceOrigin.endVerse !== crossReferenceOrigin.startVerse
+                        ? `-${crossReferenceOrigin.endVerse}`
+                        : ''}
+                    </Text>
+                  </View>
+                  <Text style={[styles.returnOpen, { color: colors.blueText }]}>Open</Text>
+                </TouchableOpacity>
+              ) : null}
+
+              <View style={styles.chapterHeader}>
+                <Text style={[styles.bookTitle, { color: colors.bookHeading }]}>{bibleBook}</Text>
+                <Text style={[styles.chapterTitle, { color: colors.heading }]}>{bibleChapter}</Text>
+              </View>
+
+              <Text style={[styles.scriptureLabel, { color: colors.text }]}>Scripture</Text>
+
+              <View
+                style={styles.verseList}
+                onLayout={(event) => {
+                  verseListYRef.current = event.nativeEvent.layout.y;
+                  updateMeasuredVersePositions();
+                }}>
+                {bibleText.map((verse) => {
+                  const verseKey = getNoteKey(bibleBook, bibleChapter, verse.verse);
+                  const isRangeHighlighted =
+                    (selectionStart !== null && selectionEnd === null && selectionStart === verse.verse) ||
+                    (selectionStart !== null &&
+                      selectionEnd !== null &&
+                      verse.verse >= Math.min(selectionStart, selectionEnd) &&
+                      verse.verse <= Math.max(selectionStart, selectionEnd));
+                  const isSelectedVerse = selectedVerse?.verse === verse.verse;
+                  const hasPersistentHighlight = highlightedVerses.includes(verseKey);
+                  const hasNavigationHighlight =
+                    navigationHighlight?.book === bibleBook &&
+                    navigationHighlight?.chapter === bibleChapter &&
+                    verse.verse >= navigationHighlight.startVerse &&
+                    verse.verse <= navigationHighlight.endVerse;
+
+                  const rowBg = hasNavigationHighlight
+                    ? colors.navBg
+                    : isRangeHighlighted
+                      ? colors.rangeBg
+                      : isSelectedVerse
+                        ? colors.selectedBg
+                        : hasPersistentHighlight
+                          ? colors.highlightBg
+                          : 'transparent';
+                  const isActive =
+                    hasNavigationHighlight || isRangeHighlighted || isSelectedVerse || hasPersistentHighlight;
+
+                  return (
+                    <Pressable
+                      key={verse.verse}
+                      ref={(element) => {
+                        verseRefs.current[verse.verse] = {
+                          ...(verseRefs.current[verse.verse] ?? {}),
+                          node: element,
+                        };
+                      }}
+                      onLayout={(event) => {
+                        const localY = event.nativeEvent.layout.y;
+                        verseRefs.current[verse.verse] = {
+                          ...(verseRefs.current[verse.verse] ?? {}),
+                          localY,
+                          y: readingAreaYRef.current + verseListYRef.current + localY,
+                        };
+                      }}
+                      delayLongPress={500}
+                      onLongPress={() => handleVerseLongPress(verse.verse)}
+                      onPress={(event) => {
+                        event.stopPropagation?.();
+                        void handleVerseSelect(verse);
+                      }}
+                      style={({ pressed }) => [
+                        styles.verseRow,
+                        {
+                          backgroundColor: pressed && !isActive ? colors.rowPressed : rowBg,
+                          paddingHorizontal: isActive ? 12 : 0,
+                          borderWidth: hasNavigationHighlight ? 1 : 0,
+                          borderColor: hasNavigationHighlight ? '#93c5fd' : 'transparent',
+                        },
+                      ]}>
+                      <Text style={[styles.verseNumber, { color: colors.subtext }]}>{verse.verse}</Text>
+                      <Text selectable style={[styles.verseText, { color: colors.text, fontSize }]}>
+                        {verse.text}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+
+              {isDanielBibleView ? (
+                <View style={styles.completeWrap}>
+                  <TouchableOpacity
+                    activeOpacity={0.86}
+                    style={[
+                      styles.completeButton,
+                      { backgroundColor: completedChapters.includes(bibleChapter) ? '#16a34a' : '#2563eb' },
+                    ]}
+                    onPress={() => toggleChapterCompletion(bibleChapter)}>
+                    <Text style={styles.completeText}>
+                      {completedChapters.includes(bibleChapter)
+                        ? 'Mark Incomplete'
+                        : `Mark Chapter ${bibleChapter} Completed`}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              ) : null}
+            </View>
+          ) : null}
+        </Pressable>
+      </Reanimated.ScrollView>
+
       <Reanimated.View
         style={[
           styles.headerShell,
+          headerAnimatedStyle,
           {
             backgroundColor: colors.toolbarBg,
             borderColor: colors.toolbarBorder,
             shadowColor: dark ? '#000000' : '#94a3b8',
           },
         ]}>
-        <Reanimated.View style={[styles.collapsibleHeader, headerAnimatedStyle]}>
-          <Reanimated.View
-            style={[
-              styles.headerRow,
-              toolbarRowAnimatedStyle,
+        <Reanimated.View
+          style={[
+            styles.headerRow,
+            toolbarRowAnimatedStyle,
+          ]}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Go back"
+            hitSlop={10}
+            onPress={() => router.back()}
+            style={({ pressed }) => [
+              styles.backButton,
+              {
+                backgroundColor: pressed ? colors.rowPressed : 'transparent',
+              },
             ]}>
+            <ChevronLeft size={24} color={colors.text} strokeWidth={2.25} />
+          </Pressable>
+
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={`Change book, currently ${bibleBook}`}
+            hitSlop={10}
+            onPress={openBookSelector}
+            style={({ pressed }) => [
+              styles.bookButton,
+              {
+                backgroundColor: pressed ? colors.rowPressed : 'transparent',
+              },
+            ]}>
+            <Text style={[styles.bookButtonText, { color: colors.heading }]}>{bibleBook}</Text>
+            <ChevronDown size={16} color={colors.subtext} strokeWidth={2.5} />
+          </Pressable>
+
+          <View style={styles.headerActions}>
             <Pressable
               accessibilityRole="button"
-              accessibilityLabel="Go back"
+              accessibilityLabel={`Change translation, currently ${selectedScriptureVersionLabel}`}
               hitSlop={10}
-              onPress={() => router.back()}
+              onPress={openVersionSelector}
               style={({ pressed }) => [
-                styles.backButton,
+                styles.versionButton,
                 {
-                  backgroundColor: pressed ? colors.rowPressed : 'transparent',
+                  backgroundColor: pressed ? colors.rowPressed : colors.pickerBg,
+                  borderColor: colors.border,
                 },
               ]}>
-              <ChevronLeft size={24} color={colors.text} strokeWidth={2.25} />
+              <Text style={[styles.versionButtonText, { color: colors.text }]}>{scriptureVersion.toUpperCase()}</Text>
+              <ChevronDown size={14} color={colors.subtext} strokeWidth={2.5} />
             </Pressable>
 
             <Pressable
               accessibilityRole="button"
-              accessibilityLabel={`Change book, currently ${bibleBook}`}
+              accessibilityLabel="Text settings"
               hitSlop={10}
-              onPress={openBookSelector}
+              onPress={handleTextButtonPress}
               style={({ pressed }) => [
-                styles.bookButton,
+                styles.textButton,
                 {
                   backgroundColor: pressed ? colors.rowPressed : 'transparent',
                 },
-              ]}>
-              <Text style={[styles.bookButtonText, { color: colors.heading }]}>{bibleBook}</Text>
-              <ChevronDown size={16} color={colors.subtext} strokeWidth={2.5} />
+              ]}
+            >
+              <Text style={[styles.textButtonLabel, { color: colors.text }]}>Aa</Text>
             </Pressable>
+          </View>
+        </Reanimated.View>
 
-            <View style={styles.headerActions}>
+        <FlatList
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.chapterStrip}
+          keyboardShouldPersistTaps="handled"
+          data={chapterNumbers}
+          keyExtractor={(chapter) => String(chapter)}
+          renderItem={({ item: chapter }) => {
+            const active = chapter === bibleChapter;
+
+            return (
               <Pressable
                 accessibilityRole="button"
-                accessibilityLabel={`Change translation, currently ${selectedScriptureVersionLabel}`}
-                hitSlop={10}
-                onPress={openVersionSelector}
+                accessibilityLabel={`Go to chapter ${chapter}`}
+                onPress={() => handleChapterChipPress(chapter)}
                 style={({ pressed }) => [
-                  styles.versionButton,
+                  styles.chapterChip,
+                  active && styles.chapterChipActive,
                   {
-                    backgroundColor: pressed ? colors.rowPressed : colors.pickerBg,
-                    borderColor: colors.border,
+                    backgroundColor: active ? '#0a0a0a' : pressed ? colors.rowPressed : 'transparent',
+                    borderColor: active ? '#0a0a0a' : 'transparent',
                   },
                 ]}>
-                <Text style={[styles.versionButtonText, { color: colors.text }]}>{scriptureVersion.toUpperCase()}</Text>
-                <ChevronDown size={14} color={colors.subtext} strokeWidth={2.5} />
-              </Pressable>
-
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel="Text settings"
-                hitSlop={10}
-                onPress={handleTextButtonPress}
-                style={({ pressed }) => [
-                  styles.textButton,
-                  {
-                    backgroundColor: pressed ? colors.rowPressed : 'transparent',
-                  },
-                ]}
-              >
-                <Text style={[styles.textButtonLabel, { color: colors.text }]}>Aa</Text>
-              </Pressable>
-            </View>
-          </Reanimated.View>
-
-          <FlatList
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.chapterStrip}
-            keyboardShouldPersistTaps="handled"
-            data={chapterNumbers}
-            keyExtractor={(chapter) => String(chapter)}
-            renderItem={({ item: chapter }) => {
-              const active = chapter === bibleChapter;
-
-              return (
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel={`Go to chapter ${chapter}`}
-                  onPress={() => handleChapterChipPress(chapter)}
-                  style={({ pressed }) => [
-                    styles.chapterChip,
-                    active && styles.chapterChipActive,
+                <Text
+                  style={[
+                    styles.chapterChipText,
                     {
-                      backgroundColor: active ? '#0a0a0a' : pressed ? colors.rowPressed : 'transparent',
-                      borderColor: active ? '#0a0a0a' : 'transparent',
+                      color: active ? '#ffffff' : colors.muted,
                     },
                   ]}>
-                  <Text
-                    style={[
-                      styles.chapterChipText,
-                      {
-                        color: active ? '#ffffff' : colors.muted,
-                      },
-                    ]}>
-                    {chapter}
-                  </Text>
-                </Pressable>
-              );
-            }}
-          />
-        </Reanimated.View>
+                  {chapter}
+                </Text>
+              </Pressable>
+            );
+          }}
+        />
       </Reanimated.View>
 
       <Modal visible={selectorModal !== null} transparent animationType="fade" onRequestClose={closeSelectorModal}>
@@ -874,183 +1017,34 @@ function BibleReaderScreen({
         </Pressable>
       </Modal>
 
-      <View style={styles.body}>
-        <Reanimated.ScrollView
-          ref={scrollViewRef}
-          style={styles.scroll}
-          contentContainerStyle={[styles.scrollContent, { paddingBottom: screenWidth >= 768 ? 40 : 96 }]}
-          keyboardShouldPersistTaps="handled"
-          onScroll={handleScroll}
-          scrollEventThrottle={16}>
-          <Pressable onPress={clearOutsideSelection}>
-            {error ? <Text style={[styles.statusText, styles.errorText]}>{error}</Text> : null}
-
-            {loading && !error ? (
-              <LoadingSkeleton bibleChapterCount={bibleChapterCount} colors={colors} dark={dark} />
-            ) : null}
-
-            {!loading && !error ? (
-              <View
-                style={styles.readingArea}
-                onLayout={(event) => {
-                  readingAreaYRef.current = event.nativeEvent.layout.y;
-                  updateMeasuredVersePositions();
-                }}>
-                {crossReferenceOrigin ? (
-                  <TouchableOpacity
-                    activeOpacity={0.82}
-                    style={[
-                      styles.returnBanner,
-                      { backgroundColor: colors.bannerBg, borderColor: colors.bannerBorder },
-                    ]}
-                    onPress={returnToCrossReferenceOrigin}>
-                    <View style={styles.returnCopy}>
-                      <Text style={[styles.returnKicker, { color: colors.blueText }]}>RETURN</Text>
-                      <Text style={[styles.returnText, { color: colors.text }]}>
-                        Back to {crossReferenceOrigin.book} {crossReferenceOrigin.chapter}:
-                        {crossReferenceOrigin.startVerse}
-                        {crossReferenceOrigin.endVerse !== crossReferenceOrigin.startVerse
-                          ? `-${crossReferenceOrigin.endVerse}`
-                          : ''}
-                      </Text>
-                    </View>
-                    <Text style={[styles.returnOpen, { color: colors.blueText }]}>Open</Text>
-                  </TouchableOpacity>
-                ) : null}
-
-                <View style={styles.chapterHeader}>
-                  <Text style={[styles.bookTitle, { color: colors.bookHeading }]}>{bibleBook}</Text>
-                  <Text style={[styles.chapterTitle, { color: colors.heading }]}>{bibleChapter}</Text>
-                </View>
-
-                <Text style={[styles.scriptureLabel, { color: colors.text }]}>Scripture</Text>
-
-                <View
-                  style={styles.verseList}
-                  onLayout={(event) => {
-                    verseListYRef.current = event.nativeEvent.layout.y;
-                    updateMeasuredVersePositions();
-                  }}>
-                  {bibleText.map((verse) => {
-                    const verseKey = getNoteKey(bibleBook, bibleChapter, verse.verse);
-                    const isRangeHighlighted =
-                      (selectionStart !== null && selectionEnd === null && selectionStart === verse.verse) ||
-                      (selectionStart !== null &&
-                        selectionEnd !== null &&
-                        verse.verse >= Math.min(selectionStart, selectionEnd) &&
-                        verse.verse <= Math.max(selectionStart, selectionEnd));
-                    const isSelectedVerse = selectedVerse?.verse === verse.verse;
-                    const hasPersistentHighlight = highlightedVerses.includes(verseKey);
-                    const hasNavigationHighlight =
-                      navigationHighlight?.book === bibleBook &&
-                      navigationHighlight?.chapter === bibleChapter &&
-                      verse.verse >= navigationHighlight.startVerse &&
-                      verse.verse <= navigationHighlight.endVerse;
-
-                    const rowBg = hasNavigationHighlight
-                      ? colors.navBg
-                      : isRangeHighlighted
-                        ? colors.rangeBg
-                        : isSelectedVerse
-                          ? colors.selectedBg
-                          : hasPersistentHighlight
-                            ? colors.highlightBg
-                            : 'transparent';
-                    const isActive =
-                      hasNavigationHighlight || isRangeHighlighted || isSelectedVerse || hasPersistentHighlight;
-
-                    return (
-                      <Pressable
-                        key={verse.verse}
-                        ref={(element) => {
-                          verseRefs.current[verse.verse] = {
-                            ...(verseRefs.current[verse.verse] ?? {}),
-                            node: element,
-                          };
-                        }}
-                        onLayout={(event) => {
-                          const localY = event.nativeEvent.layout.y;
-                          verseRefs.current[verse.verse] = {
-                            ...(verseRefs.current[verse.verse] ?? {}),
-                            localY,
-                            y: readingAreaYRef.current + verseListYRef.current + localY,
-                          };
-                        }}
-                        delayLongPress={500}
-                        onLongPress={() => handleVerseLongPress(verse.verse)}
-                        onPress={(event) => {
-                          event.stopPropagation?.();
-                          void handleVerseSelect(verse);
-                        }}
-                        style={({ pressed }) => [
-                          styles.verseRow,
-                          {
-                            backgroundColor: pressed && !isActive ? colors.rowPressed : rowBg,
-                            paddingHorizontal: isActive ? 12 : 0,
-                            borderWidth: hasNavigationHighlight ? 1 : 0,
-                            borderColor: hasNavigationHighlight ? '#93c5fd' : 'transparent',
-                          },
-                        ]}>
-                        <Text style={[styles.verseNumber, { color: colors.subtext }]}>{verse.verse}</Text>
-                        <Text selectable style={[styles.verseText, { color: colors.text, fontSize }]}>
-                          {verse.text}
-                        </Text>
-                      </Pressable>
-                    );
-                  })}
-                </View>
-
-                {isDanielBibleView ? (
-                  <View style={styles.completeWrap}>
-                    <TouchableOpacity
-                      activeOpacity={0.86}
-                      style={[
-                        styles.completeButton,
-                        { backgroundColor: completedChapters.includes(bibleChapter) ? '#16a34a' : '#2563eb' },
-                      ]}
-                      onPress={() => toggleChapterCompletion(bibleChapter)}>
-                      <Text style={styles.completeText}>
-                        {completedChapters.includes(bibleChapter)
-                          ? 'Mark Incomplete'
-                          : `Mark Chapter ${bibleChapter} Completed`}
-                      </Text>
-                    </TouchableOpacity>
-                  </View>
-                ) : null}
-              </View>
-            ) : null}
-          </Pressable>
-        </Reanimated.ScrollView>
-
-        {longPressMenu ? (
-          <View style={[styles.longPressOverlay, styles.pointerEventsBoxNone]}>
-            <View
-              style={[
-                styles.longPressMenu,
-                {
-                  top: longPressMenu.top,
-                  left: longPressMenu.left,
-                },
-              ]}>
-              <TouchableOpacity activeOpacity={0.86} style={styles.menuButtonNote} onPress={openNoteFromLongPress}>
-                <NotebookPen size={16} color="#f1f5f9" />
-                <Text style={styles.menuButtonNoteText}>Note</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                activeOpacity={0.86}
-                style={styles.menuButtonHighlight}
-                onPress={highlightVerseFromLongPress}>
-                <Highlighter size={16} color="#bfdbfe" />
-                <Text style={styles.menuButtonHighlightText}>Highlight</Text>
-              </TouchableOpacity>
-              <TouchableOpacity activeOpacity={0.86} style={styles.menuButtonMarker} onPress={bookmarkFromLongPress}>
-                <Bookmark size={16} color="#d1fae5" />
-                <Text style={styles.menuButtonMarkerText}>Marker</Text>
-              </TouchableOpacity>
-            </View>
+      {longPressMenu ? (
+        <View style={[styles.longPressOverlay, styles.pointerEventsBoxNone]}>
+          <View
+            style={[
+              styles.longPressMenu,
+              {
+                top: longPressMenu.top,
+                left: longPressMenu.left,
+              },
+            ]}>
+            <TouchableOpacity activeOpacity={0.86} style={styles.menuButtonNote} onPress={openNoteFromLongPress}>
+              <NotebookPen size={16} color="#f1f5f9" />
+              <Text style={styles.menuButtonNoteText}>Note</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              activeOpacity={0.86}
+              style={styles.menuButtonHighlight}
+              onPress={highlightVerseFromLongPress}>
+              <Highlighter size={16} color="#bfdbfe" />
+              <Text style={styles.menuButtonHighlightText}>Highlight</Text>
+            </TouchableOpacity>
+            <TouchableOpacity activeOpacity={0.86} style={styles.menuButtonMarker} onPress={bookmarkFromLongPress}>
+              <Bookmark size={16} color="#d1fae5" />
+              <Text style={styles.menuButtonMarkerText}>Marker</Text>
+            </TouchableOpacity>
           </View>
-        ) : null}
-      </View>
+        </View>
+      ) : null}
 
       <Modal visible={!!selectedVerse} transparent animationType="slide" onRequestClose={clearSelectionState}>
         <TouchableWithoutFeedback onPress={clearSelectionState}>
@@ -1188,11 +1182,27 @@ function BibleReaderScreen({
   );
 }
 
+function describeError(err) {
+  if (err instanceof HttpError) {
+    if (err.status === 429) {
+      return 'Too many requests. Please wait a few seconds and try again.';
+    }
+    if (err.status >= 500) {
+      return 'Bible service is temporarily unavailable. Please try again shortly.';
+    }
+  }
+  if (err instanceof TypeError && /network|fetch/i.test(err.message)) {
+    return "Couldn't reach the Bible service. Check your connection and try again.";
+  }
+  return 'Could not load Bible data. Please try again.';
+}
+
 export default function BiblePage() {
-  const { book: bookParam, chapter: chapterParam, verse: verseParam } = useLocalSearchParams();
+  const { book: bookParam, chapter: chapterParam, verse: verseParam, endVerse: endVerseParam } = useLocalSearchParams();
   const requestedBookParam = Array.isArray(bookParam) ? bookParam[0] : bookParam;
   const requestedChapterParam = Number(Array.isArray(chapterParam) ? chapterParam[0] : chapterParam);
   const requestedVerseParam = Number(Array.isArray(verseParam) ? verseParam[0] : verseParam);
+  const requestedEndVerseParam = Number(Array.isArray(endVerseParam) ? endVerseParam[0] : endVerseParam);
   const initialRouteRef = useRef({
     book: requestedBookParam,
     chapter: Number.isFinite(requestedChapterParam) ? requestedChapterParam : 1,
@@ -1290,7 +1300,7 @@ export default function BiblePage() {
     setError(null);
 
     try {
-      const data = await fetchJson(`${API_ROOT}/${translationId}/${bookId}/${chapterNumber}`, controller.signal);
+      const data = await fetchJsonWithRetry(`${API_ROOT}/${translationId}/${bookId}/${chapterNumber}`, controller.signal);
       const nextVerses = Array.isArray(data.verses)
         ? data.verses.map((verse) => ({
           verse: verse.verse,
@@ -1301,8 +1311,9 @@ export default function BiblePage() {
       setCacheEntry(versesCacheRef, cacheKey, nextVerses);
       setBibleText(nextVerses);
     } catch (fetchError) {
-      if (fetchError.name !== 'AbortError') {
-        setError('Could not load this chapter. Please try again.');
+      if (fetchError instanceof Error && fetchError.name !== 'AbortError') {
+        console.warn('[Bible]', { step: 'verses', error: fetchError });
+        setError(describeError(fetchError));
       }
     } finally {
       if (!controller.signal.aborted) {
@@ -1338,7 +1349,7 @@ export default function BiblePage() {
       setError(null);
 
       try {
-        const data = await fetchJson(`${API_ROOT}/${translationId}/${bookId}`, controller.signal);
+        const data = await fetchJsonWithRetry(`${API_ROOT}/${translationId}/${bookId}`, controller.signal);
         const nextChapters = Array.isArray(data.chapters)
           ? data.chapters.reduce((acc, chapter) => {
             const value = chapter?.chapter;
@@ -1361,8 +1372,9 @@ export default function BiblePage() {
         setBibleChapterState(targetChapter);
         await loadVerses(translationId, bookId, targetChapter);
       } catch (fetchError) {
-        if (fetchError.name !== 'AbortError') {
-          setError('Could not load chapters for this book. Please try again.');
+        if (fetchError instanceof Error && fetchError.name !== 'AbortError') {
+          console.warn('[Bible]', { step: 'chapters', error: fetchError });
+          setError(describeError(fetchError));
           setLoading(false);
         }
       }
@@ -1395,7 +1407,7 @@ export default function BiblePage() {
       setError(null);
 
       try {
-        const data = await fetchJson(`${API_ROOT}/${translationId}`, controller.signal);
+        const data = await fetchJsonWithRetry(`${API_ROOT}/${translationId}`, controller.signal);
         const nextBooks = Array.isArray(data.books) ? data.books : [];
 
         if (!nextBooks.length) {
@@ -1412,8 +1424,9 @@ export default function BiblePage() {
         setBibleBookState(targetBook.name);
         await loadChapters(translationId, targetBook.id, preferredChapter);
       } catch (fetchError) {
-        if (fetchError.name !== 'AbortError') {
-          setError('Could not load books for this version. Please try again.');
+        if (fetchError instanceof Error && fetchError.name !== 'AbortError') {
+          console.warn('[Bible]', { step: 'books', error: fetchError });
+          setError(describeError(fetchError));
           setLoading(false);
         }
       }
@@ -1623,60 +1636,61 @@ export default function BiblePage() {
     };
   }, [bibleBook, bibleChapter, selectedVerse]);
 
-  useEffect(() => {
+  const bootstrap = useCallback(async () => {
     const controller = new AbortController();
     translationsAbortRef.current = controller;
 
-    async function bootstrap() {
-      setLoading(true);
-      setError(null);
+    setLoading(true);
+    setError(null);
 
-      try {
-        const data = await fetchJson(API_ROOT, controller.signal);
-        const allTranslations = Array.isArray(data.translations) ? data.translations : [];
-        const english = allTranslations.filter((translation) => translation.language_code === 'eng');
-        const priority = { kjv: 0, asv: 1, web: 2, bbe: 3, darby: 4, ylt: 5 };
-        const nextTranslations = english
-          .sort((a, b) => {
-            const rankA = priority[a.identifier] ?? 50;
-            const rankB = priority[b.identifier] ?? 50;
-            return rankA === rankB ? a.name.localeCompare(b.name) : rankA - rankB;
-          })
-          .slice(0, 12);
+    try {
+      const data = await fetchJsonWithRetry(API_ROOT, controller.signal);
+      const allTranslations = Array.isArray(data.translations) ? data.translations : [];
+      const english = allTranslations.filter((translation) => translation.language_code === 'eng');
+      const priority = { kjv: 0, asv: 1, web: 2, bbe: 3, darby: 4, ylt: 5 };
+      const nextTranslations = english
+        .sort((a, b) => {
+          const rankA = priority[a.identifier] ?? 50;
+          const rankB = priority[b.identifier] ?? 50;
+          return rankA === rankB ? a.name.localeCompare(b.name) : rankA - rankB;
+        })
+        .slice(0, 12);
 
-        setTranslations(nextTranslations);
-        const defaultTranslation =
-          nextTranslations.find((translation) => translation.identifier === DEFAULT_TRANSLATION_ID) ??
-          nextTranslations[0];
+      setTranslations(nextTranslations);
+      const defaultTranslation =
+        nextTranslations.find((translation) => translation.identifier === DEFAULT_TRANSLATION_ID) ??
+        nextTranslations[0];
 
-        if (!defaultTranslation) {
-          throw new Error('No supported translations found.');
-        }
+      if (!defaultTranslation) {
+        throw new Error('No supported translations found.');
+      }
 
-        setScriptureVersion(defaultTranslation.identifier);
-        setTranslationName(defaultTranslation.name ?? 'King James Version');
-        await loadBooksForTranslation(
-          defaultTranslation.identifier,
-          initialRouteRef.current.book || DANIEL_BOOK_NAME,
-          initialRouteRef.current.chapter
-        );
-      } catch (fetchError) {
-        if (fetchError.name !== 'AbortError') {
-          setError('Could not connect to Bible API. Please check your internet and retry.');
-          setLoading(false);
-        }
+      setScriptureVersion(defaultTranslation.identifier);
+      setTranslationName(defaultTranslation.name ?? 'King James Version');
+      await loadBooksForTranslation(
+        defaultTranslation.identifier,
+        initialRouteRef.current.book || DANIEL_BOOK_NAME,
+        initialRouteRef.current.chapter
+      );
+    } catch (fetchError) {
+      if (fetchError instanceof Error && fetchError.name !== 'AbortError') {
+        console.warn('[Bible]', { step: 'bootstrap', error: fetchError });
+        setError(describeError(fetchError));
+        setLoading(false);
       }
     }
+  }, [loadBooksForTranslation]);
 
+  useEffect(() => {
     void bootstrap();
 
     return () => {
-      controller.abort();
+      translationsAbortRef.current?.abort();
       booksAbortRef.current?.abort();
       chaptersAbortRef.current?.abort();
       versesAbortRef.current?.abort();
     };
-  }, [loadBooksForTranslation]);
+  }, [bootstrap]);
 
   useEffect(() => {
     if (!books.length || !requestedBookParam || !Number.isFinite(requestedChapterParam)) {
@@ -1687,9 +1701,20 @@ export default function BiblePage() {
       String(requestedBookParam),
       requestedChapterParam,
       Number.isFinite(requestedVerseParam) ? requestedVerseParam : null,
-      Number.isFinite(requestedVerseParam) ? requestedVerseParam : null
+      Number.isFinite(requestedEndVerseParam)
+        ? requestedEndVerseParam
+        : Number.isFinite(requestedVerseParam)
+          ? requestedVerseParam
+          : null
     );
-  }, [books.length, navigateToReference, requestedBookParam, requestedChapterParam, requestedVerseParam]);
+  }, [
+    books.length,
+    navigateToReference,
+    requestedBookParam,
+    requestedChapterParam,
+    requestedVerseParam,
+    requestedEndVerseParam,
+  ]);
 
   useEffect(() => {
     const target = pendingNavigationRef.current;
@@ -1801,6 +1826,7 @@ export default function BiblePage() {
         bibleChapterCount={chapters.length || 1}
         loading={loading}
         error={error}
+        onRetry={bootstrap}
         bibleText={bibleText}
         verseRefs={verseRefs}
         selectionStart={selectionStart}
@@ -1866,17 +1892,19 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   headerShell: {
+    position: 'absolute',
+    top: 6,
+    left: 10,
+    right: 10,
     borderBottomLeftRadius: 24,
     borderBottomRightRadius: 24,
     borderWidth: 1,
     elevation: 6,
-    marginHorizontal: 10,
-    marginTop: 6,
     overflow: 'hidden',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.12,
     shadowRadius: 14,
-    zIndex: 20,
+    zIndex: 100,
   },
   headerRow: {
     flexDirection: 'row',
@@ -1884,9 +1912,7 @@ const styles = StyleSheet.create({
     gap: 10,
     paddingHorizontal: 10,
   },
-  collapsibleHeader: {
-    overflow: 'hidden',
-  },
+
   backButton: {
     alignItems: 'center',
     borderRadius: 999,
@@ -1937,9 +1963,6 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '500',
   },
-  body: {
-    flex: 1,
-  },
   scroll: {
     flex: 1,
   },
@@ -1960,6 +1983,23 @@ const styles = StyleSheet.create({
   },
   errorText: {
     color: '#dc2626',
+  },
+  errorContainer: {
+    alignItems: 'center',
+    paddingVertical: 24,
+    paddingHorizontal: 16,
+  },
+  retryButton: {
+    marginTop: 12,
+    paddingVertical: 10,
+    paddingHorizontal: 24,
+    borderRadius: 8,
+    opacity: 1,
+  },
+  retryText: {
+    color: '#ffffff',
+    fontWeight: '600',
+    fontSize: 15,
   },
   readingArea: {
     gap: 24,

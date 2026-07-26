@@ -1,30 +1,30 @@
-import { useRef, useEffect, useCallback, useMemo, useState, createContext, useContext } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  Pressable,
-  Animated,
-  Easing,
-  Dimensions,
-  Platform,
-  ScrollView as RNScrollView,
-} from 'react-native';
-import { Image } from 'expo-image';
+import { LinkedText } from '@/components/LinkedText';
+import { VerseLink } from '@/components/VerseLink';
+import { parseBibleReference } from '@/lib/parseBibleReference';
+import type { ContextData, Section as ContextSection } from '@/types/context';
+import { Image, ImageBackground } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
-import { VerseLink } from '@/components/VerseLink';
-import { LinkedText } from '@/components/LinkedText';
-import { parseBibleReference } from '@/lib/parseBibleReference';
 import {
   BookOpen,
-  ChevronRight,
   ChevronLeft,
-  Scroll,
+  ChevronRight,
   List,
+  Scroll,
 } from 'lucide-react-native';
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import type { ImageSourcePropType } from 'react-native';
-import type { ContextData, Section as ContextSection } from '@/types/context';
+import {
+  Animated,
+  Dimensions,
+  Easing,
+  Platform,
+  Pressable,
+  ScrollView as RNScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 
 export type ReadTabContentProps = {
   contextData: ContextData;
@@ -73,20 +73,22 @@ function extractQuotes(content: string): { paragraphs: string[]; quotes: { text:
   return { paragraphs, quotes };
 }
 
-function GoldDivider({ double: isDouble = false }: { double?: boolean }) {
+function GoldDivider({ double: isDouble = false, narrow = false }: { double?: boolean; narrow?: boolean }) {
   const { rgb } = useContext(AccentColorContext);
   const borderColor = `rgba(${rgb.r},${rgb.g},${rgb.b},0.35)`;
   return (
-    <View style={dividerStyles.wrapper}>
-      <View style={[dividerStyles.line, { backgroundColor: borderColor }]} />
-      {isDouble && <View style={[dividerStyles.line, { backgroundColor: borderColor, marginTop: 3 }]} />}
+    <View style={[dividerStyles.wrapper, narrow && dividerStyles.wrapperNarrow]}>
+      <View style={[dividerStyles.line, narrow && dividerStyles.lineNarrow, { backgroundColor: borderColor }]} />
+      {isDouble && <View style={[dividerStyles.line, narrow && dividerStyles.lineNarrow, { backgroundColor: borderColor, marginTop: 3 }]} />}
     </View>
   );
 }
 
 const dividerStyles = StyleSheet.create({
   wrapper: { paddingVertical: 12 },
+  wrapperNarrow: { paddingVertical: 10, alignItems: 'center' },
   line: { height: 1, borderRadius: 1 },
+  lineNarrow: { width: 56, height: 2 },
 });
 
 function QuoteCard({ text, reference }: { text: string; reference?: string }) {
@@ -105,7 +107,12 @@ function QuoteCard({ text, reference }: { text: string; reference?: string }) {
                   const parsed = parseBibleReference(reference);
                   if (parsed) {
                     return (
-                      <VerseLink book={parsed.book} chapter={parsed.chapter} verse={parsed.verse}>
+                      <VerseLink
+                        book={parsed.book}
+                        chapter={parsed.chapter}
+                        verse={parsed.verse}
+                        endVerse={parsed.endVerse}
+                      >
                         <Text style={[quoteStyles.refText, { color: accentColor }]}>{reference}</Text>
                       </VerseLink>
                     );
@@ -184,7 +191,7 @@ function SubsectionView({
   rootViewRef: React.RefObject<View | null>;
   sectionPositions: React.MutableRefObject<Record<string, number>>;
 }) {
-  const { color: accentColor, rgb } = useContext(AccentColorContext);
+  const { color: accentColor } = useContext(AccentColorContext);
   const { paragraphs, quotes } = extractQuotes(content);
   const numMatch = title.match(/^(\d+\.\d+)\s*/);
   const subNum = numMatch?.[1] || '';
@@ -197,7 +204,7 @@ function SubsectionView({
       subRef.current.measureLayout(
         rootViewRef.current,
         (x, y) => {
-          sectionPositions.current[`subsection:${id}`] = y;
+          sectionPositions.current[id] = y;
         },
         () => {}
       );
@@ -206,14 +213,9 @@ function SubsectionView({
 
   return (
     <View ref={subRef} onLayout={handleLayout} style={subsectionStyles.container}>
-      <View style={subsectionStyles.headerRow}>
-        {subNum ? (
-          <View style={[subsectionStyles.numBadge, { borderColor: `rgba(${rgb.r},${rgb.g},${rgb.b},0.3)`, backgroundColor: `rgba(${rgb.r},${rgb.g},${rgb.b},0.06)` }]}>
-            <Text style={[subsectionStyles.numText, { color: accentColor }]}>{subNum}</Text>
-          </View>
-        ) : null}
-        <Text style={subsectionStyles.title}>{cleanTitle}</Text>
-      </View>
+      <Text style={[subsectionStyles.title, { color: accentColor }]}>
+        {subNum ? `${subNum}  ` : ''}{cleanTitle}
+      </Text>
       {paragraphs.map((p, i) => (
         <LinkedText key={`p-${i}`} text={p} style={subsectionStyles.para} />
       ))}
@@ -226,32 +228,15 @@ function SubsectionView({
 
 const subsectionStyles = StyleSheet.create({
   container: {
-    marginTop: 8,
+    marginTop: 4,
     gap: 10,
-  },
-  headerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-  },
-  numBadge: {
-    borderWidth: 1,
-    borderRadius: 4,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-  },
-  numText: {
-    fontFamily: 'Cinzel',
-    fontSize: 11,
-    fontWeight: '700',
   },
   title: {
     fontFamily: 'Cinzel',
-    fontSize: 15,
-    color: '#FFFFFF',
-    fontWeight: '600',
+    fontSize: 14,
+    fontWeight: '700',
     letterSpacing: 0.3,
-    flex: 1,
+    lineHeight: 19,
   },
   para: {
     fontFamily: BODY_SERIF,
@@ -259,6 +244,7 @@ const subsectionStyles = StyleSheet.create({
     lineHeight: 22,
     color: BODY_TEXT,
     letterSpacing: 0.2,
+    textAlign: 'justify',
   },
 });
 
@@ -300,48 +286,33 @@ function SectionHeader({ number, title }: { number: string; title: string }) {
   const { color: accentColor, rgb } = useContext(AccentColorContext);
   return (
     <View style={sectionHeaderStyles.container}>
-      <View style={[sectionHeaderStyles.lineLeft, { backgroundColor: `rgba(${rgb.r},${rgb.g},${rgb.b},0.25)` }]} />
-      <View style={sectionHeaderStyles.textGroup}>
-        <Text style={[sectionHeaderStyles.number, { color: accentColor }]}>{number}</Text>
-        <Text style={sectionHeaderStyles.title}>{title}</Text>
-      </View>
-      <View style={[sectionHeaderStyles.lineRight, { backgroundColor: `rgba(${rgb.r},${rgb.g},${rgb.b},0.25)` }]} />
+      <Text style={sectionHeaderStyles.heading}>
+        {number ? <Text style={{ color: accentColor }}>{number}.{'  '}</Text> : null}
+        {title.toUpperCase()}
+      </Text>
+      <View style={[sectionHeaderStyles.rule, { backgroundColor: `rgba(${rgb.r},${rgb.g},${rgb.b},0.4)` }]} />
     </View>
   );
 }
 
 const sectionHeaderStyles = StyleSheet.create({
   container: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginVertical: 20,
-    gap: 14,
+    marginTop: 22,
+    marginBottom: 16,
   },
-  lineLeft: {
-    flex: 1,
-    height: 1,
-  },
-  lineRight: {
-    flex: 1,
-    height: 1,
-  },
-  textGroup: {
-    alignItems: 'center',
-    gap: 2,
-  },
-  number: {
+  heading: {
     fontFamily: 'Cinzel',
-    fontSize: 28,
-    fontWeight: '700',
-    letterSpacing: 2,
-  },
-  title: {
-    fontFamily: 'Cinzel',
-    fontSize: 16,
+    fontSize: 17,
     color: '#FFFFFF',
-    fontWeight: '600',
-    letterSpacing: 0.5,
-    textAlign: 'center',
+    fontWeight: '700',
+    letterSpacing: 0.6,
+    lineHeight: 24,
+  },
+  rule: {
+    height: 2,
+    width: 46,
+    borderRadius: 1,
+    marginTop: 8,
   },
 });
 
@@ -437,16 +408,17 @@ function SectionBody({
       )}
 
       {section.subsections && section.subsections.length > 0 && (
-        <View style={sectionBodyStyles.subsections}>
+        <View style={IS_WIDE ? sectionBodyStyles.subsectionsGrid : sectionBodyStyles.subsections}>
           {section.subsections.map((sub) => (
-            <SubsectionView
-              key={sub.id}
-              id={sub.id}
-              title={sub.title}
-              content={sub.content}
-              rootViewRef={rootViewRef}
-              sectionPositions={sectionPositions}
-            />
+            <View key={sub.id} style={IS_WIDE ? sectionBodyStyles.subsectionCell : undefined}>
+              <SubsectionView
+                id={sub.id}
+                title={sub.title}
+                content={sub.content}
+                rootViewRef={rootViewRef}
+                sectionPositions={sectionPositions}
+              />
+            </View>
           ))}
         </View>
       )}
@@ -478,6 +450,7 @@ const sectionBodyStyles = StyleSheet.create({
     color: BODY_TEXT,
     letterSpacing: 0.2,
     marginBottom: 8,
+    textAlign: 'justify',
   },
   termsSection: {
     marginTop: 12,
@@ -486,6 +459,17 @@ const sectionBodyStyles = StyleSheet.create({
   subsections: {
     marginTop: 8,
     gap: 16,
+  },
+  subsectionsGrid: {
+    marginTop: 8,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    columnGap: 24,
+    rowGap: 20,
+  },
+  subsectionCell: {
+    width: '46%',
+    flexGrow: 1,
   },
 });
 
@@ -513,6 +497,7 @@ function TimelineVisual({ items }: { items: { date: string; event: string; refer
                       book: parsed.book,
                       chapter: String(parsed.chapter),
                       ...(parsed.verse ? { verse: String(parsed.verse) } : {}),
+                      ...(parsed.endVerse ? { endVerse: String(parsed.endVerse) } : {}),
                     },
                   });
                 }
@@ -561,7 +546,11 @@ function CalloutBox({ title, children }: { title: string; children: React.ReactN
         <View style={[calloutStyles.borderInner, { borderColor: `rgba(${rgb.r},${rgb.g},${rgb.b},0.35)` }]}>
           <View style={calloutStyles.content}>
             {title && (
-              <Text style={[calloutStyles.title, { color: accentColor }]}>{title}</Text>
+              <View style={calloutStyles.titleWrap}>
+                <Scroll size={16} color={accentColor} style={{ opacity: 0.7, marginBottom: 6 }} />
+                <Text style={[calloutStyles.title, { color: accentColor }]}>{title.toUpperCase()}</Text>
+                <View style={[calloutStyles.titleRule, { backgroundColor: `rgba(${rgb.r},${rgb.g},${rgb.b},0.4)` }]} />
+              </View>
             )}
             {children}
           </View>
@@ -584,13 +573,19 @@ const calloutStyles = StyleSheet.create({
     backgroundColor: QUOTE_BG,
   },
   content: { padding: 20, gap: 10 },
+  titleWrap: { alignItems: 'center', marginBottom: 4 },
   title: {
     fontFamily: 'Cinzel',
     fontSize: 16,
     fontWeight: '700',
-    letterSpacing: 0.5,
+    letterSpacing: 0.8,
     textAlign: 'center',
-    marginBottom: 6,
+  },
+  titleRule: {
+    height: 2,
+    width: 40,
+    borderRadius: 1,
+    marginTop: 8,
   },
 });
 
@@ -672,7 +667,9 @@ function DropCap({ text }: { text: string }) {
   return (
     <View style={dropCapStyles.row}>
       <Text style={[dropCapStyles.cap, { color: accentColor }]}>{firstChar}</Text>
-      <Text style={dropCapStyles.rest}>{rest}</Text>
+      <View style={{ flex: 1 }}>
+        <LinkedText text={rest} style={dropCapStyles.rest} />
+      </View>
     </View>
   );
 }
@@ -693,7 +690,7 @@ const dropCapStyles = StyleSheet.create({
     lineHeight: 22,
     color: BODY_TEXT,
     letterSpacing: 0.2,
-    flex: 1,
+    textAlign: 'justify',
   },
 });
 
@@ -806,11 +803,12 @@ export default function ReadTabContent({
     const b = accentRgb.b;
     return StyleSheet.create({
       headerBanner: {
+        minHeight: IS_WIDE ? 300 : 240,
+        justifyContent: 'flex-end',
         backgroundColor: DARK_CARD,
         borderWidth: 1.5,
-        borderColor: `rgba(${r},${g},${b},0.2)`,
+        borderColor: `rgba(${r},${g},${b},0.35)`,
         borderRadius: 4,
-        padding: 20,
         overflow: 'hidden',
       },
       abstractSection: {
@@ -820,6 +818,7 @@ export default function ReadTabContent({
         borderRadius: 4,
         padding: 20,
         marginTop: 8,
+        marginHorizontal: 16,
       },
       footerCard: {
         backgroundColor: DARK_CARD,
@@ -830,6 +829,8 @@ export default function ReadTabContent({
         alignItems: 'center',
         gap: 12,
         marginTop: 8,
+        marginBottom: 32,
+        marginHorizontal: 16,
       },
       footerBtn: {
         flexDirection: 'row',
@@ -944,29 +945,34 @@ export default function ReadTabContent({
           </View>
         </View>
 
-        {/* ─────── HEADER BANNER ─────── */}
+        {/* ─────── HEADER MASTHEAD ─────── */}
         <View
           style={baseStyles.headerBanner}
           onLayout={(e) => handleSectionLayout('__header__', e)}
         >
-          <LinearGradient
-            colors={[`rgba(${accentRgb.r},${accentRgb.g},${accentRgb.b},0.08)`, 'transparent']}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={[StyleSheet.absoluteFillObject, { borderRadius: 4 }]}
-          />
-          <Text style={[styles.headerEyebrow, { color: accentColor }]}>{headerEyebrow}</Text>
-          <Text style={styles.headerTitle}>{contextData.title}</Text>
-          <Text style={[styles.headerSubtitle, { color: accentColor }]}>{contextData.subtitle}</Text>
-
-          <GoldDivider double />
-
-          <Text style={styles.headerDesc}>{contextData.description}</Text>
-
-          <ImageFrame
+          <ImageBackground
             source={headerImage || require('../../assets/images/pre_exile_header_relief.png')}
-            style={{ marginBottom: 4 }}
+            style={StyleSheet.absoluteFillObject}
+            contentFit="cover"
           />
+          <LinearGradient
+            colors={['rgba(7,17,31,0.30)', 'rgba(7,17,31,0.55)', DARK_CARD]}
+            locations={[0, 0.5, 1]}
+            style={StyleSheet.absoluteFillObject}
+          />
+          <LinearGradient
+            colors={[`rgba(${accentRgb.r},${accentRgb.g},${accentRgb.b},0.16)`, 'transparent']}
+            start={{ x: 0.5, y: 0 }}
+            end={{ x: 0.5, y: 0.8 }}
+            style={StyleSheet.absoluteFillObject}
+          />
+
+          <View style={styles.headerBannerInner}>
+            <Text style={[styles.headerEyebrow, { color: accentColor }]}>{headerEyebrow}</Text>
+            <Text style={styles.headerTitle}>{contextData.subtitle}</Text>
+            <GoldDivider narrow />
+            <LinkedText text={contextData.description} style={styles.headerDesc} />
+          </View>
         </View>
 
         {/* ─────── ABSTRACT SECTION ─────── */}
@@ -1072,6 +1078,7 @@ export default function ReadTabContent({
 const tocStyles = StyleSheet.create({
   wrapper: {
     marginBottom: 4,
+    marginHorizontal: 16,
   },
   toggleBtn: {
     flexDirection: 'row',
@@ -1105,34 +1112,36 @@ const styles = StyleSheet.create({
   container: {
     gap: 8,
   },
+  headerBannerInner: {
+    padding: 20,
+    paddingTop: 32,
+  },
   headerEyebrow: {
     fontFamily: 'Cinzel',
     fontSize: 11,
     fontWeight: '700',
-    letterSpacing: 2,
-    marginBottom: 6,
+    letterSpacing: 3,
+    marginBottom: 8,
+    textAlign: IS_WIDE ? 'center' : 'left',
   },
   headerTitle: {
     fontFamily: 'Cinzel',
-    fontSize: 24,
+    fontSize: IS_WIDE ? 32 : 25,
     color: '#FFFFFF',
     fontWeight: '700',
-    lineHeight: 32,
+    lineHeight: IS_WIDE ? 40 : 32,
     letterSpacing: 0.5,
-  },
-  headerSubtitle: {
-    fontFamily: 'Cinzel',
-    fontSize: 13,
-    fontWeight: '500',
-    letterSpacing: 0.3,
-    marginTop: 2,
+    textAlign: IS_WIDE ? 'center' : 'left',
+    textTransform: 'uppercase',
   },
   headerDesc: {
     fontFamily: BODY_SERIF,
     fontSize: 13,
     lineHeight: 20,
-    color: 'rgba(255,255,255,0.6)',
-    marginBottom: 4,
+    fontStyle: 'italic',
+    color: 'rgba(255,255,255,0.75)',
+    textAlign: IS_WIDE ? 'center' : 'left',
+    marginTop: 2,
   },
   abstractSection: {
     marginTop: 8,
@@ -1157,6 +1166,7 @@ const styles = StyleSheet.create({
   },
   sectionWrapper: {
     marginTop: 8,
+    paddingHorizontal: 16,
   },
   footerText: {
     fontFamily: BODY_SERIF,

@@ -32,19 +32,19 @@ drop policy if exists "Allow anon update access to Daniel progress" on public.da
 create policy "device_id read access"
   on public.daniel_progress
   for select
-  to anon
+  to authenticated
   using (device_id = public.get_device_id());
 
 create policy "device_id insert access"
   on public.daniel_progress
   for insert
-  to anon
+  to authenticated
   with check (device_id = public.get_device_id());
 
 create policy "device_id update access"
   on public.daniel_progress
   for update
-  to anon
+  to authenticated
   using (device_id = public.get_device_id())
   with check (device_id = public.get_device_id());
 
@@ -58,11 +58,11 @@ drop policy if exists "Allow anon insert access to user_activity" on public.user
 create policy "device_id read access"
   on public.user_activity
   for select
-  to anon
+  to authenticated
   using (device_id = public.get_device_id());
 
 create policy "device_id insert access"
   on public.user_activity
   for insert
-  to anon
+  to authenticated
   with check (device_id = public.get_device_id());

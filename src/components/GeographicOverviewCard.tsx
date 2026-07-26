@@ -2,6 +2,7 @@ import { Text, View, StyleSheet } from 'react-native';
 import { Image } from 'expo-image';
 import type { ImageSourcePropType } from 'react-native';
 import { hexToRgba } from '@/lib/colors';
+import { LinkedText } from '@/components/LinkedText';
 
 interface GeographicOverviewCardProps {
   title: string;
@@ -22,7 +23,7 @@ export default function GeographicOverviewCard({
     <View style={[styles.card, { borderColor: hexToRgba(accentColor, 0.18) }]}>
       <View style={styles.textBlock}>
         <Text style={[styles.title, { color: accentColor }]}>{title}</Text>
-        <Text style={styles.description}>{description}</Text>
+        <LinkedText text={description} style={styles.description} />
       </View>
       <View style={styles.imageBlock}>
         <Image source={image} style={styles.thumbnail} contentFit="cover" />

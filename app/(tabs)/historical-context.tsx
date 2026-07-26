@@ -1,3 +1,6 @@
+import { LinkedText } from '@/components/LinkedText';
+import { HISTORICAL_ERAS } from '@/data/historicalContextData';
+import { parseBibleReference } from '@/lib/parseBibleReference';
 import { Image, ImageBackground } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
@@ -22,9 +25,6 @@ import {
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { parseBibleReference } from '@/lib/parseBibleReference';
-import { LinkedText } from '@/components/LinkedText';
-import { HISTORICAL_ERAS } from '@/data/historicalContextData';
 
 // ─── Era config ────────────────────────────────────────────────────────────────
 
@@ -322,6 +322,7 @@ export default function HistoricalContextScreen() {
         book: parsed.book,
         chapter: String(parsed.chapter),
         ...(parsed.verse ? { verse: String(parsed.verse) } : {}),
+        ...(parsed.endVerse ? { endVerse: String(parsed.endVerse) } : {}),
       },
     });
   };
@@ -485,7 +486,7 @@ export default function HistoricalContextScreen() {
                     <Crown size={15} color={eraColor} />
                     <Text style={[styles.connectionTitle, { color: eraColor }]}>Daniel Connection</Text>
                   </View>
-                  <Text style={styles.connectionText}>{activeEvent.danielConnection}</Text>
+                  <LinkedText text={activeEvent.danielConnection} style={styles.connectionText} />
                 </View>
               )}
 
@@ -541,7 +542,7 @@ const styles = StyleSheet.create({
   // Hero
   hero: {
     width: '100%',
-    minHeight: 220,
+    minHeight: 240,
     justifyContent: 'flex-end',
     overflow: 'hidden',
   },

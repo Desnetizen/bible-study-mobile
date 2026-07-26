@@ -6,7 +6,7 @@ import { medoPersianContext } from '@/data/medoPersianContext';
 import { keyPlaces, morePlaces } from '@/data/medoPersianPlaces';
 import GeographicOverviewCard from '@/components/GeographicOverviewCard';
 import HorizontalPlaceCard from '@/components/HorizontalPlaceCard';
-import MapModal from '@/components/MapModal';
+import ImageModal from '@/components/ImageModal';
 import { hexToRgba } from '@/lib/colors';
 import { ImageBackground } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -69,6 +69,10 @@ export default function MedoPersianDetailScreen() {
   const insets = useSafeAreaInsets();
   const [activeTab, setActiveTab] = useState<'overview' | 'places' | 'read'>('overview');
   const [mapModalVisible, setMapModalVisible] = useState(false);
+  const [exploreModalVisible, setExploreModalVisible] = useState(false);
+  const [exploreModalIndex, setExploreModalIndex] = useState(0);
+  const [placesModalVisible, setPlacesModalVisible] = useState(false);
+  const [placesModalIndex, setPlacesModalIndex] = useState(0);
 
   // Animations
   const scrollRef = useRef<ScrollView>(null);
@@ -274,7 +278,7 @@ export default function MedoPersianDetailScreen() {
             </View>
 
             <View style={styles.exploreGrid}>
-              {EXPLORE_CARDS.map((card) => {
+              {EXPLORE_CARDS.map((card, index) => {
                 const IconComponent = card.icon;
                 return (
                   <Pressable
@@ -283,6 +287,10 @@ export default function MedoPersianDetailScreen() {
                       styles.exploreCard,
                       pressed && { transform: [{ scale: 0.98 }], opacity: 0.9 },
                     ]}
+                    onPress={() => {
+                      setExploreModalIndex(index);
+                      setExploreModalVisible(true);
+                    }}
                   >
                     <ImageBackground
                       source={card.image}
@@ -322,8 +330,11 @@ export default function MedoPersianDetailScreen() {
                 contentContainerStyle={styles.placesScrollContent}
                 scrollEventThrottle={16}
               >
-                {keyPlaces.map((place) => (
-                  <HorizontalPlaceCard key={place.id} place={place} accentColor={ACCENT} />
+                {keyPlaces.map((place, index) => (
+                  <HorizontalPlaceCard key={place.id} place={place} accentColor={ACCENT} onPress={() => {
+                    setPlacesModalIndex(index);
+                    setPlacesModalVisible(true);
+                  }} />
                 ))}
               </ScrollView>
             </View>
@@ -370,8 +381,11 @@ export default function MedoPersianDetailScreen() {
                 contentContainerStyle={styles.placesScrollContent}
                 scrollEventThrottle={16}
               >
-                {morePlaces.map((place) => (
-                  <HorizontalPlaceCard key={place.id} place={place} accentColor={ACCENT} />
+                {morePlaces.map((place, index) => (
+                  <HorizontalPlaceCard key={place.id} place={place} accentColor={ACCENT} onPress={() => {
+                    setPlacesModalIndex(keyPlaces.length + index);
+                    setPlacesModalVisible(true);
+                  }} />
                 ))}
               </ScrollView>
             </View>
@@ -405,10 +419,24 @@ export default function MedoPersianDetailScreen() {
           sectionPositions={sectionPositions}
         />
       )}
-      <MapModal
+      <ImageModal
         visible={mapModalVisible}
         onClose={() => setMapModalVisible(false)}
-        source={require('../assets/Maps/medo-persian.jpg')}
+        images={[require('../assets/Maps/medo-persian.jpg')]}
+        accentColor={ACCENT}
+      />
+      <ImageModal
+        visible={exploreModalVisible}
+        onClose={() => setExploreModalVisible(false)}
+        images={EXPLORE_CARDS.map((c) => c.image)}
+        initialIndex={exploreModalIndex}
+        accentColor={ACCENT}
+      />
+      <ImageModal
+        visible={placesModalVisible}
+        onClose={() => setPlacesModalVisible(false)}
+        images={[...keyPlaces.map((p) => p.image), ...morePlaces.map((p) => p.image)]}
+        initialIndex={placesModalIndex}
         accentColor={ACCENT}
       />
     </View>

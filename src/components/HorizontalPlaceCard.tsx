@@ -1,4 +1,4 @@
-import { Text, View, StyleSheet } from 'react-native';
+import { Pressable, Text, View, StyleSheet } from 'react-native';
 import { Image } from 'expo-image';
 import { hexToRgba } from '@/lib/colors';
 import type { PlaceEntry } from '@/data/medoPersianPlaces';
@@ -6,11 +6,18 @@ import type { PlaceEntry } from '@/data/medoPersianPlaces';
 interface HorizontalPlaceCardProps {
   place: PlaceEntry;
   accentColor: string;
+  onPress?: () => void;
 }
 
-export default function HorizontalPlaceCard({ place, accentColor }: HorizontalPlaceCardProps) {
+export default function HorizontalPlaceCard({ place, accentColor, onPress }: HorizontalPlaceCardProps) {
   return (
-    <View style={[styles.card, { borderColor: hexToRgba(accentColor, 0.15) }]}>
+    <Pressable
+      style={({ pressed }) => [
+        [styles.card, { borderColor: hexToRgba(accentColor, 0.15) }],
+        pressed && { transform: [{ scale: 0.97 }], opacity: 0.9 },
+      ]}
+      onPress={onPress}
+    >
       <Image source={place.image} style={styles.image} contentFit="cover" />
       <View style={styles.textOverlay}>
         <Text style={[styles.name, { color: accentColor }]}>{place.name.toUpperCase()}</Text>
@@ -18,7 +25,7 @@ export default function HorizontalPlaceCard({ place, accentColor }: HorizontalPl
           {place.role}
         </Text>
       </View>
-    </View>
+    </Pressable>
   );
 }
 
