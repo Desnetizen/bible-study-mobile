@@ -113,8 +113,8 @@ export default function LoginScreen() {
           </Pressable>
 
           <View style={styles.footer}>
-            <Text style={styles.footerText}>Don't have an account? </Text>
-            <Link href="/auth/signup" style={styles.footerLink}>Sign Up</Link>
+            <Text style={styles.footerText}>Don&apos;t have an account? </Text>
+            <Link href={'/auth/signup' as any} style={styles.footerLink}>Sign Up</Link>
           </View>
         </View>
       </View>

@@ -82,10 +82,7 @@ export default function SignupScreen() {
             Click the link in your email to confirm your account, then come back and sign in.
           </Text>
 
-          <Link href="/auth/login" style={({ pressed }) => [
-            styles.backToLogin,
-            pressed && { opacity: 0.8 },
-          ]}>
+          <Link href={'/auth/login' as any} style={styles.backToLogin}>
             <Text style={styles.backToLoginText}>Go to Sign In</Text>
           </Link>
         </View>
@@ -171,7 +168,7 @@ export default function SignupScreen() {
 
           <View style={styles.footer}>
             <Text style={styles.footerText}>Already have an account? </Text>
-            <Link href="/auth/login" style={styles.footerLink}>Sign In</Link>
+            <Link href={'/auth/login' as any} style={styles.footerLink}>Sign In</Link>
           </View>
         </View>
       </View>

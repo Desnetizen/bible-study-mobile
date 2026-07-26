@@ -29,9 +29,9 @@ function AuthGate() {
     if (loading) return;
 
     if (!session) {
-      router.replace('/auth/login');
+      router.replace('/auth/login' as any);
     } else {
-      router.replace('/(tabs)');
+      router.replace('/(tabs)' as any);
     }
   }, [session, loading]);
 

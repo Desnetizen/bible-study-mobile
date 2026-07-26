@@ -82,7 +82,7 @@ export default function ConfirmScreen() {
             <Text style={styles.text}>{errorMessage}</Text>
             <Pressable
               style={({ pressed }) => [styles.button, pressed && styles.buttonPressed]}
-              onPress={() => router.replace('/auth/login')}
+              onPress={() => router.replace('/auth/login' as any)}
             >
               <Text style={styles.buttonText}>Go to Sign In</Text>
             </Pressable>
