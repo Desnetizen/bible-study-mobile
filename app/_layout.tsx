@@ -1,5 +1,5 @@
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
-import { Stack, router } from 'expo-router';
+import { Stack, router, usePathname } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useState } from 'react';
 import * as SplashScreen from 'expo-splash-screen';
@@ -24,16 +24,18 @@ export const unstable_settings = {
 
 function AuthGate() {
   const { session, loading } = useAuth();
+  const pathname = usePathname();
+  const inAuthGroup = pathname?.startsWith('/auth');
 
   useEffect(() => {
     if (loading) return;
 
-    if (!session) {
-      router.replace('/auth/login' as any);
-    } else {
+    if (!session && !inAuthGroup) {
+      router.replace('/auth/signup' as any);
+    } else if (session && inAuthGroup) {
       router.replace('/(tabs)' as any);
     }
-  }, [session, loading]);
+  }, [session, loading, inAuthGroup]);
 
   return null;
 }

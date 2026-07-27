@@ -7,6 +7,11 @@
 -- connection than the subsequent query.
 -- ============================================================
 
+-- Drop duplicate policies created by 20260725000000_profiles.sql
+drop policy if exists "Users read own progress"  on public.daniel_progress;
+drop policy if exists "Users insert own progress" on public.daniel_progress;
+drop policy if exists "Users update own progress" on public.daniel_progress;
+
 -- Step 1: Add user_id column to daniel_progress
 alter table public.daniel_progress
   add column if not exists user_id uuid
