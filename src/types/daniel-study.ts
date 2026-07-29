@@ -34,6 +34,9 @@ export interface StudySection {
   quoteCitation?: string;
   theme?: string;
   timelineTable?: ChapterTable;
+  keyFocus?: string;
+  verses?: string;
+  purpose?: string;
 }
 
 export interface SourceItem {

@@ -1,3 +1,4 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import 'expo-sqlite/localStorage/install';
 
 import { useEffect, useSyncExternalStore } from 'react';
@@ -197,4 +198,42 @@ export function useSyncStatus(): Record<number, ChapterSyncStatus> {
     getSyncStatusSnapshot,
     getSyncStatusSnapshot,
   );
+}
+
+export async function getAllChapterProgress(): Promise<
+  Record<number, { progress: number; bookmarked: boolean }>
+> {
+  const keys = Array.from({ length: 12 }, (_, i) => `chapter-study:v2:${i + 1}`);
+  const pairs = await AsyncStorage.multiGet(keys);
+  const result: Record<number, { progress: number; bookmarked: boolean }> = {};
+
+  pairs.forEach(([_, raw], index) => {
+    const chapterNumber = index + 1;
+    if (!raw) return;
+    try {
+      const parsed = JSON.parse(raw);
+      result[chapterNumber] = {
+        progress: typeof parsed.progress === 'number' ? parsed.progress : 0,
+        bookmarked: Boolean(parsed.bookmarked),
+      };
+    } catch {
+      // ignore a corrupt record rather than crash the hub page
+    }
+  });
+
+  return result;
+}
+
+export async function toggleChapterBookmark(chapterNumber: number): Promise<boolean> {
+  const key = `chapter-study:v2:${chapterNumber}`;
+  try {
+    const raw = await AsyncStorage.getItem(key);
+    let state = raw ? JSON.parse(raw) : {};
+    const newBookmarked = !state.bookmarked;
+    state = { ...state, bookmarked: newBookmarked };
+    await AsyncStorage.setItem(key, JSON.stringify(state));
+    return newBookmarked;
+  } catch {
+    return false;
+  }
 }

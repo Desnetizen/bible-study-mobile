@@ -21,7 +21,7 @@ export default function DanielStudyChapterScreen() {
 
   return (
     <>
-      <Stack.Screen options={{ title: chapterStudy.title }} />
+      <Stack.Screen options={{ headerShown: false }} />
       <ChapterStudyContent chapter={chapterStudy} />
     </>
   );

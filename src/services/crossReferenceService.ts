@@ -1,9 +1,9 @@
 import { supabase } from '@/lib/supabase';
 
-const CROSS_REFERENCE_TABLE = 'daniel_cross_references_expanded';
+const CROSS_REFERENCE_TABLE = 'cross_references';
 
 export interface CrossReferenceRow {
-  id?: string;
+  id?: number;
   daniel_chapter?: number;
   daniel_verse?: number;
   target_book?: string;

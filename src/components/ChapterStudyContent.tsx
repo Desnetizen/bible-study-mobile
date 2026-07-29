@@ -6,27 +6,19 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, {
   useSharedValue,
   useAnimatedScrollHandler,
-  useAnimatedStyle,
-  interpolate,
-  Extrapolation,
   useAnimatedRef,
   scrollTo,
 } from 'react-native-reanimated';
 
 import { useDanielProgress, saveDanielProgress } from '@/lib/daniel-progress';
 import type { DanielChapterStudy, StudySection } from '@/types/daniel-study';
-import StudyHero, { HERO_EXPANDED_HEIGHT, HERO_COLLAPSED_HEIGHT } from '@/components/study/StudyHero';
+import StudyHero from '@/components/study/StudyHero';
 import StudyTabs, { type StudyTabId } from '@/components/study/StudyTabs';
 import StudySectionList from '@/components/study/StudySectionList';
 import StudyOutline, { type OutlineItem } from '@/components/study/StudyOutline';
-import StudyActions from '@/components/study/StudyActions';
 import StudyGlossarySheet from '@/components/study/StudyGlossarySheet';
 
 const BG = '#0B0F16';
-const SCROLL_RANGE = HERO_EXPANDED_HEIGHT - HERO_COLLAPSED_HEIGHT;
-const HERO_SPACER = HERO_COLLAPSED_HEIGHT;
-const TABS_HEIGHT = 52;
-const CONTENT_PADDING_TOP = HERO_COLLAPSED_HEIGHT + TABS_HEIGHT;
 
 type ChapterStudyState = {
   progress: number;
@@ -127,7 +119,6 @@ export default function ChapterStudyContent({ chapter }: ChapterStudyContentProp
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
   const isWide = width >= 900;
-  const isMobile = width < 768;
   const scrollRef = useAnimatedRef<Animated.ScrollView>();
   const readScrollRef = useAnimatedRef<Animated.ScrollView>();
   const positionsRef = useRef<Record<string, number>>({});
@@ -141,11 +132,6 @@ export default function ChapterStudyContent({ chapter }: ChapterStudyContentProp
   const [currentId, setCurrentId] = useState<string | undefined>();
   const [sectionsDrawerOpen, setSectionsDrawerOpen] = useState(false);
   const [glossaryOpen, setGlossaryOpen] = useState(false);
-  const [actionsHeight, setActionsHeight] = useState(0);
-
-  const onActionsLayout = useCallback((e: LayoutChangeEvent) => {
-    setActionsHeight(e.nativeEvent.layout.height);
-  }, []);
 
   const outlineItems = useMemo(() => buildOutlineItems(chapter.sections), [chapter.sections]);
   const reflectionSection = useMemo(
@@ -153,10 +139,6 @@ export default function ChapterStudyContent({ chapter }: ChapterStudyContentProp
     [chapter.sections],
   );
   const reflectionQuestions = reflectionSection?.list?.slice(0, 3) ?? [];
-  const lastRead = outlineItems.find((item) => item.id === state.lastReadId) ?? outlineItems[0];
-  const nextUnread = outlineItems.find((item) => !state.completedIds.includes(item.id)) ?? outlineItems[0];
-  const progressPercent = Math.max(0, Math.min(100, state.progress));
-
   const completedChapters = useDanielProgress();
 
   useEffect(() => {
@@ -199,7 +181,6 @@ export default function ChapterStudyContent({ chapter }: ChapterStudyContentProp
     const targetY = Math.max((positions[id] ?? 0) - 16, 0);
 
     tabScrollOffsets.current[tab] = targetY;
-    scrollY.value = SCROLL_RANGE;
 
     if (tab !== activeTab) {
       tabScrollOffsets.current[activeTab] = scrollY.value;
@@ -217,21 +198,7 @@ export default function ChapterStudyContent({ chapter }: ChapterStudyContentProp
   const changeTab = useCallback((tab: StudyTabId) => {
     tabScrollOffsets.current[activeTab] = scrollY.value;
     setActiveTab(tab);
-    if (tab === 'outline') {
-      scrollY.value = SCROLL_RANGE;
-    } else {
-      scrollY.value = tabScrollOffsets.current[tab] ?? 0;
-    }
   }, [activeTab, scrollY]);
-
-  const heroAnimatedStyle = useAnimatedStyle(() => ({
-    height: interpolate(
-      scrollY.value,
-      [0, SCROLL_RANGE],
-      [HERO_EXPANDED_HEIGHT, HERO_COLLAPSED_HEIGHT],
-      Extrapolation.CLAMP,
-    ),
-  }));
 
   const overviewScrollHandler = useAnimatedScrollHandler({
     onScroll: (event) => {
@@ -344,12 +311,22 @@ export default function ChapterStudyContent({ chapter }: ChapterStudyContentProp
       style={styles.tabScroll}
       contentContainerStyle={[
         styles.overviewContent,
-        { paddingBottom: insets.bottom + (actionsHeight || (isMobile ? 160 : 112)) },
+        { paddingBottom: insets.bottom + 24 },
       ]}
       onScroll={overviewScrollHandler}
       scrollEventThrottle={16}
       showsVerticalScrollIndicator={false}
     >
+      <StudyHero
+        heroImage={chapter.heroImage}
+        title={chapter.title}
+        subtitle={chapter.subtitle}
+        description={chapter.overview.description}
+        bookmarked={state.bookmarked}
+        onToggleBookmark={() => setState((prev) => ({ ...prev, bookmarked: !prev.bookmarked }))}
+        onShare={() => {}}
+      />
+
       <View style={isWide ? styles.bodyWide : undefined}>
         <View style={styles.primaryColumn}>
           <StudySectionList
@@ -389,7 +366,7 @@ export default function ChapterStudyContent({ chapter }: ChapterStudyContentProp
     <Animated.ScrollView
       ref={readScrollRef}
       style={styles.tabScroll}
-      contentContainerStyle={[styles.readContent, { paddingBottom: insets.bottom + (actionsHeight || (isMobile ? 160 : 112)) }]}
+      contentContainerStyle={[styles.readContent, { paddingBottom: insets.bottom + 24 }]}
       onScroll={readScrollHandler}
       scrollEventThrottle={16}
       showsVerticalScrollIndicator={false}
@@ -480,25 +457,6 @@ export default function ChapterStudyContent({ chapter }: ChapterStudyContentProp
 
   return (
     <View style={styles.root}>
-      <Animated.View style={[styles.heroOverlay, heroAnimatedStyle]}>
-        <StudyHero
-          scrollY={scrollY}
-          heroImage={chapter.heroImage}
-          title={chapter.title}
-          subtitle={chapter.subtitle}
-          description={chapter.overview.description}
-          tags={chapter.tags}
-          progressPercent={progressPercent}
-          lastReadLabel={`Section ${lastRead?.label ?? '1'}`}
-          estimatedReadTime={chapter.estimatedReadTime}
-          difficulty={chapter.difficulty}
-          sectionsCount={chapter.sections.length}
-          onContinueReading={() => nextUnread && scrollToId(nextUnread.id)}
-        />
-      </Animated.View>
-
-      <View style={{ height: HERO_SPACER }} />
-
       <StudyTabs
         activeTab={activeTab}
         onTabChange={changeTab}
@@ -522,20 +480,6 @@ export default function ChapterStudyContent({ chapter }: ChapterStudyContentProp
           onSelect={(id) => scrollToId(id)}
         />
       )}
-
-      <StudyActions
-        bookmarked={state.bookmarked}
-        onToggleBookmark={() => setState((prev) => ({ ...prev, bookmarked: !prev.bookmarked }))}
-        highlighted={state.highlighted}
-        onToggleHighlight={() => setState((prev) => ({ ...prev, highlighted: !prev.highlighted }))}
-        onAddNotes={() => {}}
-        onShare={() => {}}
-        onPlayAudio={() => {}}
-        nextSectionLabel={nextUnread?.label ?? '1'}
-        nextSectionTitle={nextUnread?.title ?? chapter.title}
-        onContinueReading={() => nextUnread && scrollToId(nextUnread.id)}
-        onLayout={onActionsLayout}
-      />
 
       {chapter.terms.length > 0 && (
         <StudyGlossarySheet
@@ -565,11 +509,11 @@ const styles = StyleSheet.create({
   },
   overviewContent: {
     paddingHorizontal: 16,
-    paddingTop: CONTENT_PADDING_TOP,
+    paddingTop: 16,
   },
   readContent: {
     paddingHorizontal: 20,
-    paddingTop: CONTENT_PADDING_TOP,
+    paddingTop: 16,
     maxWidth: 820,
   },
   bodyWide: {

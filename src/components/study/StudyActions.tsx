@@ -1,4 +1,4 @@
-import { Bookmark, BookOpen, ChevronRight, Headphones, Highlighter, StickyNote, Share2 } from 'lucide-react-native';
+import { Bookmark, Headphones, Highlighter, StickyNote, Share2 } from 'lucide-react-native';
 import React from 'react';
 import type { LayoutChangeEvent } from 'react-native';
 import { Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
@@ -18,9 +18,6 @@ type StudyActionsProps = {
   onAddNotes: () => void;
   onShare: () => void;
   onPlayAudio: () => void;
-  nextSectionLabel: string;
-  nextSectionTitle: string;
-  onContinueReading: () => void;
   onLayout?: (event: LayoutChangeEvent) => void;
 };
 
@@ -32,9 +29,6 @@ export default function StudyActions({
   onAddNotes,
   onShare,
   onPlayAudio,
-  nextSectionLabel,
-  nextSectionTitle,
-  onContinueReading,
   onLayout,
 }: StudyActionsProps) {
   const insets = useSafeAreaInsets();
@@ -44,30 +38,6 @@ export default function StudyActions({
   if (isMobile) {
     return (
       <View style={[styles.footerMobile, { paddingBottom: insets.bottom + 10 }]} onLayout={onLayout}>
-        <View style={styles.footerMobileActions}>
-          <Pressable
-            style={({ pressed }) => [styles.footerContinue, pressed && styles.pressed]}
-            onPress={onContinueReading}
-          >
-            <BookOpen size={20} color="#2A1A05" />
-            <View style={styles.footerContinueCopy}>
-              <Text style={styles.footerContinueText}>Continue Reading</Text>
-              <Text style={styles.footerContinueSub} numberOfLines={1}>
-                Section {nextSectionLabel} - {nextSectionTitle}
-              </Text>
-            </View>
-            <ChevronRight size={20} color="#2A1A05" />
-          </Pressable>
-
-          <Pressable
-            style={({ pressed }) => [styles.audioButton, pressed && styles.pressed]}
-            onPress={onPlayAudio}
-          >
-            <Headphones size={22} color={TEXT_BODY} />
-            <Text style={styles.audioText}>Audio</Text>
-          </Pressable>
-        </View>
-
         <View style={styles.footerMobileUtils}>
           <Pressable
             style={({ pressed }) => [
@@ -104,6 +74,13 @@ export default function StudyActions({
           >
             <Share2 size={18} color={TEXT_BODY} />
             <Text style={styles.footerIconText}>Share</Text>
+          </Pressable>
+          <Pressable
+            style={({ pressed }) => [styles.footerIconBtn, pressed && styles.pressed]}
+            onPress={onPlayAudio}
+          >
+            <Headphones size={18} color={TEXT_BODY} />
+            <Text style={styles.footerIconText}>Audio</Text>
           </Pressable>
         </View>
       </View>
@@ -152,20 +129,6 @@ export default function StudyActions({
       </View>
 
       <Pressable
-        style={({ pressed }) => [styles.footerContinue, pressed && styles.pressed]}
-        onPress={onContinueReading}
-      >
-        <BookOpen size={20} color="#2A1A05" />
-        <View style={styles.footerContinueCopy}>
-          <Text style={styles.footerContinueText}>Continue Reading</Text>
-          <Text style={styles.footerContinueSub} numberOfLines={1}>
-            Section {nextSectionLabel} - {nextSectionTitle}
-          </Text>
-        </View>
-        <ChevronRight size={20} color="#2A1A05" />
-      </Pressable>
-
-      <Pressable
         style={({ pressed }) => [styles.audioButton, pressed && styles.pressed]}
         onPress={onPlayAudio}
       >
@@ -182,9 +145,10 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    minHeight: 82,
+    minHeight: 70,
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
     gap: 14,
     borderTopWidth: 1,
     borderTopColor: BORDER,
@@ -212,37 +176,9 @@ const styles = StyleSheet.create({
     fontFamily: 'Inter',
     fontSize: 10,
   },
-  footerContinue: {
-    flex: 1,
-    minHeight: 56,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 10,
-    borderRadius: 16,
-    paddingHorizontal: 16,
-    backgroundColor: ACCENT,
-  },
-  footerContinueCopy: {
-    minWidth: 0,
-    alignItems: 'center',
-  },
-  footerContinueText: {
-    color: '#2A1A05',
-    fontFamily: 'Inter',
-    fontSize: 15,
-    fontWeight: '900',
-  },
-  footerContinueSub: {
-    maxWidth: 270,
-    color: '#3D270A',
-    fontFamily: 'Inter',
-    fontSize: 11,
-    marginTop: 2,
-  },
   audioButton: {
     minWidth: 96,
-    minHeight: 54,
+    minHeight: 48,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -250,6 +186,8 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     borderWidth: 1,
     borderColor: BORDER,
+    backgroundColor: 'rgba(12,20,32,0.8)',
+    paddingHorizontal: 14,
   },
   audioText: {
     color: TEXT_BODY,
@@ -267,11 +205,6 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(7,17,31,0.96)',
     paddingHorizontal: 12,
     paddingTop: 10,
-    gap: 8,
-  },
-  footerMobileActions: {
-    flexDirection: 'row',
-    gap: 8,
   },
   footerMobileUtils: {
     flexDirection: 'row',

@@ -114,6 +114,8 @@ export default function StudySectionList({
       {sections.map((section, sectionIndex) => {
         const expanded = expandedSectionIds.includes(section.id);
         const label = sectionLabel(section.title, sectionIndex + 1);
+        const numBadge = String(sectionIndex + 1).padStart(2, '0');
+        const hasMetadata = Boolean(section.keyFocus && section.verses && section.purpose);
 
         return (
           <View key={section.id} style={styles.sectionCard}>
@@ -122,7 +124,7 @@ export default function StudySectionList({
               style={({ pressed }) => [styles.sectionHeader, pressed && styles.pressed]}
             >
               <View style={styles.sectionIconWrap}>
-                <Crown size={21} color={ACCENT} />
+                <Text style={styles.sectionNumberText}>{numBadge}</Text>
               </View>
               <View style={styles.sectionHeaderCopy}>
                 <Text style={styles.sectionTitle}>{label}. {stripNumber(section.title)}</Text>
@@ -137,6 +139,24 @@ export default function StudySectionList({
 
             {expanded && (
               <View style={styles.sectionBody}>
+                {hasMetadata && (
+                  <View style={styles.metaRow3Col}>
+                    <View style={styles.metaCol}>
+                      <Text style={styles.metaColLabel}>KEY FOCUS</Text>
+                      <Text style={styles.metaColVal} numberOfLines={1}>{section.keyFocus}</Text>
+                    </View>
+                    <View style={styles.metaDivider} />
+                    <View style={styles.metaCol}>
+                      <Text style={styles.metaColLabel}>VERSES</Text>
+                      <Text style={styles.metaColVal} numberOfLines={1}>{section.verses}</Text>
+                    </View>
+                    <View style={styles.metaDivider} />
+                    <View style={styles.metaCol}>
+                      <Text style={styles.metaColLabel}>PURPOSE</Text>
+                      <Text style={styles.metaColVal} numberOfLines={2}>{section.purpose}</Text>
+                    </View>
+                  </View>
+                )}
                 {section.content && <Prose content={section.content} />}
                 <SectionExtras node={section} />
                 {section.subsections && (
@@ -386,6 +406,46 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(34,197,94,0.10)',
     paddingHorizontal: 12,
     marginTop: 8,
+  },
+  sectionNumberText: {
+    color: '#FFD469',
+    fontFamily: 'Cinzel',
+    fontSize: 16,
+    fontWeight: '800',
+  },
+  metaRow3Col: {
+    flexDirection: 'row',
+    alignItems: 'stretch',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(212, 162, 76, 0.25)',
+    backgroundColor: 'rgba(11, 15, 22, 0.75)',
+    padding: 10,
+    marginBottom: 10,
+    gap: 8,
+  },
+  metaCol: {
+    flex: 1,
+    gap: 2,
+  },
+  metaColLabel: {
+    color: ACCENT,
+    fontFamily: 'Inter',
+    fontSize: 9,
+    fontWeight: '800',
+    letterSpacing: 0.8,
+    textTransform: 'uppercase',
+  },
+  metaColVal: {
+    color: TEXT,
+    fontFamily: 'Inter',
+    fontSize: 11,
+    fontWeight: '600',
+    lineHeight: 15,
+  },
+  metaDivider: {
+    width: 1,
+    backgroundColor: 'rgba(148, 163, 184, 0.18)',
   },
   themeText: {
     color: '#A7F36E',

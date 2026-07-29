@@ -35,11 +35,13 @@ export const TABS = [
   { id: 'Study Tools', label: 'Study Tools', icon: 'briefcase' },
 ];
 
-function buildPlaceholder(id, title, quote, description, tagValues, discoveries) {
+function buildPlaceholder(id, title, subtitle, topics, quote, description, tagValues, discoveries) {
   return {
     id,
     num: id,
     title,
+    subtitle,
+    topics,
     ref: `Daniel ${id}`,
     status: 'not-started',
     image: CHAPTER_IMAGES[id] ?? null,
@@ -63,6 +65,8 @@ export const CHAPTERS_DATA = [
     id: 1,
     num: 1,
     title: 'Royal Training',
+    subtitle: 'Royal Education & Faithfulness',
+    topics: ['characters'],
     ref: 'Daniel 1',
     status: 'completed',
     image: CHAPTER_IMAGES[1],
@@ -89,6 +93,8 @@ export const CHAPTERS_DATA = [
     id: 2,
     num: 2,
     title: "The King's Dream",
+    subtitle: 'The Statue of Empires',
+    topics: ['prophecy', 'kingdoms', 'symbols'],
     ref: 'Daniel 2',
     status: 'completed',
     image: CHAPTER_IMAGES[2],
@@ -115,6 +121,8 @@ export const CHAPTERS_DATA = [
     id: 3,
     num: 3,
     title: 'The Fiery Furnace',
+    subtitle: 'Courage in the Furnace',
+    topics: ['characters'],
     ref: 'Daniel 3',
     status: 'completed',
     image: CHAPTER_IMAGES[3],
@@ -141,6 +149,8 @@ export const CHAPTERS_DATA = [
     id: 4,
     num: 4,
     title: 'Nebuchadnezzar Humbled',
+    subtitle: 'The Pride of Nebuchadnezzar',
+    topics: ['kingdoms', 'visions'],
     ref: 'Daniel 4',
     status: 'completed',
     image: CHAPTER_IMAGES[4],
@@ -167,6 +177,8 @@ export const CHAPTERS_DATA = [
     id: 5,
     num: 5,
     title: 'The Writing on the Wall',
+    subtitle: 'The Fall of Babylon',
+    topics: ['kingdoms', 'characters'],
     ref: 'Daniel 5',
     status: 'in-progress',
     image: CHAPTER_IMAGES[5],
@@ -189,31 +201,31 @@ export const CHAPTERS_DATA = [
       ],
     },
   },
-  buildPlaceholder(6, "Daniel in the Lions' Den", 'Your God whom you serve continually, He will deliver you.', "Daniel remains faithful in prayer under a new empire and is preserved through a night in the lions' den.", ['Prayer under pressure', 'Daniel, Darius', 'Faithfulness, deliverance', 'Medo-Persia'], [
+  buildPlaceholder(6, "Daniel in the Lions' Den", 'Faithfulness in the Den', ['characters'], 'Your God whom you serve continually, He will deliver you.', "Daniel remains faithful in prayer under a new empire and is preserved through a night in the lions' den.", ['Prayer under pressure', 'Daniel, Darius', 'Faithfulness, deliverance', 'Medo-Persia'], [
     { icon: 'pillar', iconBg: '#fffbeb', iconColor: '#d97706', title: 'Integrity tested', description: 'Faithfulness is challenged through law and politics.' },
     { icon: 'shield', iconBg: '#f0fdf4', iconColor: '#059669', title: 'Deliverance in danger', description: 'God preserves His servant without compromise.' },
   ]),
-  buildPlaceholder(7, 'The Four Beasts', 'The saints of the Most High shall receive the kingdom.', "Daniel's vision of four beasts reveals the instability of earthly empires and the certainty of God's kingdom.", ['Four beasts vision', 'Daniel, Ancient of Days', 'Kingdoms, judgment, hope', 'Night vision'], [
+  buildPlaceholder(7, 'The Four Beasts', 'The Four Beasts Vision', ['prophecy', 'kingdoms', 'symbols', 'visions'], 'The saints of the Most High shall receive the kingdom.', "Daniel's vision of four beasts reveals the instability of earthly empires and the certainty of God's kingdom.", ['Four beasts vision', 'Daniel, Ancient of Days', 'Kingdoms, judgment, hope', 'Night vision'], [
     { icon: 'pillar', iconBg: '#fffbeb', iconColor: '#d97706', title: 'Empire imagery', description: 'Beasts portray violent human rule.' },
     { icon: 'network', iconBg: '#f5f3ff', iconColor: '#7c3aed', title: 'Connection to chapter 2', description: 'The same succession appears through different symbols.' },
   ]),
-  buildPlaceholder(8, 'The Ram and the Goat', 'The vision shall be for many days.', 'The vision of the ram and the goat narrows the prophetic focus and highlights conflict, desecration, and eventual vindication.', ['Ram and goat vision', 'Daniel, Gabriel', 'Conflict, sanctuary, prophecy', 'Vision setting'], [
+  buildPlaceholder(8, 'The Ram and the Goat', 'The Ram & Male Goat Vision', ['prophecy', 'symbols', 'visions'], 'The vision shall be for many days.', 'The vision of the ram and the goat narrows the prophetic focus and highlights conflict, desecration, and eventual vindication.', ['Ram and goat vision', 'Daniel, Gabriel', 'Conflict, sanctuary, prophecy', 'Vision setting'], [
     { icon: 'pillar', iconBg: '#fffbeb', iconColor: '#d97706', title: 'Prophetic detail', description: 'The vision becomes more specific and historically pointed.' },
     { icon: 'shield', iconBg: '#f0fdf4', iconColor: '#059669', title: 'Heavenly interpretation', description: 'Gabriel helps Daniel understand what he sees.' },
   ]),
-  buildPlaceholder(9, 'Seventy Weeks', 'At the beginning of your supplications the command went out.', "Daniel prays for restoration, and Gabriel brings one of the book's most significant prophetic messages.", ['Seventy weeks prophecy', 'Daniel, Gabriel', 'Prayer, restoration, prophecy', 'Exile context'], [
+  buildPlaceholder(9, 'Seventy Weeks', 'The Seventy Weeks Prophecy', ['prophecy', 'visions'], 'At the beginning of your supplications the command went out.', "Daniel prays for restoration, and Gabriel brings one of the book's most significant prophetic messages.", ['Seventy weeks prophecy', 'Daniel, Gabriel', 'Prayer, restoration, prophecy', 'Exile context'], [
     { icon: 'pencil', iconBg: '#eff6ff', iconColor: '#2563eb', title: 'Prayerful interpretation', description: 'Prophecy emerges in the context of confession and pleading.' },
     { icon: 'shield', iconBg: '#f0fdf4', iconColor: '#059669', title: 'Hope beyond exile', description: 'God gives a timeline that reaches beyond the immediate crisis.' },
   ]),
-  buildPlaceholder(10, 'Heavenly Vision', 'Fear not, Daniel: for from the first day... thy words were heard.', 'Daniel encounters a heavenly messenger and sees that earthly conflict is tied to unseen spiritual struggle.', ['Heavenly encounter', 'Daniel, angelic messenger', 'Prayer, conflict, revelation', 'Tigris River'], [
+  buildPlaceholder(10, 'Heavenly Vision', 'The Final Vision', ['visions', 'prophecy'], 'Fear not, Daniel: for from the first day... thy words were heard.', 'Daniel encounters a heavenly messenger and sees that earthly conflict is tied to unseen spiritual struggle.', ['Heavenly encounter', 'Daniel, angelic messenger', 'Prayer, conflict, revelation', 'Tigris River'], [
     { icon: 'shield', iconBg: '#f0fdf4', iconColor: '#059669', title: 'Spiritual conflict', description: 'The chapter lifts the curtain on the unseen realm.' },
     { icon: 'network', iconBg: '#f5f3ff', iconColor: '#7c3aed', title: 'Continuation into 11', description: 'This vision frames the details that follow.' },
   ]),
-  buildPlaceholder(11, 'Kings in Conflict', 'Yet he shall come to his end, and none shall help him.', "Chapter 11 traces complex political conflict and reminds the reader that even long struggles stay within God's boundaries.", ['Northern and southern kings', 'Competing rulers', 'Conflict, endurance, prophecy', 'Regional powers'], [
+  buildPlaceholder(11, 'Kings in Conflict', 'Kings of North & South', ['prophecy', 'kingdoms'], 'Yet he shall come to his end, and none shall help him.', "Chapter 11 traces complex political conflict and reminds the reader that even long struggles stay within God's boundaries.", ['Northern and southern kings', 'Competing rulers', 'Conflict, endurance, prophecy', 'Regional powers'], [
     { icon: 'pillar', iconBg: '#fffbeb', iconColor: '#d97706', title: 'Detailed conflict', description: 'Prophecy follows the turbulence of shifting powers.' },
     { icon: 'shield', iconBg: '#f0fdf4', iconColor: '#059669', title: 'Limits of power', description: 'No ruler escapes the end appointed by God.' },
   ]),
-  buildPlaceholder(12, 'Time of the End', 'Those who are wise shall shine like the brightness of the firmament.', 'The book closes with deliverance, resurrection hope, and a call to live wisely while trusting what God has sealed for its time.', ['Time of the end', 'Daniel, Michael', 'Hope, resurrection, wisdom', 'Final vision'], [
+  buildPlaceholder(12, 'Time of the End', 'The Time of the End', ['prophecy', 'visions', 'symbols'], 'Those who are wise shall shine like the brightness of the firmament.', 'The book closes with deliverance, resurrection hope, and a call to live wisely while trusting what God has sealed for its time.', ['Time of the end', 'Daniel, Michael', 'Hope, resurrection, wisdom', 'Final vision'], [
     { icon: 'star', iconBg: '#f0fdf4', iconColor: '#059669', title: 'Hope beyond history', description: 'The ending points beyond empire to final deliverance.' },
     { icon: 'network', iconBg: '#f5f3ff', iconColor: '#7c3aed', title: 'Bookwide resolution', description: 'Themes of wisdom, endurance, and kingdom come together.' },
   ]),
