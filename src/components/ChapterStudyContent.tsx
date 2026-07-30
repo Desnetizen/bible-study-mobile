@@ -6,17 +6,21 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, {
   useSharedValue,
   useAnimatedScrollHandler,
+  useAnimatedStyle,
   useAnimatedRef,
   scrollTo,
 } from 'react-native-reanimated';
 
 import { useDanielProgress, saveDanielProgress } from '@/lib/daniel-progress';
 import type { DanielChapterStudy, StudySection } from '@/types/daniel-study';
+import StudyActions from '@/components/study/StudyActions';
 import StudyHero from '@/components/study/StudyHero';
 import StudyTabs, { type StudyTabId } from '@/components/study/StudyTabs';
 import StudySectionList from '@/components/study/StudySectionList';
-import StudyOutline, { type OutlineItem } from '@/components/study/StudyOutline';
+import type { OutlineItem } from '@/components/study/StudyOutline';
+import StudyAudio from '@/components/study/StudyAudio';
 import StudyGlossarySheet from '@/components/study/StudyGlossarySheet';
+import { useChapterAudio } from '@/hooks/useChapterAudio';
 
 const BG = '#0B0F16';
 
@@ -125,7 +129,23 @@ export default function ChapterStudyContent({ chapter }: ChapterStudyContentProp
   const readPositionsRef = useRef<Record<string, number>>({});
   const loadedRef = useRef(false);
   const scrollY = useSharedValue(0);
-  const tabScrollOffsets = useRef<Record<StudyTabId, number>>({ overview: 0, read: 0, outline: 0 });
+  const heroHeight = useSharedValue(0);
+  const tabScrollOffsets = useRef<Record<StudyTabId, number>>({ overview: 0, read: 0, audio: 0 });
+
+  const onHeroLayout = useCallback((e: LayoutChangeEvent) => {
+    heroHeight.value = e.nativeEvent.layout.height;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const heroAnimatedStyle = useAnimatedStyle(() => {
+    if (heroHeight.value <= 0) return { opacity: 1 };
+    const collapse = Math.min(scrollY.value, heroHeight.value);
+    return {
+      transform: [{ translateY: -collapse }],
+      marginBottom: -collapse,
+      opacity: 1 - collapse / heroHeight.value,
+    };
+  });
 
   const [activeTab, setActiveTab] = useState<StudyTabId>('overview');
   const [state, setState] = useState<ChapterStudyState>(DEFAULT_STATE);
@@ -134,6 +154,7 @@ export default function ChapterStudyContent({ chapter }: ChapterStudyContentProp
   const [glossaryOpen, setGlossaryOpen] = useState(false);
 
   const outlineItems = useMemo(() => buildOutlineItems(chapter.sections), [chapter.sections]);
+  const audio = useChapterAudio(chapter.chapterNumber);
   const reflectionSection = useMemo(
     () => chapter.sections.find((s) => /reflection|discussion/i.test(s.title)),
     [chapter.sections],
@@ -317,16 +338,6 @@ export default function ChapterStudyContent({ chapter }: ChapterStudyContentProp
       scrollEventThrottle={16}
       showsVerticalScrollIndicator={false}
     >
-      <StudyHero
-        heroImage={chapter.heroImage}
-        title={chapter.title}
-        subtitle={chapter.subtitle}
-        description={chapter.overview.description}
-        bookmarked={state.bookmarked}
-        onToggleBookmark={() => setState((prev) => ({ ...prev, bookmarked: !prev.bookmarked }))}
-        onShare={() => {}}
-      />
-
       <View style={isWide ? styles.bodyWide : undefined}>
         <View style={styles.primaryColumn}>
           <StudySectionList
@@ -457,13 +468,27 @@ export default function ChapterStudyContent({ chapter }: ChapterStudyContentProp
 
   return (
     <View style={styles.root}>
-      <StudyTabs
-        activeTab={activeTab}
-        onTabChange={changeTab}
-        isWide={isWide}
-        sectionsDrawerOpen={sectionsDrawerOpen}
-        onToggleSections={() => setSectionsDrawerOpen((o) => !o)}
-      />
+      <View>
+        <Animated.View style={heroAnimatedStyle} onLayout={onHeroLayout}>
+          <StudyHero
+            heroImage={chapter.heroImage}
+            title={chapter.title}
+            subtitle={chapter.subtitle}
+            description={chapter.overview.description}
+            bookmarked={state.bookmarked}
+            onToggleBookmark={() => setState((prev) => ({ ...prev, bookmarked: !prev.bookmarked }))}
+            onShare={() => {}}
+          />
+        </Animated.View>
+
+        <StudyTabs
+          activeTab={activeTab}
+          onTabChange={changeTab}
+          isWide={isWide}
+          sectionsDrawerOpen={sectionsDrawerOpen}
+          onToggleSections={() => setSectionsDrawerOpen((o) => !o)}
+        />
+      </View>
 
       {!isWide && sectionsDrawerOpen && (
         <ScrollView style={styles.drawer} contentContainerStyle={styles.drawerContent}>
@@ -473,13 +498,30 @@ export default function ChapterStudyContent({ chapter }: ChapterStudyContentProp
 
       {activeTab === 'overview' && renderOverview()}
       {activeTab === 'read' && renderReadView()}
-      {activeTab === 'outline' && (
-        <StudyOutline
-          items={outlineItems}
-          currentId={currentId}
-          onSelect={(id) => scrollToId(id)}
+      {activeTab === 'audio' && (
+        <StudyAudio
+          chapterTitle={chapter.title}
+          player={audio.player}
+          status={audio.status}
+          loading={audio.loading}
+          hasAudio={audio.hasAudio}
+          playing={audio.playing}
+          toggle={audio.toggle}
+          error={audio.error}
         />
       )}
+
+      <StudyActions
+        bookmarked={state.bookmarked}
+        onToggleBookmark={() => setState((prev) => ({ ...prev, bookmarked: !prev.bookmarked }))}
+        highlighted={state.highlighted}
+        onToggleHighlight={() => setState((prev) => ({ ...prev, highlighted: !prev.highlighted }))}
+        onAddNotes={() => {}}
+        onShare={() => {}}
+        onPlayAudio={audio.toggle}
+        audioPlaying={audio.playing}
+        audioLoading={audio.loading}
+      />
 
       {chapter.terms.length > 0 && (
         <StudyGlossarySheet

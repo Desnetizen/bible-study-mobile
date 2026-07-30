@@ -18,6 +18,8 @@ type StudyActionsProps = {
   onAddNotes: () => void;
   onShare: () => void;
   onPlayAudio: () => void;
+  audioPlaying: boolean;
+  audioLoading: boolean;
   onLayout?: (event: LayoutChangeEvent) => void;
 };
 
@@ -29,6 +31,8 @@ export default function StudyActions({
   onAddNotes,
   onShare,
   onPlayAudio,
+  audioPlaying,
+  audioLoading,
   onLayout,
 }: StudyActionsProps) {
   const insets = useSafeAreaInsets();
@@ -76,11 +80,15 @@ export default function StudyActions({
             <Text style={styles.footerIconText}>Share</Text>
           </Pressable>
           <Pressable
-            style={({ pressed }) => [styles.footerIconBtn, pressed && styles.pressed]}
+            style={({ pressed }) => [
+              styles.footerIconBtn,
+              audioPlaying && styles.footerIconBtnActive,
+              pressed && styles.pressed,
+            ]}
             onPress={onPlayAudio}
           >
-            <Headphones size={18} color={TEXT_BODY} />
-            <Text style={styles.footerIconText}>Audio</Text>
+            <Headphones size={18} color={audioPlaying ? ACCENT : TEXT_BODY} />
+            <Text style={styles.footerIconText}>{audioPlaying ? 'Playing' : 'Audio'}</Text>
           </Pressable>
         </View>
       </View>
@@ -129,11 +137,15 @@ export default function StudyActions({
       </View>
 
       <Pressable
-        style={({ pressed }) => [styles.audioButton, pressed && styles.pressed]}
+        style={({ pressed }) => [
+          styles.audioButton,
+          audioPlaying && styles.footerIconButtonActive,
+          pressed && styles.pressed,
+        ]}
         onPress={onPlayAudio}
       >
-        <Headphones size={22} color={TEXT_BODY} />
-        <Text style={styles.audioText}>Audio</Text>
+        <Headphones size={22} color={audioPlaying ? ACCENT : TEXT_BODY} />
+        <Text style={styles.audioText}>{audioPlaying ? 'Playing' : 'Audio'}</Text>
       </Pressable>
     </View>
   );

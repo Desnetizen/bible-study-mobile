@@ -18,7 +18,6 @@ import { EXPLORE_TOPICS } from '../data/danielStudyTopics';
 import { getAllChapterProgress, toggleChapterBookmark } from '@/lib/daniel-progress';
 import TopicGrid from './daniel-study/TopicGrid';
 import ContinueReadingRow from './daniel-study/ContinueReadingRow';
-import CollectionsRow from './daniel-study/CollectionsRow';
 import DailyInsightCard from './daniel-study/DailyInsightCard';
 import StudyIcon from './daniel-study/StudyIcon';
 import { ImageSkeleton } from './ui/Skeleton';
@@ -313,11 +312,7 @@ export default function DanielStudyPage({
           style={styles.chapterList}
         />
 
-        {/* 5. COLLECTIONS ROW */}
-        <SectionHeader title="Collections" />
-        <CollectionsRow />
-
-        {/* 6. DAILY INSIGHT CARD */}
+        {/* 5. DAILY INSIGHT CARD */}
         <SectionHeader title="Daily Insight" />
         <DailyInsightCard />
       </ScrollView>

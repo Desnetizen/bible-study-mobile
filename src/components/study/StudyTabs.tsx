@@ -7,7 +7,7 @@ const ACCENT = '#D4A24C';
 const TEXT_MUTED = '#94A3B8';
 const BORDER = 'rgba(148, 163, 184, 0.18)';
 
-export type StudyTabId = 'overview' | 'read' | 'outline';
+export type StudyTabId = 'overview' | 'read' | 'audio';
 
 type StudyTabsProps = {
   activeTab: StudyTabId;
@@ -20,7 +20,7 @@ type StudyTabsProps = {
 const TABS: { id: StudyTabId; label: string }[] = [
   { id: 'overview', label: 'Overview' },
   { id: 'read', label: 'Read' },
-  { id: 'outline', label: 'Outline' },
+  { id: 'audio', label: 'Audio' },
 ];
 
 export default function StudyTabs({

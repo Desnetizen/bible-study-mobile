@@ -27,6 +27,7 @@
     "aes-js": "^3.1.2",
     "clsx": "^2.1.1",
     "expo": "~54.0.35",
+    "expo-audio": "~1.1.1",
     "expo-blur": "~15.0.8",
     "expo-clipboard": "~8.0.8",
     "expo-constants": "~18.0.13",
