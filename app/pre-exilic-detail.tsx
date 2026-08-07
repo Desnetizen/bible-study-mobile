@@ -1,4 +1,4 @@
-import { CastleIcon } from '@/components/CastleIcon';
+import { BuildingIcon } from '@/components/BuildingIcon';
 import GeographicOverviewCard from '@/components/GeographicOverviewCard';
 import HorizontalPlaceCard from '@/components/HorizontalPlaceCard';
 import ImageModal from '@/components/ImageModal';
@@ -83,7 +83,7 @@ const TIMELINE_NODES = [
     id: 'babylon-arrives',
     title: 'BABYLON ARRIVES',
     date: '605 BC',
-    icon: CastleIcon,
+    icon: BuildingIcon,
     isSpecial: true, // Red highlighted event
   },
 ];

@@ -23,6 +23,7 @@ export interface OutlineScrubberProps {
   scrollViewContentHeightRef?: React.MutableRefObject<number>;
   rootOffset: number;
   sectionPositions: React.MutableRefObject<Record<string, number>>;
+  onSelectHeading?: (id: string) => void;
 }
 
 const OverlayBackground: React.FC<{ children: React.ReactNode; style: any }> = ({ children, style }) => {
@@ -45,6 +46,7 @@ const OutlineScrubber: React.FC<OutlineScrubberProps> = ({
   scrollViewContentHeightRef,
   rootOffset,
   sectionPositions,
+  onSelectHeading,
 }) => {
   const [visible, setVisible] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
@@ -203,6 +205,9 @@ const OutlineScrubber: React.FC<OutlineScrubberProps> = ({
             animated: true,
           });
         }
+        if (onSelectHeading && activeHeading) {
+          onSelectHeading(activeHeading.id);
+        }
         resetHideTimerRef.current();
       },
       onPanResponderTerminate: () => {
@@ -315,6 +320,9 @@ const OutlineScrubber: React.FC<OutlineScrubberProps> = ({
                           y: rootOffset + targetY,
                           animated: true,
                         });
+                      }
+                      if (onSelectHeading) {
+                        onSelectHeading(h.id);
                       }
                       resetHideTimer();
                     }}

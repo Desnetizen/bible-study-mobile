@@ -10,7 +10,7 @@ import Animated, {
   withSpring,
 } from 'react-native-reanimated';
 
-import { Badge, getEarnedBadges } from '../lib/badges';
+import { Badge, getEarnedBadges, getEarnedStreakBadges } from '../lib/badges';
 import { useDanielProgress } from '../lib/daniel-progress';
 
 function BadgePill({
@@ -55,10 +55,12 @@ function BadgePill({
   );
 }
 
-export function BadgeSection({ newBadgeIds }: { newBadgeIds?: number[] }) {
+export function BadgeSection({ newBadgeIds, streakCount }: { newBadgeIds?: string[]; streakCount: number }) {
   const completedChapters = useDanielProgress();
-  const earned = getEarnedBadges(completedChapters);
-  const latest = earned.length > 0 ? earned[earned.length - 1] : null;
+  const earned = [
+    ...getEarnedBadges(completedChapters),
+    ...getEarnedStreakBadges(streakCount),
+  ];
   const newSet = new Set(newBadgeIds);
 
   if (earned.length === 0) return null;
@@ -88,10 +90,10 @@ export function BadgeSection({ newBadgeIds }: { newBadgeIds?: number[] }) {
       >
         {earned.map((badge) => (
           <Pressable
-            key={badge.chapter}
+            key={badge.key}
             onPress={() => router.push('/badges' as any)}
           >
-            <BadgePill badge={badge} isNew={newSet.has(badge.chapter)} />
+            <BadgePill badge={badge} isNew={newSet.has(badge.key)} />
           </Pressable>
         ))}
       </ScrollView>

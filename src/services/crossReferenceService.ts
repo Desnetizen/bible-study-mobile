@@ -3,7 +3,7 @@ import { supabase } from '@/lib/supabase';
 const CROSS_REFERENCE_TABLE = 'cross_references';
 
 export interface CrossReferenceRow {
-  id?: number;
+  id?: number | string;
   daniel_chapter?: number;
   daniel_verse?: number;
   target_book?: string;

@@ -1,11 +1,12 @@
 import { Tabs } from 'expo-router';
 import { Image } from 'expo-image';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { HapticTab } from '@/components/haptic-tab';
 import { useColorScheme } from '@/hooks/use-color-scheme';
-import { CastleIcon } from '@/components/CastleIcon';
 
 export default function TabLayout() {
+  const insets = useSafeAreaInsets();
   const colorScheme = useColorScheme();
   const activeTint = colorScheme === 'dark' ? '#93C5FD' : '#2563EB';
   const inactiveTint = colorScheme === 'dark' ? '#94A3B8' : '#64748B';
@@ -21,7 +22,7 @@ export default function TabLayout() {
           // Applying glassmorphism-like effect with rgba background and adjusted border
           backgroundColor: colorScheme === 'dark' ? 'rgba(7, 17, 31, 0.9)' : 'rgba(255, 255, 255, 0.9)',
           borderTopColor: colorScheme === 'dark' ? 'rgba(148, 163, 184, 0.25)' : 'rgba(15, 23, 42, 0.18)',
-          height: 80, // Increased height to accommodate vertical centering and padding
+          height: 56 + insets.bottom, // 48px content + 8px paddingTop + insets.bottom carved by react-navigation
           paddingTop: 8, // Added padding to push content down slightly for vertical centering
         },
       }}>
@@ -104,7 +105,12 @@ export default function TabLayout() {
           tabBarActiveTintColor: '#C9A84C',
           tabBarInactiveTintColor: '#9A9A8A',
           tabBarIcon: ({ color }) => (
-            <CastleIcon color={color} size={24} />
+            <Image
+              source={require('../../assets/Icons/Building.png')}
+              style={{ width: 24, height: 24 }}
+              tintColor={color}
+              contentFit="contain"
+            />
           ),
         }}
       />

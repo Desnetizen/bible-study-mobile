@@ -4,7 +4,7 @@ import { Image, ImageBackground } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Href, Link, router } from 'expo-router';
 import { ArrowRight, Bookmark, BookOpen, CalendarDays, Compass, Gift, NotebookPen } from 'lucide-react-native';
-import { ComponentProps, ComponentType, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { ComponentProps, ComponentType, useCallback, useEffect, useMemo, useState } from 'react';
 import { Pressable, StatusBar, StyleSheet, Text, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
@@ -356,7 +356,7 @@ export default function HomeTabScreen() {
   const dailyVerse = ROTATING_KEY_VERSES[currentVerseIndex] ?? getRotatingKeyVerse();
   const displayDate = useMemo(() => formatDisplayDate(), []);
 
-  const newBadgeIds = useNewBadgeIds();
+  const newBadgeIds = useNewBadgeIds(streakCount);
 
   const completedCount = completedChapters.length;
   const progressPercent = Math.round((completedCount / STUDY_TOTAL_CHAPTERS) * 100);
@@ -774,7 +774,7 @@ export default function HomeTabScreen() {
 
         {/* Badges */}
         <Animated.View entering={FadeInDown.delay(320).springify()}>
-          <BadgeSection newBadgeIds={newBadgeIds} />
+          <BadgeSection newBadgeIds={newBadgeIds} streakCount={streakCount} />
         </Animated.View>
 
         {/* Quick Access */}

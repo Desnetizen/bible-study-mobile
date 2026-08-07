@@ -1,9 +1,14 @@
+import { LinkedText } from '@/components/LinkedText';
+import { ImageSkeleton, TextSkeleton } from '@/components/ui/Skeleton';
+import { TIMELINE_ITEMS } from '@/data/danielTimeline';
+import { trackActivity } from '@/lib/activity-tracker';
+import { parseBibleReference } from '@/lib/parseBibleReference';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Haptics from 'expo-haptics';
 import { ImageBackground } from 'expo-image';
 import { router } from 'expo-router';
 import { BookOpen, ChevronRight, Crown, Play, X } from 'lucide-react-native';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Animated,
   Easing,
@@ -16,15 +21,16 @@ import {
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { ImageSkeleton, TextSkeleton } from '@/components/ui/Skeleton';
-import { trackActivity } from '@/lib/activity-tracker';
-import { parseBibleReference } from '@/lib/parseBibleReference';
-import { LinkedText } from '@/components/LinkedText';
-import { TIMELINE_ITEMS } from '@/data/danielTimeline';
 
 const READ_EVENTS_KEY = 'bible-connection:timeline-read-events';
 const LAST_READ_EVENT_KEY = 'bible-connection:timeline-last-read';
 const TIMELINE_BEGUN_KEY = 'bible-connection:timeline-begun';
+
+// Computed once from the static timeline data. Used both to self-heal
+// persisted read-event ids that no longer exist (e.g. after a content edit)
+// and as the denominator for overall progress.
+const ALL_EVENT_IDS = new Set(TIMELINE_ITEMS.flatMap((era) => era.events.map((event) => event.id)));
+const TOTAL_EVENT_COUNT = ALL_EVENT_IDS.size;
 
 export default function TimelineScreen() {
   const insets = useSafeAreaInsets();
@@ -41,6 +47,11 @@ export default function TimelineScreen() {
   const [activeEra, setActiveEra] = useState<typeof TIMELINE_ITEMS[number] | null>(null);
 
   const eraPositions = useRef<Record<string, number>>({});
+  // Mirrors readEvents synchronously. State updates are batched/async, so
+  // handleEventPress reads/writes this ref instead of the `readEvents`
+  // closure to avoid dropping an id when two events are tapped in quick
+  // succession before a re-render lands.
+  const readEventsRef = useRef<string[]>([]);
 
   const backdropOpacity = useRef(new Animated.Value(0)).current;
   const sheetTranslateY = useRef(new Animated.Value(800)).current;
@@ -55,15 +66,32 @@ export default function TimelineScreen() {
         const storedLast = await AsyncStorage.getItem(LAST_READ_EVENT_KEY);
         const storedBegun = await AsyncStorage.getItem(TIMELINE_BEGUN_KEY);
 
+        let cleanedRead: string[] = [];
         if (storedRead) {
-          setReadEvents(JSON.parse(storedRead));
+          const parsedRead: string[] = JSON.parse(storedRead);
+          // Drop any ids that no longer exist in the timeline data so a past
+          // content edit can't leave orphaned entries inflating progress.
+          cleanedRead = parsedRead.filter((id) => ALL_EVENT_IDS.has(id));
+          readEventsRef.current = cleanedRead;
+          setReadEvents(cleanedRead);
+          if (cleanedRead.length !== parsedRead.length) {
+            await AsyncStorage.setItem(READ_EVENTS_KEY, JSON.stringify(cleanedRead));
+          }
         }
+
         if (storedLast) {
           setLastReadEvent(JSON.parse(storedLast));
         }
-        if (storedBegun) {
-          setTimelineBegun(JSON.parse(storedBegun));
+
+        let begun = storedBegun ? JSON.parse(storedBegun) : false;
+        // Real reading progress always implies the journey has begun, even
+        // if the flag was never explicitly set (e.g. the user jumped
+        // straight into an era instead of tapping "Begin Journey").
+        if (!begun && cleanedRead.length > 0) {
+          begun = true;
+          await AsyncStorage.setItem(TIMELINE_BEGUN_KEY, JSON.stringify(true));
         }
+        setTimelineBegun(begun);
       } catch (error) {
         console.warn('Failed to load timeline progress:', error);
       }
@@ -140,9 +168,9 @@ export default function TimelineScreen() {
     setActiveEra(era);
     setModalVisible(true);
 
-    let nextReadEvents = readEvents;
-    if (!readEvents.includes(event.id)) {
-      nextReadEvents = [...readEvents, event.id];
+    if (!readEventsRef.current.includes(event.id)) {
+      const nextReadEvents = [...readEventsRef.current, event.id];
+      readEventsRef.current = nextReadEvents;
       setReadEvents(nextReadEvents);
       trackActivity('timeline_event_read', event.title, {
         eventId: event.id,
@@ -153,6 +181,17 @@ export default function TimelineScreen() {
         await AsyncStorage.setItem(READ_EVENTS_KEY, JSON.stringify(nextReadEvents));
       } catch (error) {
         console.warn('Failed to save read events:', error);
+      }
+
+      // First real progress implicitly begins the journey, regardless of
+      // whether the user tapped "Begin Journey" or opened an event directly.
+      if (!timelineBegun) {
+        setTimelineBegun(true);
+        try {
+          await AsyncStorage.setItem(TIMELINE_BEGUN_KEY, JSON.stringify(true));
+        } catch (error) {
+          console.warn('Failed to save timeline begun flag:', error);
+        }
       }
     }
 
@@ -213,6 +252,29 @@ export default function TimelineScreen() {
     });
   };
 
+  const progress = useMemo(() => {
+    const readSet = new Set(readEvents.filter((id) => ALL_EVENT_IDS.has(id)));
+
+    const eraStats = new Map<string, { read: number; total: number; percent: number; complete: boolean }>();
+    for (const era of TIMELINE_ITEMS) {
+      const total = era.events.length;
+      const read = era.events.reduce((count, event) => count + (readSet.has(event.id) ? 1 : 0), 0);
+      eraStats.set(era.id, {
+        read,
+        total,
+        percent: total > 0 ? Math.round((read / total) * 100) : 0,
+        complete: total > 0 && read === total,
+      });
+    }
+
+    return {
+      readCount: readSet.size,
+      totalCount: TOTAL_EVENT_COUNT,
+      percent: TOTAL_EVENT_COUNT > 0 ? Math.round((readSet.size / TOTAL_EVENT_COUNT) * 100) : 0,
+      eraStats,
+    };
+  }, [readEvents]);
+
   const showContinue = !!lastReadEvent;
 
   return (
@@ -259,7 +321,7 @@ export default function TimelineScreen() {
             <Text style={styles.heroSubtitle}>
               From the divided kingdom to Revelation — trace God&apos;s plan through history.
             </Text>
-            {!timelineBegun && (
+            {!timelineBegun ? (
               <Pressable
                 accessibilityRole="button"
                 accessibilityLabel="Begin timeline journey"
@@ -271,6 +333,19 @@ export default function TimelineScreen() {
                 </View>
                 <Text style={styles.beginButtonText}>Begin Journey</Text>
               </Pressable>
+            ) : (
+              <View
+                style={styles.progressSummary}
+                accessibilityRole="progressbar"
+                accessibilityValue={{ min: 0, max: 100, now: progress.percent }}
+              >
+                <View style={styles.progressTrack}>
+                  <View style={[styles.progressFill, { width: `${progress.percent}%` }]} />
+                </View>
+                <Text style={styles.progressLabel}>
+                  {progress.readCount} of {progress.totalCount} events · {progress.percent}% complete
+                </Text>
+              </View>
             )}
           </View>
         </ImageBackground>
@@ -341,9 +416,22 @@ export default function TimelineScreen() {
             >
               <View style={styles.dividerContainer}>
                 <View style={styles.dividerLine} />
-                <Text style={styles.dividerText}>
-                  {era.name} · {era.dateRange}
-                </Text>
+                <View style={styles.dividerTextGroup}>
+                  <Text style={styles.dividerText}>
+                    {era.name} · {era.dateRange}
+                  </Text>
+                  {(() => {
+                    const stat = progress.eraStats.get(era.id);
+                    if (!stat) return null;
+                    return (
+                      <View style={[styles.eraBadge, stat.complete && styles.eraBadgeComplete]}>
+                        <Text style={[styles.eraBadgeText, stat.complete && styles.eraBadgeTextComplete]}>
+                          {stat.complete ? 'Complete' : `${stat.read}/${stat.total}`}
+                        </Text>
+                      </View>
+                    );
+                  })()}
+                </View>
                 <View style={styles.dividerLine} />
               </View>
 
@@ -560,6 +648,27 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '700',
   },
+  progressSummary: {
+    marginTop: 14,
+    gap: 6,
+  },
+  progressTrack: {
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: 'rgba(232, 168, 56, 0.15)',
+    overflow: 'hidden',
+  },
+  progressFill: {
+    height: '100%',
+    borderRadius: 2,
+    backgroundColor: '#E8A838',
+  },
+  progressLabel: {
+    color: '#F5D48B',
+    fontFamily: 'Inter',
+    fontSize: 11,
+    fontWeight: '600',
+  },
 
   continueWrapper: {
     paddingHorizontal: 16,
@@ -657,14 +766,41 @@ const styles = StyleSheet.create({
     height: 1,
     backgroundColor: 'rgba(232, 168, 56, 0.25)',
   },
+  dividerTextGroup: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginHorizontal: 12,
+  },
   dividerText: {
     color: '#E8A838',
     fontFamily: 'Inter',
     fontSize: 10,
     fontWeight: '700',
     letterSpacing: 1.2,
-    marginHorizontal: 12,
     textTransform: 'uppercase',
+  },
+  eraBadge: {
+    backgroundColor: 'rgba(232, 168, 56, 0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(232, 168, 56, 0.3)',
+    borderRadius: 10,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+  },
+  eraBadgeComplete: {
+    backgroundColor: '#E8A838',
+    borderColor: '#E8A838',
+  },
+  eraBadgeText: {
+    color: '#E8A838',
+    fontFamily: 'Inter',
+    fontSize: 9,
+    fontWeight: '700',
+    letterSpacing: 0.4,
+  },
+  eraBadgeTextComplete: {
+    color: '#0D0D0D',
   },
   eraEventsContainer: {
     position: 'relative',

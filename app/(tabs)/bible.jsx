@@ -1250,6 +1250,7 @@ export default function BiblePage() {
   const crossReferencesCacheRef = useRef({});
   const prevCompletedRef = useRef([]);
   const badgeHandledRef = useRef(new Set());
+  const pendingToastBadgesRef = useRef([]);
 
   const selectedTranslation = useMemo(
     () => translations.find((translation) => translation.identifier === scriptureVersion) ?? null,
@@ -1501,18 +1502,20 @@ export default function BiblePage() {
       const nextChapters = isCurrentlyComplete
         ? completedDanielChapters.filter((item) => item !== chapter)
         : [...completedDanielChapters, chapter].sort((a, b) => a - b);
-      void saveDanielProgress(nextChapters);
       if (!isCurrentlyComplete) {
-        setShowCompleteModal(true);
+        badgeHandledRef.current.add(chapter);
         const earned = getEarnedBadges([chapter]);
         if (earned.length > 0) {
-          setToastBadges(earned);
-          badgeHandledRef.current.add(chapter);
+          pendingToastBadgesRef.current = earned;
           void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         }
         void trackActivity('chapter_completed', `Completed Daniel ${chapter}`, {
           book: 'Daniel', chapter,
         });
+      }
+      void saveDanielProgress(nextChapters);
+      if (!isCurrentlyComplete) {
+        setShowCompleteModal(true);
       }
     },
     [completedDanielChapters]
@@ -1533,6 +1536,18 @@ export default function BiblePage() {
     }
     prevCompletedRef.current = [...completedDanielChapters];
   }, [completedDanielChapters]);
+
+  const flushPendingBadges = useCallback(() => {
+    const pending = pendingToastBadgesRef.current;
+    if (pending.length === 0) return;
+    pendingToastBadgesRef.current = [];
+    setToastBadges(pending);
+  }, []);
+
+  const dismissCompleteModal = useCallback(() => {
+    setShowCompleteModal(false);
+    setTimeout(flushPendingBadges, 350);
+  }, [flushPendingBadges]);
 
   const saveNote = useCallback(() => {
     if (!selectedVerse) {
@@ -1864,21 +1879,23 @@ export default function BiblePage() {
         visible={showCompleteModal}
         chapter={bibleChapter}
         totalChapters={12}
-        onClose={() => setShowCompleteModal(false)}
+        onClose={dismissCompleteModal}
         onNextChapter={() => {
-          setShowCompleteModal(false);
+          dismissCompleteModal();
           if (bibleChapter < chapters.length) {
             setBibleChapter(bibleChapter + 1);
           }
         }}
       />
-      <View style={StyleSheet.absoluteFill} pointerEvents="box-none">
-        <BadgeEarnedToast
-          badges={toastBadges}
-          onComplete={() => setToastBadges([])}
-          onPress={(badge) => setSelectedBadge(badge)}
-        />
-      </View>
+      {!showCompleteModal && toastBadges.length > 0 && (
+        <View style={StyleSheet.absoluteFill} pointerEvents="box-none">
+          <BadgeEarnedToast
+            badges={toastBadges}
+            onComplete={() => setToastBadges([])}
+            onPress={(badge) => setSelectedBadge(badge)}
+          />
+        </View>
+      )}
       <BadgePreviewModal
         badge={selectedBadge}
         onClose={() => setSelectedBadge(null)}

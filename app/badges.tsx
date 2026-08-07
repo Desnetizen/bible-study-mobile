@@ -6,14 +6,21 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { BadgePreviewModal } from '@/components/BadgePreviewModal';
-import { getEarnedBadges } from '@/lib/badges';
+import { getEarnedBadges, getEarnedStreakBadges, getBadgeSubtitle } from '@/lib/badges';
 import type { Badge } from '@/lib/badges';
 import { useDanielProgress } from '@/lib/daniel-progress';
+import { useStreak } from '@/lib/useStreak';
+
+const TOTAL_BADGES = 17; // 12 chapter + 5 streak
 
 export default function BadgesScreen() {
   const insets = useSafeAreaInsets();
   const completedChapters = useDanielProgress();
-  const earned = getEarnedBadges(completedChapters);
+  const { streakCount } = useStreak();
+  const earned = [
+    ...getEarnedBadges(completedChapters),
+    ...getEarnedStreakBadges(streakCount),
+  ];
   const [selectedBadge, setSelectedBadge] = useState<Badge | null>(null);
 
   return (
@@ -25,7 +32,7 @@ export default function BadgesScreen() {
         <View style={styles.headerCopy}>
           <Text style={styles.title}>Badges</Text>
           <Text style={styles.subtitle}>
-            {earned.length} of 10 earned
+            {earned.length} of {TOTAL_BADGES} earned
           </Text>
         </View>
         <View style={styles.headerRight}>
@@ -49,7 +56,7 @@ export default function BadgesScreen() {
           <View style={styles.grid}>
             {earned.map((badge) => (
               <Pressable
-                key={badge.chapter}
+                key={badge.key}
                 style={styles.badgeCard}
                 onPress={() => setSelectedBadge(badge)}
               >
@@ -66,7 +73,7 @@ export default function BadgesScreen() {
                   />
                 </View>
                 <Text style={styles.badgeName}>{badge.name}</Text>
-                <Text style={styles.badgeChapter}>Chapter {badge.chapter}</Text>
+                <Text style={styles.badgeChapter}>{getBadgeSubtitle(badge)}</Text>
               </Pressable>
             ))}
           </View>

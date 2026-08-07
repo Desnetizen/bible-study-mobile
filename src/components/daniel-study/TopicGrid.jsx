@@ -1,9 +1,9 @@
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { router } from 'expo-router';
 import { Crown, User, Compass, ScrollText, Landmark } from 'lucide-react-native';
-import { CastleIcon } from '@/components/CastleIcon';
+import { BuildingIcon } from '@/components/BuildingIcon';
 
-const ICONS = { Crown, User, Compass, ScrollText, Landmark, Castle: CastleIcon };
+const ICONS = { Crown, User, Compass, ScrollText, Landmark, Castle: BuildingIcon };
 
 function TopicCard({ topic }) {
   const Icon = ICONS[topic.icon] ?? Crown;

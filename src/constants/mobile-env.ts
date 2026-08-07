@@ -1,3 +1,5 @@
+import { Platform } from 'react-native';
+
 function trimTrailingSlash(value: string) {
   return value.replace(/\/+$/, '');
 }
@@ -5,8 +7,6 @@ function trimTrailingSlash(value: string) {
 export const SCRIPTURE_PROVIDER_URL = trimTrailingSlash(
   process.env.EXPO_PUBLIC_SCRIPTURE_PROVIDER_URL || 'https://bible-api.com',
 );
-
-import { Platform } from 'react-native';
 
 function getSupabaseUrl() {
   let url = process.env.EXPO_PUBLIC_SUPABASE_URL || '';

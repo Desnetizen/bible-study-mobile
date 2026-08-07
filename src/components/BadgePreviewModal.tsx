@@ -14,6 +14,7 @@ import Animated, {
   withSpring,
 } from 'react-native-reanimated';
 
+import { getBadgeSubtitle } from '../lib/badges';
 import type { Badge } from '../lib/badges';
 
 export function BadgePreviewModal({
@@ -72,7 +73,7 @@ export function BadgePreviewModal({
               </View>
 
               <Text style={styles.name}>{badge.name}</Text>
-              <Text style={styles.chapter}>Chapter {badge.chapter}</Text>
+              <Text style={styles.chapter}>{getBadgeSubtitle(badge)}</Text>
             </>
           )}
         </Animated.View>

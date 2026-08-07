@@ -1,3 +1,5 @@
+import type { ImageSourcePropType } from 'react-native';
+
 export interface TimelineItem {
   date: string;
   event: string;
@@ -15,8 +17,6 @@ export interface Term {
   term: string;
   definition: string;
 }
-
-import type { ImageSourcePropType } from 'react-native';
 
 export interface Section {
   id: string;

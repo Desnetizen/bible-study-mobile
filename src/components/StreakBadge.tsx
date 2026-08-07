@@ -8,7 +8,7 @@ import Animated, {
   withSpring,
 } from 'react-native-reanimated';
 
-const MILESTONE_DAYS = [3, 7, 14, 30];
+const MILESTONE_DAYS = [1, 3, 7, 14, 21];
 
 export function StreakBadge({ count, style }: { count: number; style?: StyleProp<ViewStyle> }) {
   const scale = useSharedValue(1);

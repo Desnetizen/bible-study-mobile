@@ -10,7 +10,7 @@ module.exports = defineConfig([
   // Ban direct supabase.from() calls outside the services/ directory
   {
     files: ['**/*.ts', '**/*.tsx'],
-    ignores: ['services/**'],
+    ignores: ['src/services/**'],
     rules: {
       'no-restricted-syntax': [
         'error',

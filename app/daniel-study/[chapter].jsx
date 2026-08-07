@@ -2,6 +2,7 @@ import { Stack, useLocalSearchParams } from 'expo-router';
 import { useMemo } from 'react';
 
 import ChapterStudyContent from '@/components/ChapterStudyContent';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { getDanielChapterStudy } from '@/data/danielStudyData';
 
 function getChapterParam(value) {
@@ -22,7 +23,9 @@ export default function DanielStudyChapterScreen() {
   return (
     <>
       <Stack.Screen options={{ headerShown: false }} />
-      <ChapterStudyContent chapter={chapterStudy} />
+      <ErrorBoundary fallbackMessage="The chapter study screen ran into a problem. This is likely due to a missing native module — try rebuilding the dev client.">
+        <ChapterStudyContent chapter={chapterStudy} />
+      </ErrorBoundary>
     </>
   );
 }

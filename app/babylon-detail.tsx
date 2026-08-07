@@ -1,4 +1,4 @@
-import { CastleIcon } from '@/components/CastleIcon';
+import { BuildingIcon } from '@/components/BuildingIcon';
 import OutlineScrubber from '@/components/OutlineScrubber';
 import ReadTabContent from '@/components/ReadTabContent';
 import { babylonContext } from '@/data/babylonContext';
@@ -48,7 +48,7 @@ const TIMELINE_NODES = [
   { id: 'first-deportation', title: 'FIRST DEPORTATION', date: '605 BC', icon: Users, isSpecial: false },
   { id: 'nebuchadnezzar-dream', title: "NEBUCHADNEZZAR'S DREAM", date: '603 BC', icon: Crown, isSpecial: false },
   { id: 'second-deportation', title: 'SECOND DEPORTATION', date: '597 BC', icon: Users, isSpecial: false },
-  { id: 'jerusalem-falls', title: 'JERUSALEM FALLS', date: '586 BC', icon: CastleIcon, isSpecial: false },
+  { id: 'jerusalem-falls', title: 'JERUSALEM FALLS', date: '586 BC', icon: BuildingIcon, isSpecial: false },
   { id: 'belshazzar-feast', title: "BELSHAZZAR'S FEAST", date: '539 BC', icon: Flame, isSpecial: true },
 ];
 

@@ -1,4 +1,4 @@
-import { CastleIcon } from '@/components/CastleIcon';
+import { BuildingIcon } from '@/components/BuildingIcon';
 import OutlineScrubber from '@/components/OutlineScrubber';
 import ReadTabContent from '@/components/ReadTabContent';
 import { extractHeadings } from '@/data/extractHeadings';
@@ -47,7 +47,7 @@ const TIMELINE_NODES = [
   { id: 'cyrus-conquers', title: 'CYRUS CONQUERS BABYLON', date: '539 BC', icon: Shield, isSpecial: false },
   { id: 'edict-of-cyrus', title: 'EDICT OF CYRUS', date: '538 BC', icon: BookOpen, isSpecial: false },
   { id: 'darius-reigns', title: 'DARIUS I REIGNS', date: '522 BC', icon: Crown, isSpecial: false },
-  { id: 'temple-rebuilt', title: 'TEMPLE REBUILT', date: '515 BC', icon: CastleIcon, isSpecial: false },
+  { id: 'temple-rebuilt', title: 'TEMPLE REBUILT', date: '515 BC', icon: BuildingIcon, isSpecial: false },
   { id: 'ezra-returns', title: 'EZRA RETURNS', date: '458 BC', icon: Feather, isSpecial: false },
   { id: 'alexander-arrives', title: 'ALEXANDER ARRIVES', date: '331 BC', icon: ShieldAlert, isSpecial: true },
 ];

@@ -429,10 +429,14 @@ onPressOut → Animated.timing(scale, { toValue: 1, duration: 160 })
 ## 10. Tab Bar
 
 ```jsx
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
+const insets = useSafeAreaInsets();
+
 tabBarStyle: {
   backgroundColor: 'rgba(7, 17, 31, 0.9)',     // Dark glass
   borderTopColor: 'rgba(148, 163, 184, 0.25)',  // Subtle separator
-  height: 80,
+  height: 56 + insets.bottom, // 48px content + insets.bottom (carved by react-navigation paddingBottom)
   paddingTop: 8,
 }
 

@@ -13,6 +13,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Circle } from 'react-native-svg';
 
 import { useReducedMotion } from '../hooks/use-reduced-motion';
+import { getBadgeSubtitle } from '../lib/badges';
 import type { Badge } from '../lib/badges';
 
 const ARC_SIZE = 44;
@@ -128,7 +129,7 @@ function ToastItem({
         <Text style={styles.subtitle} numberOfLines={1}>
           {badge.name}
         </Text>
-        <Text style={styles.chapter}>Chapter {badge.chapter}</Text>
+        <Text style={styles.chapter}>{getBadgeSubtitle(badge)}</Text>
       </View>
     </View>
   );

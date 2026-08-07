@@ -1,6 +1,6 @@
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   StyleSheet,
   View
@@ -9,6 +9,7 @@ import Animated, {
   cancelAnimation,
   Easing,
   runOnJS,
+  useAnimatedReaction,
   useAnimatedStyle,
   useDerivedValue,
   useSharedValue,
@@ -51,6 +52,9 @@ export default function AnimatedSplashScreen({
   const loadingBarWidth = useSharedValue(0);
   const loadingTextOpacity = useSharedValue(0);
   const loadingBarGlow = useSharedValue(0.4);
+
+  // Mirrors loadingBarWidth on the JS thread for the percentage label
+  const [displayedPercent, setDisplayedPercent] = useState(0);
 
   // Entry animations on mount (skip if isReady is already true)
   useEffect(() => {
@@ -165,6 +169,17 @@ export default function AnimatedSplashScreen({
     };
   }, [isReady, startExit]);
 
+  // Mirror the loading bar value onto the JS thread so the % label can render
+  useAnimatedReaction(
+    () => Math.floor(loadingBarWidth.value),
+    (currentValue, previousValue) => {
+      if (currentValue !== previousValue) {
+        runOnJS(setDisplayedPercent)(currentValue);
+      }
+    },
+    [loadingBarWidth]
+  );
+
   // Animated styles
   const animatedContainerStyle = useAnimatedStyle(() => ({
     opacity: containerOpacity.value,
@@ -255,7 +270,7 @@ export default function AnimatedSplashScreen({
 
         {/* Loading text */}
         <Animated.Text style={[styles.loadingText, animatedLoadingTextStyle]}>
-          Loading...
+          {`Loading... ${displayedPercent}%`}
         </Animated.Text>
       </View>
     </Animated.View>

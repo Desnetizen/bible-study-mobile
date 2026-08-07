@@ -21,6 +21,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { characterProfiles } from '@/data/characterProfile';
+import { getCharacterTags, getRoleIconSource } from '@/lib/characterCategories';
 import { trackActivity } from '@/lib/activity-tracker';
 import { parseBibleReference } from '@/lib/parseBibleReference';
 import { LinkedText } from '@/components/LinkedText';
@@ -96,42 +97,6 @@ function cleanText(value) {
     .trim();
 }
 
-function getCharacterTags(character) {
-  const haystack = `${character.role} ${character.era} ${character.status} ${character.name}`.toLowerCase();
-  const tags = [];
-
-  if (haystack.includes('prophet')) tags.push('Prophets');
-  if (haystack.includes('king') || haystack.includes('regent')) tags.push('Kings');
-  if (/(official|eunuch|guard|administrator|statesman|adviser|courtier)/.test(haystack)) tags.push('Officials');
-  if (/(companion|noble)/.test(haystack)) tags.push('Companions');
-  if (/(angel|archangel|heavenly)/.test(haystack)) tags.push('Angels');
-
-  return tags;
-}
-
-function getRoleIconSource(role = '') {
-  const value = role.toLowerCase();
-
-  if (value.includes('angel') || value.includes('archangel') || value.includes('heavenly')) return ICONS.angels;
-  if (value.includes('prophet') || value.includes('messenger')) return ICONS.scroll;
-  if (value.includes('companion') || value.includes('noble')) return ICONS.companions;
-  if (
-    value.includes('official') ||
-    value.includes('eunuch') ||
-    value.includes('court') ||
-    value.includes('administrator') ||
-    value.includes('guard') ||
-    value.includes('captain') ||
-    value.includes('executioner') ||
-    value.includes('officer') ||
-    value.includes('master')
-  ) {
-    return ICONS.official;
-  }
-  if (value.includes('king') || value.includes('regent')) return ICONS.crown;
-
-  return ICONS.bible;
-}
 
 function getServedRegime(character) {
   return CHARACTER_REGIMES[character.name] ?? cleanText(character.era);
@@ -148,7 +113,7 @@ function getPortraitPosition(character, large = false) {
 }
 
 function CharacterArtwork({ character, large = false }) {
-  const roleIconSource = getRoleIconSource(character.role);
+  const roleIconSource = getRoleIconSource(character.role, ICONS);
   const image = character.landingImage || character.image;
   const containerStyle = [styles.artwork, large && styles.profileArtwork];
   const iconStyle = large ? styles.roleArtworkIconLarge : styles.roleArtworkIcon;

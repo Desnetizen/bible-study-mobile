@@ -1,4 +1,4 @@
-import { CastleIcon } from '@/components/CastleIcon';
+import { BuildingIcon } from '@/components/BuildingIcon';
 import OutlineScrubber from '@/components/OutlineScrubber';
 import ReadTabContent from '@/components/ReadTabContent';
 import { extractHeadings } from '@/data/extractHeadings';
@@ -47,7 +47,7 @@ const TIMELINE_NODES = [
   { id: 'rome-takes-judea', title: 'ROME TAKES JUDEA', date: '63 BC', icon: Shield, isSpecial: false },
   { id: 'jesus-born', title: 'JESUS IS BORN', date: '4 BC', icon: BookOpen, isSpecial: false },
   { id: 'jesus-crucified', title: 'JESUS CRUCIFIED', date: 'AD 30', icon: Flame, isSpecial: false },
-  { id: 'temple-destroyed', title: 'TEMPLE DESTROYED', date: 'AD 70', icon: CastleIcon, isSpecial: true },
+  { id: 'temple-destroyed', title: 'TEMPLE DESTROYED', date: 'AD 70', icon: BuildingIcon, isSpecial: true },
   { id: 'revelation-written', title: 'REVELATION WRITTEN', date: 'AD 95', icon: Feather, isSpecial: false },
   { id: 'rome-falls', title: 'WESTERN ROME FALLS', date: 'AD 476', icon: ShieldAlert, isSpecial: false },
 ];
@@ -58,7 +58,7 @@ const EXPLORE_CARDS = [
   { id: 'daniels-visions-rome', title: "DANIEL'S VISIONS & ROME", subtitle: 'The iron legs and feet of mixed clay', icon: BookOpen, image: require('../assets/Places/Rome.jpg') },
   { id: 'rome-crucifixion', title: 'ROME & THE CRUCIFIXION', subtitle: 'Pilate, the cross, and prophetic timing', icon: Flame, image: require('../assets/Places/Rome.jpg') },
   { id: 'seventy-weeks', title: 'THE SEVENTY WEEKS', subtitle: "Daniel's countdown to the Messiah", icon: Clock, image: require('../assets/Places/Rome.jpg') },
-  { id: 'destruction-jerusalem', title: 'THE DESTRUCTION OF JERUSALEM', subtitle: 'Titus, AD 70, and the end of the temple', icon: CastleIcon, image: require('../assets/Places/Rome.jpg') },
+  { id: 'destruction-jerusalem', title: 'THE DESTRUCTION OF JERUSALEM', subtitle: 'Titus, AD 70, and the end of the temple', icon: BuildingIcon, image: require('../assets/Places/Rome.jpg') },
 ];
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────

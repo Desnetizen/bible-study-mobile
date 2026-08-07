@@ -1,26 +1,27 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { LayoutChangeEvent } from 'react-native';
-import { ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Animated as RNAnimated, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import Animated, {
-  useSharedValue,
+  runOnJS,
+  useAnimatedRef,
   useAnimatedScrollHandler,
   useAnimatedStyle,
-  useAnimatedRef,
-  scrollTo,
+  useAnimatedReaction,
+  useSharedValue,
 } from 'react-native-reanimated';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { useDanielProgress, saveDanielProgress } from '@/lib/daniel-progress';
-import type { DanielChapterStudy, StudySection } from '@/types/daniel-study';
-import StudyActions from '@/components/study/StudyActions';
-import StudyHero from '@/components/study/StudyHero';
-import StudyTabs, { type StudyTabId } from '@/components/study/StudyTabs';
-import StudySectionList from '@/components/study/StudySectionList';
-import type { OutlineItem } from '@/components/study/StudyOutline';
 import StudyAudio from '@/components/study/StudyAudio';
 import StudyGlossarySheet from '@/components/study/StudyGlossarySheet';
+import StudyHero from '@/components/study/StudyHero';
+import type { OutlineItem } from '@/components/study/StudyOutline';
+import OutlineScrubber from '@/components/OutlineScrubber';
+import StudySectionList from '@/components/study/StudySectionList';
+import StudyTabs, { type StudyTabId } from '@/components/study/StudyTabs';
 import { useChapterAudio } from '@/hooks/useChapterAudio';
+import { saveDanielProgress, useDanielProgress } from '@/lib/daniel-progress';
+import type { DanielChapterStudy, StudySection } from '@/types/daniel-study';
 
 const BG = '#0B0F16';
 
@@ -132,20 +133,78 @@ export default function ChapterStudyContent({ chapter }: ChapterStudyContentProp
   const heroHeight = useSharedValue(0);
   const tabScrollOffsets = useRef<Record<StudyTabId, number>>({ overview: 0, read: 0, audio: 0 });
 
+  // Measured once on layout (not per scroll frame) — used only for static padding/spacing math,
+  // never fed back into an animated style, so it can't cause layout thrash while scrolling.
+  const [heroMeasuredHeight, setHeroMeasuredHeight] = useState(0);
+  const [tabsMeasuredHeight, setTabsMeasuredHeight] = useState(0);
+  const headerTotalHeight = heroMeasuredHeight + tabsMeasuredHeight;
+
   const onHeroLayout = useCallback((e: LayoutChangeEvent) => {
-    heroHeight.value = e.nativeEvent.layout.height;
+    const h = e.nativeEvent.layout.height;
+    heroHeight.value = h;
+    setHeroMeasuredHeight((prev) => (prev !== h ? h : prev));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const heroAnimatedStyle = useAnimatedStyle(() => {
+  const onTabsLayout = useCallback((e: LayoutChangeEvent) => {
+    const h = e.nativeEvent.layout.height;
+    setTabsMeasuredHeight((prev) => (prev !== h ? h : prev));
+  }, []);
+
+  // Moves the hero + tabs together as one unit. transform is purely visual — it never
+  // triggers a layout pass, so this stays smooth no matter how fast onScroll fires.
+  const headerTranslateStyle = useAnimatedStyle(() => {
+    if (heroHeight.value <= 0) return { transform: [{ translateY: 0 }] };
+    const collapse = Math.min(scrollY.value, heroHeight.value);
+    return { transform: [{ translateY: -collapse }] };
+  });
+
+  // Hero-only fade as it scrolls behind the (now-pinned) tab bar.
+  const heroFadeStyle = useAnimatedStyle(() => {
     if (heroHeight.value <= 0) return { opacity: 1 };
     const collapse = Math.min(scrollY.value, heroHeight.value);
-    return {
-      transform: [{ translateY: -collapse }],
-      marginBottom: -collapse,
-      opacity: 1 - collapse / heroHeight.value,
-    };
+    return { opacity: 1 - collapse / heroHeight.value };
   });
+
+  // Bridge Reanimated scrollY → RN Animated for components expecting classic Animated.Value
+  const classicScrollY = useRef(new RNAnimated.Value(0)).current;
+  const setClassicScrollY = useCallback((v: number) => {
+    classicScrollY.setValue(v);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useAnimatedReaction(
+    () => scrollY.value,
+    (current, previous) => {
+      if (current !== previous) runOnJS(setClassicScrollY)(current);
+    },
+  );
+
+  // Duck-typed shim so OutlineScrubber can call scrollTo() on a plain RN ScrollView ref
+  const readScrollShimRef = useRef({
+    scrollTo: ({ y, animated }: { y: number; animated: boolean }) => {
+      readScrollRef.current?.scrollTo({ x: 0, y, animated });
+    },
+  });
+
+  // Refs for measuring Read ScrollView viewport and content height
+  const viewportHeightRef = useRef(0);
+  const contentHeightRef = useRef(0);
+
+  const outlineItems = useMemo(() => buildOutlineItems(chapter.sections), [chapter.sections]);
+
+  // Data adapter: OutlineItem → HeadingEntry
+  const scrubberHeadings = useMemo(
+    () => outlineItems.map((item) => ({
+      id: item.id,
+      label: item.title,
+      fullLabel: `${item.label} ${item.title}`.trim(),
+      depth: item.level,
+    })),
+    [outlineItems],
+  );
+
+  const audio = useChapterAudio(chapter.chapterNumber);
 
   const [activeTab, setActiveTab] = useState<StudyTabId>('overview');
   const [state, setState] = useState<ChapterStudyState>(DEFAULT_STATE);
@@ -153,8 +212,6 @@ export default function ChapterStudyContent({ chapter }: ChapterStudyContentProp
   const [sectionsDrawerOpen, setSectionsDrawerOpen] = useState(false);
   const [glossaryOpen, setGlossaryOpen] = useState(false);
 
-  const outlineItems = useMemo(() => buildOutlineItems(chapter.sections), [chapter.sections]);
-  const audio = useChapterAudio(chapter.chapterNumber);
   const reflectionSection = useMemo(
     () => chapter.sections.find((s) => /reflection|discussion/i.test(s.title)),
     [chapter.sections],
@@ -208,7 +265,7 @@ export default function ChapterStudyContent({ chapter }: ChapterStudyContentProp
       setActiveTab(tab);
     } else {
       const ref = tab === 'read' ? readScrollRef : scrollRef;
-      scrollTo(ref, 0, targetY, false);
+      ref.current?.scrollTo({ x: 0, y: targetY, animated: false });
     }
 
     markVisited(id);
@@ -236,10 +293,10 @@ export default function ChapterStudyContent({ chapter }: ChapterStudyContentProp
   useEffect(() => {
     if (activeTab === 'overview') {
       const y = tabScrollOffsets.current.overview;
-      scrollTo(scrollRef, 0, y, false);
+      scrollRef.current?.scrollTo({ x: 0, y, animated: false });
     } else if (activeTab === 'read') {
       const y = tabScrollOffsets.current.read;
-      scrollTo(readScrollRef, 0, y, false);
+      readScrollRef.current?.scrollTo({ x: 0, y, animated: false });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab]);
@@ -332,7 +389,7 @@ export default function ChapterStudyContent({ chapter }: ChapterStudyContentProp
       style={styles.tabScroll}
       contentContainerStyle={[
         styles.overviewContent,
-        { paddingBottom: insets.bottom + 24 },
+        { paddingTop: headerTotalHeight + 16, paddingBottom: insets.bottom + 24 },
       ]}
       onScroll={overviewScrollHandler}
       scrollEventThrottle={16}
@@ -377,10 +434,15 @@ export default function ChapterStudyContent({ chapter }: ChapterStudyContentProp
     <Animated.ScrollView
       ref={readScrollRef}
       style={styles.tabScroll}
-      contentContainerStyle={[styles.readContent, { paddingBottom: insets.bottom + 24 }]}
+      contentContainerStyle={[
+        styles.readContent,
+        { paddingTop: headerTotalHeight + 16, paddingBottom: insets.bottom + 24 },
+      ]}
       onScroll={readScrollHandler}
       scrollEventThrottle={16}
       showsVerticalScrollIndicator={false}
+      onLayout={(e) => { viewportHeightRef.current = e.nativeEvent.layout.height; }}
+      onContentSizeChange={(w, h) => { contentHeightRef.current = h; }}
     >
       {chapter.sections.map((section, sectionIndex) => (
         <View key={section.id} style={styles.readSection} onLayout={(e) => onNodeLayout(section.id, e, true)}>
@@ -468,8 +530,40 @@ export default function ChapterStudyContent({ chapter }: ChapterStudyContentProp
 
   return (
     <View style={styles.root}>
-      <View>
-        <Animated.View style={heroAnimatedStyle} onLayout={onHeroLayout}>
+      {activeTab === 'overview' && renderOverview()}
+      {activeTab === 'read' && (
+        <View style={{ flex: 1 }}>
+          {renderReadView()}
+          <OutlineScrubber
+            headings={scrubberHeadings}
+            accentColor="#D4A24C"
+            scrollRef={readScrollShimRef as any}
+            scrollY={classicScrollY}
+            scrollViewHeightRef={viewportHeightRef}
+            scrollViewContentHeightRef={contentHeightRef}
+            rootOffset={0}
+            sectionPositions={readPositionsRef}
+            onSelectHeading={(id) => markVisited(id)}
+          />
+        </View>
+      )}
+      {activeTab === 'audio' && (
+        <View style={[styles.audioTab, { paddingTop: headerTotalHeight }]}>
+          <StudyAudio
+            chapterTitle={chapter.title}
+            player={audio.player}
+            status={audio.status}
+            loading={audio.loading}
+            hasAudio={audio.hasAudio}
+            playing={audio.playing}
+            toggle={audio.toggle}
+            error={audio.error}
+          />
+        </View>
+      )}
+
+      <Animated.View style={[styles.headerOverlay, headerTranslateStyle]}>
+        <Animated.View style={heroFadeStyle} onLayout={onHeroLayout}>
           <StudyHero
             heroImage={chapter.heroImage}
             title={chapter.title}
@@ -481,47 +575,25 @@ export default function ChapterStudyContent({ chapter }: ChapterStudyContentProp
           />
         </Animated.View>
 
-        <StudyTabs
-          activeTab={activeTab}
-          onTabChange={changeTab}
-          isWide={isWide}
-          sectionsDrawerOpen={sectionsDrawerOpen}
-          onToggleSections={() => setSectionsDrawerOpen((o) => !o)}
-        />
-      </View>
+        <View onLayout={onTabsLayout}>
+          <StudyTabs
+            activeTab={activeTab}
+            onTabChange={changeTab}
+            isWide={isWide}
+            sectionsDrawerOpen={sectionsDrawerOpen}
+            onToggleSections={() => setSectionsDrawerOpen((o) => !o)}
+          />
+        </View>
+      </Animated.View>
 
       {!isWide && sectionsDrawerOpen && (
-        <ScrollView style={styles.drawer} contentContainerStyle={styles.drawerContent}>
+        <ScrollView
+          style={[styles.drawer, { position: 'absolute', top: headerTotalHeight, left: 0, right: 0 }]}
+          contentContainerStyle={styles.drawerContent}
+        >
           {renderRail()}
         </ScrollView>
       )}
-
-      {activeTab === 'overview' && renderOverview()}
-      {activeTab === 'read' && renderReadView()}
-      {activeTab === 'audio' && (
-        <StudyAudio
-          chapterTitle={chapter.title}
-          player={audio.player}
-          status={audio.status}
-          loading={audio.loading}
-          hasAudio={audio.hasAudio}
-          playing={audio.playing}
-          toggle={audio.toggle}
-          error={audio.error}
-        />
-      )}
-
-      <StudyActions
-        bookmarked={state.bookmarked}
-        onToggleBookmark={() => setState((prev) => ({ ...prev, bookmarked: !prev.bookmarked }))}
-        highlighted={state.highlighted}
-        onToggleHighlight={() => setState((prev) => ({ ...prev, highlighted: !prev.highlighted }))}
-        onAddNotes={() => {}}
-        onShare={() => {}}
-        onPlayAudio={audio.toggle}
-        audioPlaying={audio.playing}
-        audioLoading={audio.loading}
-      />
 
       {chapter.terms.length > 0 && (
         <StudyGlossarySheet
@@ -539,7 +611,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: BG,
   },
-  heroOverlay: {
+  headerOverlay: {
     position: 'absolute',
     top: 0,
     left: 0,
@@ -547,6 +619,9 @@ const styles = StyleSheet.create({
     zIndex: 10,
   },
   tabScroll: {
+    flex: 1,
+  },
+  audioTab: {
     flex: 1,
   },
   overviewContent: {

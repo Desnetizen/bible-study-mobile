@@ -9,10 +9,13 @@ import { getDanielProgressSnapshot, subscribeDanielProgress } from './daniel-pro
 // badge toast state is cosmetic — re-showing a few toasts on a new device
 // is harmless, and syncing this state adds complexity for no user-visible
 // correctness gain. See Bug #7 in the review for context.
-const BADGE_SNAPSHOT_KEY = 'bible-connection:badge-snapshot:v1';
+const BADGE_SNAPSHOT_KEY = 'bible-connection:badge-snapshot:v2';
 
 export type Badge = {
-  chapter: number;
+  key: string;
+  kind: 'chapter' | 'streak';
+  chapter?: number;
+  days?: number;
   name: string;
   image: number;
   color: string;
@@ -59,17 +62,56 @@ const BADGE_MAP: Record<number, { name: string; image: number }> = {
     name: 'Greatly Beloved',
     image: require('../../assets/badges/Greatly_Beloved_chapter_10.png'),
   },
+  11: {
+    name: 'Steadfast Warrior',
+    image: require('../../assets/badges/steadfast_warrior_chapter_11.png'),
+  },
+  12: {
+    name: 'Faithful to the End',
+    image: require('../../assets/badges/chapter_12.png'),
+  },
 };
+
+const STREAK_BADGES: { days: number; name: string; image: number }[] = [
+  { days: 1, name: '1-Day Streak', image: require('../../assets/badges/day_1_streak.png') },
+  { days: 3, name: '3-Day Streak', image: require('../../assets/badges/day_3streak.png') },
+  { days: 7, name: '7-Day Streak', image: require('../../assets/badges/day_7_streak.png') },
+  { days: 14, name: '14-Day Streak', image: require('../../assets/badges/day_14_streak.png') },
+  { days: 21, name: '21-Day Streak', image: require('../../assets/badges/day_21_streak.png') },
+];
+
+const STREAK_COLOR = '#f59e0b';
+
+export function getBadgeSubtitle(badge: Badge): string {
+  if (badge.kind === 'streak') return `Day ${badge.days} Streak`;
+  return `Chapter ${badge.chapter}`;
+}
 
 export function getEarnedBadges(completedChapters: number[]): Badge[] {
   return completedChapters
     .filter((ch) => ch in BADGE_MAP)
     .sort((a, b) => a - b)
     .map((ch) => ({
+      key: `ch-${ch}`,
+      kind: 'chapter' as const,
       chapter: ch,
       name: BADGE_MAP[ch].name,
       image: BADGE_MAP[ch].image,
       color: CHAPTER_COLORS[ch as keyof typeof CHAPTER_COLORS] || '#1e3a8a',
+    }));
+}
+
+export function getEarnedStreakBadges(streakCount: number): Badge[] {
+  return STREAK_BADGES
+    .filter((sb) => sb.days <= streakCount)
+    .sort((a, b) => a.days - b.days)
+    .map((sb) => ({
+      key: `str-${sb.days}`,
+      kind: 'streak' as const,
+      days: sb.days,
+      name: sb.name,
+      image: sb.image,
+      color: STREAK_COLOR,
     }));
 }
 
@@ -82,7 +124,7 @@ export function getLatestBadge(completedChapters: number[]): Badge | null {
   return earned.length > 0 ? earned[earned.length - 1] : null;
 }
 
-export async function loadBadgeSnapshot(): Promise<number[]> {
+async function loadBadgeSnapshot(): Promise<string[]> {
   try {
     const raw = await AsyncStorage.getItem(BADGE_SNAPSHOT_KEY);
     if (!raw) return [];
@@ -92,30 +134,43 @@ export async function loadBadgeSnapshot(): Promise<number[]> {
   }
 }
 
-export async function saveBadgeSnapshot(chapters: number[]): Promise<void> {
+async function saveBadgeSnapshot(keys: string[]): Promise<void> {
   try {
-    await AsyncStorage.setItem(BADGE_SNAPSHOT_KEY, JSON.stringify(chapters));
+    await AsyncStorage.setItem(BADGE_SNAPSHOT_KEY, JSON.stringify(keys));
   } catch {
     // Ignore
   }
 }
 
-export function useNewBadgeIds(): number[] {
-  const [newIds, setNewIds] = useState<number[]>([]);
+function getEarnedKeys(completedChapters: number[], streakCount: number): string[] {
+  const chapterKeys = completedChapters
+    .filter((ch) => ch in BADGE_MAP)
+    .map((ch) => `ch-${ch}`);
+  const streakKeys = STREAK_BADGES
+    .filter((sb) => sb.days <= streakCount)
+    .map((sb) => `str-${sb.days}`);
+  return [...chapterKeys, ...streakKeys];
+}
+
+export function useNewBadgeIds(streakCount: number): string[] {
+  const [newIds, setNewIds] = useState<string[]>([]);
 
   useEffect(() => {
+    let cancelled = false;
+
     const check = () => {
-      const current = getDanielProgressSnapshot();
-      const currentFiltered = current.filter((ch) => ch in BADGE_MAP);
+      const currentChapters = getDanielProgressSnapshot();
+      const currentKeys = getEarnedKeys(currentChapters, streakCount);
 
       loadBadgeSnapshot().then((snapshot) => {
-        const newlyUnlocked = currentFiltered.filter((ch) => !snapshot.includes(ch));
+        if (cancelled) return;
+        const newlyUnlocked = currentKeys.filter((k) => !snapshot.includes(k));
         if (newlyUnlocked.length > 0) {
           setNewIds((prev) => {
             const combined = [...new Set([...prev, ...newlyUnlocked])];
             return combined;
           });
-          saveBadgeSnapshot(currentFiltered);
+          saveBadgeSnapshot(currentKeys);
         }
       });
     };
@@ -124,8 +179,11 @@ export function useNewBadgeIds(): number[] {
 
     const unsubscribe = subscribeDanielProgress(check);
 
-    return () => { unsubscribe(); };
-  }, []);
+    return () => {
+      cancelled = true;
+      unsubscribe();
+    };
+  }, [streakCount]);
 
   return newIds;
 }
