@@ -96,6 +96,8 @@ function RootLayoutContent() {
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
           <Stack.Screen name="auth" options={{ headerShown: false }} />
           <Stack.Screen name="daniel-study/[chapter]" options={{ presentation: 'modal', headerShown: false }} />
+          <Stack.Screen name="daniel-study/videos/index" options={{ headerShown: false }} />
+          <Stack.Screen name="daniel-study/videos/[id]" options={{ presentation: 'modal', headerShown: false }} />
           <Stack.Screen name="recent-activity" options={{ headerShown: false }} />
           <Stack.Screen name="badges" options={{ headerShown: false }} />
           <Stack.Screen name="pre-exilic-detail" options={{ headerShown: false }} />

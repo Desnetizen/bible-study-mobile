@@ -19,6 +19,7 @@ import { getAllChapterProgress, toggleChapterBookmark } from '@/lib/daniel-progr
 import TopicGrid from './daniel-study/TopicGrid';
 import ContinueReadingRow from './daniel-study/ContinueReadingRow';
 import DailyInsightCard from './daniel-study/DailyInsightCard';
+import StudyVideosSection from './daniel-study/StudyVideosSection';
 import StudyIcon from './daniel-study/StudyIcon';
 import { ImageSkeleton } from './ui/Skeleton';
 
@@ -315,6 +316,9 @@ export default function DanielStudyPage({
         {/* 5. DAILY INSIGHT CARD */}
         <SectionHeader title="Daily Insight" />
         <DailyInsightCard />
+
+        {/* 6. STUDY VIDEOS */}
+        <StudyVideosSection progressMap={progressMap} />
       </ScrollView>
     </View>
   );
