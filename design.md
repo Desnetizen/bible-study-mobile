@@ -310,18 +310,16 @@ Animated.timing(pressScale, { toValue: 1, duration: 160 })      // Press out
 | **Press scale** (spring) | `withSpring(0.96)` press in, `withSpring(1)` press out | Spring physics |
 | **3D tilt** on cards | Pan gesture → `rotateX/rotateY` ±8°, `perspective: 800` | Spring reset |
 | **Progress ring** | `withTiming(progress, { duration: 1200 })` + `useAnimatedReaction` for display text | 1200ms |
-| **Splash loading bar** | Fill to 70% in 1800ms → crawl to 85% in 2000ms → snap to 100% on ready | ~4000ms total |
-| **Splash bar glow** | `withRepeat` opacity 0.4↔0.8, 1000ms each direction | Infinite bounce |
+| **Splash loading bar** | Fills linearly from 0% → 96% over `SPLASH_MIN_DURATION_MS` (60s); exit animation carries it the rest of the way to 100% once the app is actually ready | 60,000ms minimum, plus the exit step |
 | **Streak milestone bounce** | `withSequence(withSpring(1.18, {damping:4}), withSpring(1, {damping:8}))` | Spring physics |
 
 ### 8.4 Splash Screen Exit
 
 ```
-1. Cancel glow animation
-2. Fill loading bar to 100% (proportional duration: remaining% × 15ms, clamp 400–1000ms)
-3. Scale content to 1.06 (portal zoom effect, 600ms)
-4. Fade container to 0 (600ms, Easing.bezier(0.25, 0.1, 0.25, 1))
-5. Call onAnimationComplete
+1. Fill loading bar to 100% (proportional duration: remaining% × 15ms, clamp 400–1000ms)
+2. Scale content to 1.06 (portal zoom effect, 600ms)
+3. Fade container to 0 (600ms, Easing.bezier(0.25, 0.1, 0.25, 1))
+4. Call onAnimationComplete
 ```
 
 ---

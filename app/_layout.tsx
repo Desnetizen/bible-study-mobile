@@ -12,6 +12,7 @@ import 'react-native-reanimated';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import AnimatedSplashScreen from '@/components/AnimatedSplashScreen';
 import { AppReadinessProvider, useAppReadiness } from '@/lib/app-readiness';
+import { SPLASH_MIN_DURATION_MS } from '@/lib/splash-config';
 import { preloadStartupImages } from '@/lib/startup-assets';
 import { AuthProvider, useAuth } from '@/hooks/useAuth';
 import { startAuthListeners, stopAuthListeners } from '@/lib/supabase';
@@ -23,7 +24,7 @@ export const unstable_settings = {
 };
 
 function AuthGate() {
-  const { session, loading } = useAuth();
+  const { session, loading, isRecovering } = useAuth();
   const pathname = usePathname();
   const inAuthGroup = pathname?.startsWith('/auth');
 
@@ -32,17 +33,26 @@ function AuthGate() {
 
     if (!session && !inAuthGroup) {
       router.replace('/auth/signup' as any);
-    } else if (session && inAuthGroup) {
+    } else if (session && inAuthGroup && !isRecovering) {
       router.replace('/(tabs)' as any);
     }
-  }, [session, loading, inAuthGroup]);
+  }, [session, loading, inAuthGroup, isRecovering]);
 
   return null;
 }
 
 function RootLayoutContent() {
   const colorScheme = useColorScheme();
-  const { appContentReady, splashAnimationComplete, markAppContentReady, markSplashAnimationComplete } = useAppReadiness();
+  const {
+    appContentReady,
+    splashAnimationComplete,
+    minDurationElapsed,
+    loadProgress,
+    markAppContentReady,
+    markSplashAnimationComplete,
+    markMinDurationElapsed,
+    setLoadProgress,
+  } = useAppReadiness();
   const [nativeSplashHidden, setNativeSplashHidden] = useState(false);
 
   useEffect(() => {
@@ -70,7 +80,11 @@ function RootLayoutContent() {
   useEffect(() => {
     let isMounted = true;
 
-    void preloadStartupImages().finally(() => {
+    void preloadStartupImages((progress) => {
+      if (isMounted) {
+        setLoadProgress(progress);
+      }
+    }).finally(() => {
       if (isMounted) {
         markAppContentReady();
       }
@@ -79,14 +93,25 @@ function RootLayoutContent() {
     return () => {
       isMounted = false;
     };
-  }, [markAppContentReady]);
+  }, [markAppContentReady, setLoadProgress]);
+
+  // Guarantees the splash stays on screen for at least SPLASH_MIN_DURATION_MS
+  // so its fill animation always gets to play out, even when content (as it
+  // usually does here — everything is bundled locally) loads almost instantly.
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      markMinDurationElapsed();
+    }, SPLASH_MIN_DURATION_MS);
+
+    return () => clearTimeout(timer);
+  }, [markMinDurationElapsed]);
 
   useEffect(() => {
     startAuthListeners();
     return () => stopAuthListeners();
   }, []);
 
-  const appIsReady = nativeSplashHidden && appContentReady;
+  const appIsReady = nativeSplashHidden && appContentReady && minDurationElapsed;
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
@@ -111,6 +136,7 @@ function RootLayoutContent() {
         {!splashAnimationComplete && (
           <AnimatedSplashScreen
             isReady={appIsReady}
+            progress={loadProgress}
             onAnimationComplete={markSplashAnimationComplete}
           />
         )}

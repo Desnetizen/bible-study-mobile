@@ -161,7 +161,12 @@ export default function StudyVideoDetailScreen() {
           {relatedVideos.length > 0 && (
             <>
               <Text style={styles.relatedHeading}>More in {category?.label}</Text>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.relatedRow}>
+              <ScrollView
+  horizontal
+  showsHorizontalScrollIndicator={false}
+  style={{ flexGrow: 0 }}
+  contentContainerStyle={styles.relatedRow}
+>
                 {relatedVideos.map((rv) => (
                   <RelatedVideoCard key={rv.id} video={rv} />
                 ))}
@@ -237,7 +242,7 @@ const styles = StyleSheet.create({
     marginTop: 26,
     marginBottom: 10,
   },
-  relatedRow: { gap: 12, paddingBottom: 4 },
+  relatedRow: { gap: 12, paddingBottom: 4, alignItems: 'flex-start' },
   relatedCard: { width: 130 },
   relatedThumbWrap: { position: 'relative', height: 78, borderRadius: 12, overflow: 'hidden', backgroundColor: '#07111F' },
   relatedThumb: { width: '100%', height: '100%' },

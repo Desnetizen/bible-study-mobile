@@ -1,4 +1,6 @@
 import { LinkedText } from '@/components/LinkedText';
+import { VerseTextModal } from '@/components/VerseTextModal';
+import type { VerseReference } from '@/hooks/useVerseText';
 import { HISTORICAL_ERAS } from '@/data/historicalContextData';
 import { parseBibleReference } from '@/lib/parseBibleReference';
 import { Image, ImageBackground } from 'expo-image';
@@ -240,6 +242,7 @@ export default function HistoricalContextScreen() {
   const [modalVisible, setModalVisible] = useState(false);
   const [activeEra, setActiveEra] = useState<Era | null>(null);
   const [activeEvent, setActiveEvent] = useState<TimelineEvent | null>(null);
+  const [activeScripture, setActiveScripture] = useState<VerseReference | null>(null);
 
   const backdropOpacity = useRef(new Animated.Value(0)).current;
   const sheetTranslateY = useRef(new Animated.Value(900)).current;
@@ -315,16 +318,7 @@ export default function HistoricalContextScreen() {
   const handleScripturePress = (ref: string) => {
     const parsed = parseBibleReference(ref);
     if (!parsed) return;
-    closeModal();
-    router.push({
-      pathname: '/bible',
-      params: {
-        book: parsed.book,
-        chapter: String(parsed.chapter),
-        ...(parsed.verse ? { verse: String(parsed.verse) } : {}),
-        ...(parsed.endVerse ? { endVerse: String(parsed.endVerse) } : {}),
-      },
-    });
+    setActiveScripture(parsed);
   };
 
   const eraColor = activeEra ? (ERA_CONFIG[activeEra.id]?.color ?? '#E8A838') : '#E8A838';
@@ -519,11 +513,17 @@ export default function HistoricalContextScreen() {
               )}
             </ScrollView>
           </Animated.View>
-        </View>
-      </Modal>
-    </View>
-  );
-}
+</View>
+       </Modal>
+
+      <VerseTextModal
+        reference={activeScripture}
+        onClose={() => setActiveScripture(null)}
+        accentColor={eraColor}
+      />
+     </View>
+   );
+ }
 
 // ─── Styles ────────────────────────────────────────────────────────────────────
 

@@ -1,4 +1,5 @@
 import { BuildingIcon } from '@/components/BuildingIcon';
+import ExploreDetailModal from '@/components/ExploreDetailModal';
 import GeographicOverviewCard from '@/components/GeographicOverviewCard';
 import HorizontalPlaceCard from '@/components/HorizontalPlaceCard';
 import ImageModal from '@/components/ImageModal';
@@ -6,7 +7,9 @@ import OutlineScrubber from '@/components/OutlineScrubber';
 import ReadTabContent from '@/components/ReadTabContent';
 import { extractHeadings } from '@/data/extractHeadings';
 import { preExileContext } from '@/data/preExileContext';
+import { preExileExplore } from '@/data/preExileExplore';
 import { keyPlaces as preExilicKeyPlaces, morePlaces as preExilicMorePlaces } from '@/data/preExilicPlaces';
+import { preExilicPlacesContent } from '@/data/preExilicPlacesContent';
 import { ImageBackground } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
@@ -97,6 +100,7 @@ const EXPLORE_CARDS = [
     subtitle: 'Kings, wars, and alliances in Judah',
     icon: Shield,
     image: require('../assets/Places/Canaanite Lands.jpg'),
+    content: preExileExplore['political-landscape'],
   },
   {
     id: 'spiritual-condition',
@@ -104,6 +108,7 @@ const EXPLORE_CARDS = [
     subtitle: 'Faithfulness, idolatry, and reform',
     icon: Flame,
     image: require('../assets/Aesthetics/isreal-Idolotary.png'),
+    content: preExileExplore['spiritual-condition'],
   },
   {
     id: 'key-figures',
@@ -111,6 +116,7 @@ const EXPLORE_CARDS = [
     subtitle: 'The kings, prophets, and leaders',
     icon: Users,
     image: require('../assets/Aesthetics/Bible.jpg'),
+    content: preExileExplore['key-figures'],
   },
   {
     id: 'historical-context',
@@ -118,8 +124,17 @@ const EXPLORE_CARDS = [
     subtitle: "Events that shaped Judah's final centuries",
     icon: Compass,
     image: require('../assets/Places/Ancient Jerusalem.jpg'),
+    content: preExileExplore['historical-context'],
   },
 ];
+
+const PLACE_CARDS = [...preExilicKeyPlaces, ...preExilicMorePlaces].map((place) => ({
+  id: place.id,
+  title: place.name.toUpperCase(),
+  subtitle: place.role,
+  image: place.image,
+  content: (preExilicPlacesContent as Record<string, string>)[place.id],
+}));
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -503,17 +518,17 @@ export default function PreExilicDetailScreen() {
         images={[require('../assets/Maps/pre_Exile.png')]}
         accentColor={ACCENT}
       />
-      <ImageModal
+      <ExploreDetailModal
         visible={exploreModalVisible}
         onClose={() => setExploreModalVisible(false)}
-        images={EXPLORE_CARDS.map((c) => c.image)}
+        cards={EXPLORE_CARDS}
         initialIndex={exploreModalIndex}
         accentColor={ACCENT}
       />
-      <ImageModal
+      <ExploreDetailModal
         visible={placesModalVisible}
         onClose={() => setPlacesModalVisible(false)}
-        images={[...preExilicKeyPlaces.map((p) => p.image), ...preExilicMorePlaces.map((p) => p.image)]}
+        cards={PLACE_CARDS}
         initialIndex={placesModalIndex}
         accentColor={ACCENT}
       />

@@ -81,7 +81,12 @@ export default function ContinueReadingRow({ progressMap = {} }) {
         }));
 
   return (
-    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.row}>
+    <ScrollView
+  horizontal
+  showsHorizontalScrollIndicator={false}
+  style={{ flexGrow: 0 }}
+  contentContainerStyle={styles.row}
+>
       {displayItems.map(({ chapter, progress }) => (
         <ContinueReadingCard key={chapter.id} chapter={chapter} progress={progress} />
       ))}
@@ -90,7 +95,7 @@ export default function ContinueReadingRow({ progressMap = {} }) {
 }
 
 const styles = StyleSheet.create({
-  row: { gap: 12, paddingHorizontal: 16, paddingVertical: 4 },
+  row: { gap: 12, paddingHorizontal: 16, paddingVertical: 4, alignItems: 'flex-start' },
   card: {
     width: 160,
     borderRadius: 16,

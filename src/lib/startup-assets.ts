@@ -44,15 +44,33 @@ function withTimeout<T>(promise: Promise<T>, timeoutMs: number) {
   ]);
 }
 
-export async function preloadStartupImages() {
+/**
+ * Preloads all startup images, reporting real progress as each one settles
+ * (loaded or failed) so callers can drive an honest progress indicator
+ * instead of a timed fake.
+ */
+export async function preloadStartupImages(onProgress?: (progress: number) => void) {
   const uniqueSources = Array.from(new Set(STARTUP_IMAGE_SOURCES));
+  const total = uniqueSources.length;
+  let settledCount = 0;
+
+  onProgress?.(0);
 
   await withTimeout(
     Promise.all(
       uniqueSources.map((source) =>
-        Image.loadAsync(source).catch(() => null)
+        Image.loadAsync(source)
+          .catch(() => null)
+          .finally(() => {
+            settledCount += 1;
+            onProgress?.(settledCount / total);
+          })
       )
     ),
     12000
   );
+
+  // Timeout path: any stragglers never got to report, so make sure the
+  // bar still reaches completion rather than stalling below 100%.
+  onProgress?.(1);
 }

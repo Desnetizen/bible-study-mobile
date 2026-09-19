@@ -229,7 +229,12 @@ export default function RecentActivityScreen() {
 
         {/* Filter Badges */}
         <Animated.View entering={FadeInDown.delay(100).springify()} style={styles.filterContainer}>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterScroll}>
+          <ScrollView
+  horizontal
+  showsHorizontalScrollIndicator={false}
+  style={{ flexGrow: 0 }}
+  contentContainerStyle={styles.filterScroll}
+>
             {(['all', 'completed', 'notes', 'bookmarks', 'explored'] as const).map((filter) => {
               const isActive = activeFilter === filter;
               return (
@@ -391,6 +396,7 @@ const styles = StyleSheet.create({
   filterScroll: {
     paddingHorizontal: 16,
     gap: 8,
+    alignItems: 'flex-start',
   },
   filterBadge: {
     paddingHorizontal: 14,

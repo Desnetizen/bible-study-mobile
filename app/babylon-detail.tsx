@@ -2,8 +2,11 @@ import { BuildingIcon } from '@/components/BuildingIcon';
 import OutlineScrubber from '@/components/OutlineScrubber';
 import ReadTabContent from '@/components/ReadTabContent';
 import { babylonContext } from '@/data/babylonContext';
+import { babylonExplore } from '@/data/babylonExplore';
 import { keyPlaces as babylonKeyPlaces, morePlaces as babylonMorePlaces } from '@/data/babylonPlaces';
+import { babylonPlacesContent } from '@/data/babylonPlacesContent';
 import { extractHeadings } from '@/data/extractHeadings';
+import ExploreDetailModal from '@/components/ExploreDetailModal';
 import GeographicOverviewCard from '@/components/GeographicOverviewCard';
 import HorizontalPlaceCard from '@/components/HorizontalPlaceCard';
 import ImageModal from '@/components/ImageModal';
@@ -55,11 +58,19 @@ const TIMELINE_NODES = [
 // ─── Explore Cards Data ─────────────────────────────────────────────────────────
 
 const EXPLORE_CARDS = [
-  { id: 'geopolitical-climate', title: 'GEOPOLITICAL CLIMATE', subtitle: "Assyria's fall and Babylon's rise to power", icon: Compass, image: require('../assets/Places/Babylon.png') },
-  { id: 'nebuchadnezzar-achievements', title: "NEBUCHADNEZZAR'S ACHIEVEMENTS", subtitle: 'The king who rebuilt an empire', icon: Crown, image: require('../assets/Places/Babylon.png') },
-  { id: 'belshazzar-controversy', title: 'THE BELSHAZZAR CONTROVERSY', subtitle: 'A forgotten king confirmed by history', icon: Flame, image: require('../assets/Places/Babylon.png') },
-  { id: 'fall-of-babylon', title: 'FALL OF BABYLON', subtitle: 'The writing on the wall', icon: ShieldAlert, image: require('../assets/Places/Babylon.png') },
+  { id: 'geopolitical-climate', title: 'GEOPOLITICAL CLIMATE', subtitle: "Assyria's fall and Babylon's rise to power", icon: Compass, image: require('../assets/Places/Babylon.png'), content: babylonExplore['geopolitical-climate'] },
+  { id: 'nebuchadnezzar-achievements', title: "NEBUCHADNEZZAR'S ACHIEVEMENTS", subtitle: 'The king who rebuilt an empire', icon: Crown, image: require('../assets/Places/Babylon.png'), content: babylonExplore['nebuchadnezzar-achievements'] },
+  { id: 'belshazzar-controversy', title: 'THE BELSHAZZAR CONTROVERSY', subtitle: 'A forgotten king confirmed by history', icon: Flame, image: require('../assets/Places/Babylon.png'), content: babylonExplore['belshazzar-controversy'] },
+  { id: 'fall-of-babylon', title: 'FALL OF BABYLON', subtitle: 'The writing on the wall', icon: ShieldAlert, image: require('../assets/Places/Babylon.png'), content: babylonExplore['fall-of-babylon'] },
 ];
+
+const PLACE_CARDS = [...babylonKeyPlaces, ...babylonMorePlaces].map((place) => ({
+  id: place.id,
+  title: place.name.toUpperCase(),
+  subtitle: place.role,
+  image: place.image,
+  content: (babylonPlacesContent as Record<string, string>)[place.id],
+}));
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -425,17 +436,17 @@ export default function BabylonDetailScreen() {
         images={[require('../assets/Maps/neo-babylon-empire.png')]}
         accentColor={ACCENT}
       />
-      <ImageModal
+      <ExploreDetailModal
         visible={exploreModalVisible}
         onClose={() => setExploreModalVisible(false)}
-        images={EXPLORE_CARDS.map((c) => c.image)}
+        cards={EXPLORE_CARDS}
         initialIndex={exploreModalIndex}
         accentColor={ACCENT}
       />
-      <ImageModal
+      <ExploreDetailModal
         visible={placesModalVisible}
         onClose={() => setPlacesModalVisible(false)}
-        images={[...babylonKeyPlaces.map((p) => p.image), ...babylonMorePlaces.map((p) => p.image)]}
+        cards={PLACE_CARDS}
         initialIndex={placesModalIndex}
         accentColor={ACCENT}
       />

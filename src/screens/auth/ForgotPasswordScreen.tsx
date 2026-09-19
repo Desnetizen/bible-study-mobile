@@ -13,43 +13,58 @@ import { Link } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '../../hooks/useAuth';
 
-export default function LoginScreen() {
+export default function ForgotPasswordScreen() {
   const insets = useSafeAreaInsets();
-  const { signIn } = useAuth();
+  const { requestPasswordReset } = useAuth();
 
   const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [errors, setErrors] = useState<{ email?: string; password?: string; general?: string }>({});
+  const [error, setError] = useState<string | undefined>();
   const [loading, setLoading] = useState(false);
+  const [sent, setSent] = useState(false);
 
   async function handleSubmit() {
-    const newErrors: typeof errors = {};
-
     if (!email) {
-      newErrors.email = 'Email is required';
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      newErrors.email = 'Please enter a valid email';
+      setError('Email is required');
+      return;
     }
-
-    if (!password) {
-      newErrors.password = 'Password is required';
-    }
-
-    if (Object.keys(newErrors).length > 0) {
-      setErrors(newErrors);
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      setError('Please enter a valid email');
       return;
     }
 
-    setErrors({});
+    setError(undefined);
     setLoading(true);
 
-    const { error } = await signIn(email, password);
+    const result = await requestPasswordReset(email);
 
-    if (error) {
-      setErrors({ general: error });
+    if (result.error) {
+      setError(result.error);
+    } else {
+      setSent(true);
     }
 
     setLoading(false);
+  }
+
+  if (sent) {
+    return (
+      <View style={styles.container}>
+        <View style={[styles.content, { paddingTop: insets.top + 60 }]}>
+          <Text style={styles.title}>Check Your Email</Text>
+          <Text style={styles.body}>
+            If an account exists for
+            <Text style={styles.emailHighlight}>{email}</Text>
+          </Text>
+          <Text style={styles.body}>
+            we have sent a link to reset your password. Follow it to choose a new one.
+          </Text>
+
+          <Link href={'/auth/login' as any} style={styles.backToLogin}>
+            <Text style={styles.backToLoginText}>Back to Sign In</Text>
+          </Link>
+        </View>
+      </View>
+    );
   }
 
   return (
@@ -58,12 +73,14 @@ export default function LoginScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
       <View style={[styles.content, { paddingTop: insets.top + 60 }]}>
-        <Text style={styles.title}>Welcome Back</Text>
-        <Text style={styles.subtitle}>Sign in to continue</Text>
+        <Text style={styles.title}>Reset Password</Text>
+        <Text style={styles.subtitle}>
+          Enter the email on your account and we will send you a link to reset your password.
+        </Text>
 
-        {errors.general && (
+        {error && (
           <View style={styles.errorBanner}>
-            <Text style={styles.errorBannerText}>{errors.general}</Text>
+            <Text style={styles.errorBannerText}>{error}</Text>
           </View>
         )}
 
@@ -71,37 +88,16 @@ export default function LoginScreen() {
           <View style={styles.field}>
             <Text style={styles.label}>Email</Text>
             <TextInput
-              style={[styles.input, errors.email && styles.inputError]}
+              style={[styles.input, error && styles.inputError]}
               value={email}
-              onChangeText={(text) => { setEmail(text); setErrors({}); }}
+              onChangeText={(text) => { setEmail(text); setError(undefined); }}
               placeholder="you@example.com"
               placeholderTextColor="#6b7a94"
               autoCapitalize="none"
               keyboardType="email-address"
               autoComplete="email"
             />
-            {errors.email && <Text style={styles.fieldError}>{errors.email}</Text>}
           </View>
-
-          <View style={styles.field}>
-            <Text style={styles.label}>Password</Text>
-            <TextInput
-              style={[styles.input, errors.password && styles.inputError]}
-              value={password}
-              onChangeText={(text) => { setPassword(text); setErrors({}); }}
-              placeholder="Enter your password"
-              placeholderTextColor="#6b7a94"
-              secureTextEntry
-              autoComplete="password"
-            />
-            {errors.password && <Text style={styles.fieldError}>{errors.password}</Text>}
-          </View>
-
-          <Link href={'/auth/forgot-password' as any} style={styles.forgotPassword}>
-            <Text style={styles.forgotPasswordText}>Forgot password?</Text>
-          </Link>
-
-          <View style={styles.divider} />
 
           <Pressable
             style={({ pressed }) => [
@@ -114,13 +110,12 @@ export default function LoginScreen() {
             {loading ? (
               <ActivityIndicator color="#ffffff" />
             ) : (
-              <Text style={styles.buttonText}>Sign In</Text>
+              <Text style={styles.buttonText}>Send Reset Link</Text>
             )}
           </Pressable>
 
           <View style={styles.footer}>
-            <Text style={styles.footerText}>Don&apos;t have an account? </Text>
-            <Link href={'/auth/signup' as any} style={styles.footerLink}>Sign Up</Link>
+            <Link href={'/auth/login' as any} style={styles.footerLink}>Back to Sign In</Link>
           </View>
         </View>
       </View>
@@ -147,6 +142,26 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#b6c9ea',
     marginBottom: 40,
+    lineHeight: 22,
+  },
+  body: {
+    fontSize: 16,
+    color: '#dde9ff',
+    lineHeight: 24,
+    marginBottom: 16,
+  },
+  emailHighlight: {
+    color: '#5fa5ff',
+    fontWeight: '600',
+  },
+  backToLogin: {
+    marginTop: 24,
+    alignSelf: 'flex-start',
+  },
+  backToLoginText: {
+    color: '#5fa5ff',
+    fontSize: 16,
+    fontWeight: '600',
   },
   errorBanner: {
     backgroundColor: 'rgba(239, 68, 68, 0.15)',
@@ -184,10 +199,6 @@ const styles = StyleSheet.create({
   inputError: {
     borderColor: 'rgba(239, 68, 68, 0.5)',
   },
-  fieldError: {
-    fontSize: 12,
-    color: '#F87171',
-  },
   button: {
     backgroundColor: '#2463ff',
     borderRadius: 8,
@@ -210,26 +221,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginTop: 16,
   },
-  footerText: {
-    color: '#b6c9ea',
-    fontSize: 14,
-  },
   footerLink: {
     color: '#5fa5ff',
     fontSize: 14,
     fontWeight: '600',
-  },
-  forgotPassword: {
-    alignSelf: 'flex-end',
-  },
-  forgotPasswordText: {
-    color: '#5fa5ff',
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  divider: {
-    height: 1,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    marginVertical: 8,
   },
 });

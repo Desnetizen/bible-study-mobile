@@ -6,7 +6,6 @@ import {
   View
 } from 'react-native';
 import Animated, {
-  cancelAnimation,
   Easing,
   runOnJS,
   useAnimatedReaction,
@@ -14,20 +13,22 @@ import Animated, {
   useDerivedValue,
   useSharedValue,
   withDelay,
-  withRepeat,
-  withSequence,
   withTiming,
 } from 'react-native-reanimated';
 
 import { PreparationLogoAnimation } from './PreparationLogoAnimation';
+import { SPLASH_MIN_DURATION_MS, SPLASH_TIMED_FILL_TARGET } from '../lib/splash-config';
 
 interface AnimatedSplashScreenProps {
   isReady: boolean;
+  /** Real fraction (0–1) of startup assets loaded so far. */
+  progress: number;
   onAnimationComplete: () => void;
 }
 
 export default function AnimatedSplashScreen({
   isReady,
+  progress,
   onAnimationComplete,
 }: AnimatedSplashScreenProps) {
   // Ref to capture latest onAnimationComplete callback (prevents stale closure)
@@ -51,7 +52,6 @@ export default function AnimatedSplashScreen({
   const imageOpacity = useSharedValue(0);
   const loadingBarWidth = useSharedValue(0);
   const loadingTextOpacity = useSharedValue(0);
-  const loadingBarGlow = useSharedValue(0.4);
 
   // Mirrors loadingBarWidth on the JS thread for the percentage label
   const [displayedPercent, setDisplayedPercent] = useState(0);
@@ -77,31 +77,15 @@ export default function AnimatedSplashScreen({
       withTiming(1, { duration: 500, easing: Easing.out(Easing.quad) })
     );
 
-    // 3. Animate loading bar — fill to ~70% quickly, then slow crawl
-    loadingBarWidth.value = withSequence(
-      withTiming(70, { duration: 1800, easing: Easing.bezier(0.25, 0.1, 0.25, 1) }),
-      withTiming(85, { duration: 2000, easing: Easing.out(Easing.quad) })
-    );
-
-    // 4. Subtle pulsing glow on loading bar
-    loadingBarGlow.value = withRepeat(
-      withSequence(
-        withTiming(0.8, { duration: 1000, easing: Easing.inOut(Easing.quad) }),
-        withTiming(0.4, { duration: 1000, easing: Easing.inOut(Easing.quad) })
-      ),
-      -1,
-      true
-    );
-
-    hasMounted.current = true;
-  }, [imageOpacity, loadingBarGlow, loadingBarWidth, loadingTextOpacity]);
-
-  // Cleanup for loadingBarGlow infinite repeat on unmount
-  useEffect(() => {
-    return () => {
-      cancelAnimation(loadingBarGlow);
-    };
-  }, [loadingBarGlow]);
+    // 3. Fill the loading bar at a steady, visible pace across the whole
+    // minimum splash duration. Stops just short of 100% — the exit
+    // animation (startExit, below) takes it the rest of the way once the
+    // app is actually ready, so a slow load never leaves it stalled at 100%.
+    loadingBarWidth.value = withTiming(SPLASH_TIMED_FILL_TARGET, {
+      duration: SPLASH_MIN_DURATION_MS,
+      easing: Easing.linear,
+    });
+  }, [imageOpacity, loadingBarWidth, loadingTextOpacity]);
 
   // Exit animation when app is ready
   const beginExitPortal = useCallback(() => {
@@ -130,9 +114,6 @@ export default function AnimatedSplashScreen({
     if (exitStartedRef.current) return;
     exitStartedRef.current = true;
 
-    // Cancel the infinite glow pulse
-    cancelAnimation(loadingBarGlow);
-
     // Smoothly complete the loading bar from current value to 100%.
     // Duration is proportional to remaining progress (~15ms per % remaining,
     // clamped to 400-1000ms) so the speedup feels natural.
@@ -152,7 +133,7 @@ export default function AnimatedSplashScreen({
         }
       }
     );
-  }, [beginExitPortal, loadingBarGlow, loadingBarWidth]);
+  }, [beginExitPortal, loadingBarWidth]);
 
   useEffect(() => {
     if (!isReady || wasReadyOnMount.current) {
@@ -163,10 +144,6 @@ export default function AnimatedSplashScreen({
     }
 
     startExit();
-
-    return () => {
-      // Cleanup handled by cancelAnimation in the exit functions
-    };
   }, [isReady, startExit]);
 
   // Mirror the loading bar value onto the JS thread so the % label can render
@@ -198,10 +175,6 @@ export default function AnimatedSplashScreen({
 
   const animatedLoadingBarStyle = useAnimatedStyle(() => ({
     transform: [{ scaleX: loadingBarScale.value }],
-  }));
-
-  const animatedGlowStyle = useAnimatedStyle(() => ({
-    opacity: loadingBarGlow.value,
   }));
 
   const animatedLoadingTextStyle = useAnimatedStyle(() => ({
@@ -241,11 +214,6 @@ export default function AnimatedSplashScreen({
         locations={[0, 0.4, 1]}
         style={styles.bottomGradient}
       />
-
-      {/* Glow strip behind the track (outside overflow:hidden so shadows aren't clipped) */}
-      <View style={styles.glowContainer} pointerEvents="none">
-        <Animated.View style={[styles.glowBar, animatedGlowStyle]} />
-      </View>
 
       {/* Loading bar + text at bottom */}
       <View style={styles.loadingContainer}>
@@ -292,7 +260,7 @@ const styles = StyleSheet.create({
   },
   logoAnimationContainer: {
     position: 'absolute',
-    top: 32,
+    top: 20,
     left: 0,
     right: 0,
     bottom: 128,
@@ -301,8 +269,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   logoAnimation: {
-    width: '100%',
-    maxWidth: 560,
+    // Sized relative to screen width with sane floor/ceiling so it reads
+    // clearly on small phones without dominating larger screens.
+    width: '60%',
+    minWidth: 160,
+    maxWidth: 260,
     aspectRatio: 1,
   },
   loadingContainer: {
@@ -314,38 +285,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 60,
     gap: 12,
   },
-  glowContainer: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    // Offset 6px below the loadingBarTrack so its shadow isn't clipped
-    // by the track's overflow:hidden. The glowBar inside is centered.
-    bottom: -6,
-    height: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-    // Elevation gives Android a static drop shadow; the pulsing effect comes
-    // from animating the View's opacity on iOS (shadowOpacity is animated too).
-  },
-  glowBar: {
-    width: '100%',
-    height: 16,
-    backgroundColor: '#d6a747',
-    borderRadius: 8,
-    shadowColor: '#d6a747',
-    shadowOffset: { width: 0, height: 0 },
-    shadowRadius: 12,
-    shadowOpacity: 1,
-    // elevation is not animated on Android, but the glowOpacity animation
-    // still works via the View's own opacity (animatedGlowStyle above).
-    // On iOS the shadowOpacity animates too.
-    elevation: 4,
-  },
   loadingBarTrack: {
     width: '100%',
-    height: 4,
-    backgroundColor: 'rgba(255, 255, 255, 0.08)',
-    borderRadius: 2,
+    height: 6,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 3,
     overflow: 'hidden',
   },
   loadingBarOriginWrapper: {
@@ -355,12 +299,11 @@ const styles = StyleSheet.create({
   },
   loadingBarFill: {
     height: '100%',
-    borderRadius: 2,
-    // Shadow removed from fill — it's now handled by glowContainer behind the track
+    borderRadius: 3,
   },
   loadingBarGradient: {
     flex: 1,
-    borderRadius: 2,
+    borderRadius: 3,
   },
   loadingText: {
     color: 'rgba(255, 255, 255, 0.55)',

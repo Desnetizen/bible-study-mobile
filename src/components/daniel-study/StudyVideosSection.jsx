@@ -213,14 +213,24 @@ export default function StudyVideosSection({ progressMap = {} }) {
       </View>
 
       <Text style={styles.subheading}>Continue Watching</Text>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.row}>
+      <ScrollView
+  horizontal
+  showsHorizontalScrollIndicator={false}
+  style={{ flexGrow: 0 }}
+  contentContainerStyle={styles.row}
+>
         {continueWatching.map(({ video, badgeText }) => (
           <VideoThumbCard key={video.id} video={video} badgeText={badgeText} />
         ))}
       </ScrollView>
 
       <Text style={styles.subheading}>Browse by Category</Text>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.row}>
+      <ScrollView
+  horizontal
+  showsHorizontalScrollIndicator={false}
+  style={{ flexGrow: 0 }}
+  contentContainerStyle={styles.row}
+>
         {VIDEO_CATEGORIES.map((category) => (
           <CategoryChip key={category.id} category={category} />
         ))}
@@ -306,7 +316,7 @@ const styles = StyleSheet.create({
   featuredSubtitle: { color: '#CBD5E1', fontFamily: 'Inter', fontSize: 12, fontWeight: '500' },
 
   // Rows
-  row: { gap: 12, paddingHorizontal: 16, paddingVertical: 4 },
+  row: { gap: 12, paddingHorizontal: 16, paddingVertical: 4, alignItems: 'flex-start' },
 
   // Continue watching thumb card
   thumbCard: { width: 150 },

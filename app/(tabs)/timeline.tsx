@@ -562,6 +562,27 @@ export default function TimelineScreen() {
                   <LinkedText text={activeEvent.danielConnection} style={styles.connectionText} />
                 </View>
               )}
+
+              {activeEvent && activeEvent.historicalContext && (
+                <View style={styles.sheetSection}>
+                  <Text style={styles.sheetSectionTitle}>Historical Context</Text>
+                  <LinkedText text={activeEvent.historicalContext} style={styles.descriptionParagraph} />
+                </View>
+              )}
+
+              {activeEvent && activeEvent.historicalSignificance && (
+                <View style={styles.sheetSection}>
+                  <Text style={styles.sheetSectionTitle}>Historical Significance</Text>
+                  <LinkedText text={activeEvent.historicalSignificance} style={styles.descriptionParagraph} />
+                </View>
+              )}
+
+              {activeEvent && activeEvent.interpretiveNote && (
+                <View style={styles.sheetSection}>
+                  <Text style={styles.sheetSectionTitle}>Interpretive Note</Text>
+                  <LinkedText text={activeEvent.interpretiveNote} style={styles.descriptionParagraph} />
+                </View>
+              )}
             </ScrollView>
           </Animated.View>
         </View>

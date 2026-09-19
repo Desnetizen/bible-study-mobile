@@ -1,0 +1,72 @@
+// Place-profile content for the Babylon (Neo-Babylonian) period. Keyed by
+// PlaceEntry.id from src/data/babylonPlaces.ts.
+
+export const babylonPlacesContent = {
+  babylon: `Daniel spent the greater part of his long life in Babylon, and the city his book describes was, by any ancient measure, the most extraordinary urban achievement of its age. Straddling the Euphrates, connected by a bridge and encircled by walls Herodotus claimed were wide enough for a chariot to turn around upon, Babylon in Nebuchadnezzar's reign was rebuilt on a scale meant to advertise imperial permanence itself.
+
+### A City of Processions and Gates
+At the heart of the city stood the temple complex of Marduk, Babylon's patron god, alongside the towering ziggurat Etemenanke, whose ruins likely inspired later traditions about the Tower of Babel even though that earlier structure belonged to a much older period of Mesopotamian history. The Processional Way, a broad ceremonial avenue paved with limestone and breccia, ran from the Ishtar Gate through the city toward the temple precinct, its route lined with glazed brick reliefs of lions sacred to the goddess Ishtar. It was along streets very much like these that the exiled Judean nobility, Daniel among them, would have walked as new residents of the empire's capital, their own Temple in Jerusalem still standing when they first arrived but already living under the shadow of the power that would eventually destroy it.
+
+### The King's Confession
+Nebuchadnezzar's own building inscriptions repeatedly credit the city's grandeur to his own strength and glory, language that finds a striking, almost verbatim echo in Daniel's account of the king's pride just before his humbling.
+
+"The king spake, and said, Is not this great Babylon, that I have built for the house of the kingdom by the might of my power, and for the honour of my majesty?" — Daniel 4:30
+
+Babylon remained Daniel's home for the entirety of the Neo-Babylonian dynasty and into the Persian period that followed its fall in 539 BC, making the city, for all its association with exile and idolatry, the setting in which nearly the whole of Daniel's recorded life and ministry unfolded.`,
+
+  carchemish: `Carchemish sat on the upper Euphrates, at a natural crossing point that had made it a prize of ancient Near Eastern warfare for well over a thousand years before Nebuchadnezzar ever marched against it. Originally a major Hittite and later Neo-Hittite city, its location controlling river traffic and overland trade routes between Mesopotamia and the Mediterranean coast ensured that whoever held Carchemish held a decisive strategic advantage over the entire northern Levant.
+
+### The Battle That Remade the Near East
+In 605 BC, that advantage belonged, for one final and decisive engagement, to Babylon. Pharaoh Necho II of Egypt, having already cost Judah's King Josiah his life at Megiddo four years earlier while marching to prop up the crumbling remnant of the Assyrian empire, positioned his forces at Carchemish to make a final stand against Babylonian expansion. Nebuchadnezzar, still crown prince at the time and acting on his father Nabopolassar's behalf, led the Babylonian army to a victory so complete that Egypt would not seriously challenge Babylonian control of Syria-Palestine again for a generation.
+
+"The king of Egypt came not again any more out of his land: for the king of Babylon had taken from the river of Egypt unto the river Euphrates all that pertained to the king of Egypt." — 2 Kings 24:7
+
+Jeremiah, writing from Jerusalem, described the scale of Egypt's defeat in an oracle specifically dated to this battle, portraying Pharaoh's army as a great river overflowing its banks only to be driven back in humiliation (Jeremiah 46:2-12). Word of Nabopolassar's death reached Nebuchadnezzar in the immediate aftermath of the battle, and rather than press his advantage further south, he raced home to secure the Babylonian throne, pausing only to accept the submission of the small kingdoms in his path. It is this single battle, more than any other event of the period, that opened the road from Carchemish all the way to Jerusalem's gates.`,
+
+  jerusalem: `The Jerusalem of the Babylonian period is a city measured out in three successive traumas, each one carrying the covenant people further from the political and religious independence they had known under David and Solomon.
+
+### Three Deportations
+The first deportation came in 605 BC, immediately after Carchemish, when Nebuchadnezzar took hostages and Temple vessels along with a group of promising young nobles, Daniel and his three companions among them (Daniel 1:1-6). The second came in 597 BC, after King Jehoiakim's son Jehoiachin rebelled and quickly surrendered; this time Nebuchadnezzar deported the young king himself along with much of Judah's remaining elite, some ten thousand people by the account in 2 Kings 24:14, and installed Zedekiah as a client ruler in his place. The third and final deportation followed Zedekiah's own rebellion, ending in an eighteen-month siege, the breaching of Jerusalem's walls, and the burning of the Temple in 586 BC (2 Kings 25:1-10).
+
+### The End of Davidic Rule
+Zedekiah's fate captures the totality of the collapse. Captured while fleeing the city, he was forced to watch his own sons executed before Babylonian soldiers blinded him, a punishment meant to erase both his sight and his line in a single stroke (2 Kings 25:6-7). Nebuchadnezzar appointed Gedaliah, a Judean official rather than a Davidic descendant, as governor over the shattered remnant left in the land, but even this modest arrangement collapsed within months when Gedaliah was assassinated by a member of the royal family, prompting many of the remaining Judeans to flee to Egypt in fear of Babylonian reprisal (2 Kings 25:22-26; Jeremiah 41-43).
+
+"Then all the people, both small and great... arose, and came to Egypt: for they were afraid of the Chaldees." — Jeremiah 43:5
+
+The land itself, the Chronicler notes with theological weight, finally received the sabbath rests it had long been denied, lying desolate for seventy years in fulfillment of the covenant curse against neglected sabbatical years (2 Chronicles 36:21; Leviticus 26:34-35). Jerusalem's fall thus closed not only a political era but, in the biblical writers' own understanding, a debt owed across centuries of covenant neglect.`,
+
+  susa: `Susa's appearance in a chapter devoted to Babylon reflects one of the more debated details in the book of Daniel. The vision of the ram and the goat, dated to the third year of Belshazzar and therefore still within the Neo-Babylonian period, places Daniel at Susa at the moment of its reception.
+
+"And I saw in a vision; and it came to pass, when I saw, that I was at Shushan in the palace, which is in the province of Elam." — Daniel 8:2
+
+At the time of this vision, Susa lay within Elamite and, by extension, Babylonian-controlled territory, not yet the celebrated Persian capital it would become under Darius I decades later. Interpreters have long debated whether Daniel understood himself to be physically present in Susa, perhaps on an official errand for the Babylonian court, or whether the vision itself transported him there in an experience of prophetic sight rather than literal travel, a question the text does not resolve with certainty either way.
+
+### A City's Future Already Visible
+What makes Daniel's presence in Susa striking, whatever its precise nature, is the way it anticipates the city's later importance. Within a generation of Babylon's fall, Susa would become one of the Achaemenid Persian Empire's principal capitals, the setting for the book of Esther's royal court and the site where Nehemiah served as cupbearer before receiving permission to return and rebuild Jerusalem's walls (Nehemiah 1:1; 2:1-8). Daniel's vision at Susa, received while Babylon still ruled the world, effectively previews the very transition of power from Babylon to Persia that the vision's own content, the ram overthrown by the goat, goes on to describe. Few details in the book illustrate its interwoven structure as economically as this quiet geographical note, linking a place Daniel visits in one empire to the future capital of the empire that would replace it.`,
+
+  ur: `Ur's association with the Babylonian period is, in one sense, a matter of ancient inheritance rather than contemporary importance. By Nebuchadnezzar's day, Ur had already stood for well over a thousand years, its greatest era of Sumerian glory long past, yet the city retained enough religious significance that the Neo-Babylonian kings continued to invest in its restoration.
+
+### Abraham's Birthplace
+Genesis identifies Ur of the Chaldees as Abraham's original home before his family migrated to Haran and, eventually, to Canaan (Genesis 11:28-31). Sir Leonard Woolley's excavations at the site during the 1920s and 1930s uncovered the so-called Royal Tombs of Ur, Sumerian burials from centuries before Abraham's traditional dating, filled with gold jewelry, musical instruments, and, more grimly, the remains of attendants apparently sacrificed to accompany their rulers into death, offering a vivid, if unsettling, picture of the world Abraham's ancestors would have known.
+
+### A Center of Moon-God Devotion
+By the Neo-Babylonian period, Ur remained an important cultic center for the worship of Sin, the Mesopotamian moon god, a devotion that carries a surprising connection to the later Belshazzar narrative. Nabonidus, Babylon's last king and Belshazzar's father, held an unusually intense personal devotion to Sin, restoring temples to the god at both Ur and Harran and, according to his own inscriptions, elevating Sin above Marduk in ways that alienated Babylon's traditional priesthood. Cylinders recovered at Ur, commissioned by Nabonidus himself, name Belshazzar directly and ask the moon god's blessing on him as firstborn son, among the very documents that eventually confirmed Belshazzar's historical existence and coregent status. Ur thus connects two distant threads of Scripture, standing at the beginning of the patriarchal narrative in Genesis and, many centuries later, quietly corroborating a detail of Daniel's account of Babylon's final king.`,
+
+  nineveh: `Nineveh's fall, not its rise, is what ties the city most directly to the Babylonian period, though its earlier history casts a long shadow across the biblical narrative that precedes Babylon's own ascendancy.
+
+### A City Twice Warned
+Centuries before its final destruction, Nineveh had already featured in one of the Old Testament's most memorable narratives, when the reluctant prophet Jonah was sent to warn the city of coming judgment, provoking, to the prophet's evident surprise, genuine repentance across the entire population, "from the greatest of them even to the least of them" (Jonah 3:5). That repentance and the reprieve it earned did not last across the generations that followed. By the seventh century BC, Nineveh had become the capital of an Assyrian empire notorious across the ancient Near East for calculated cruelty toward conquered peoples, and the prophet Nahum announced its coming ruin in language stripped of any of the sympathy Jonah's story had shown a century or more earlier.
+
+"Woe to the bloody city! it is all full of lies and robbery; the prey departeth not." — Nahum 3:1
+
+### Destruction and Discovery
+Nineveh fell in 612 BC to the combined forces of Nabopolassar's rising Babylon and Cyaxares' Medes, an event so thorough that later Greek writers had largely forgotten the city's exact location until nineteenth-century archaeologists, chiefly Austen Henry Layard and Hormuzd Rassam, rediscovered its ruins. Their excavations recovered the library of Ashurbanipal, tens of thousands of cuneiform tablets that remain, to this day, one of the single richest sources of Mesopotamian literature, law, and history ever unearthed. Nineveh's collapse cleared the path for Babylon's own rise to imperial dominance, making the Assyrian capital's destruction, in a real sense, the opening act of the very empire that would later carry Judah into exile.`,
+
+  'hanging-gardens': `Among the seven wonders of the ancient world catalogued by later Greek writers, none has proven harder to locate archaeologically than the Hanging Gardens, traditionally credited to Nebuchadnezzar and said to have graced his palace in Babylon itself.
+
+### A Gift for a Homesick Queen
+Later tradition, recorded by the Babylonian priest-historian Berossus and repeated by the Greek writers Diodorus Siculus and Strabo, held that Nebuchadnezzar built the gardens to comfort his wife, said in some accounts to be a Median princess named Amytis, who missed the mountainous, green landscape of her homeland amid Babylon's flat river plain. The gardens were described as a series of terraced platforms, planted with trees and irrigated by an elaborate mechanism drawing water up from the Euphrates, engineered to create the visual impression of a verdant hillside rising out of the middle of the city.
+
+### A Wonder Without a Confirmed Location
+Despite extensive excavation at Babylon itself, archaeologists have never definitively identified physical remains matching these ancient descriptions, a gap that has led some scholars to doubt whether the gardens ever stood in Babylon at all. The historian Stephanie Dalley has argued, based on her study of Assyrian royal inscriptions, that the gardens described by Greek writers actually belonged to Sennacherib's palace at Nineveh nearly a century before Nebuchadnezzar's reign, and that later tradition simply misattributed the achievement to the more famous Babylonian king. Whatever the resolution of this scholarly puzzle, Nebuchadnezzar's own inscriptions leave no doubt that he undertook building projects on a scale calculated to inspire exactly this kind of legendary elaboration, boasting repeatedly of the grandeur he had brought to Babylon by "the might of my power" (Daniel 4:30), language his contemporaries would have recognized as entirely consistent with a king capable of engineering wonders, whether or not this particular one belonged to his own capital.`,
+};

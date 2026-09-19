@@ -74,35 +74,60 @@ const renderRays = () => {
   return rays;
 };
 
-function Particle({ color, delay, startX, screenWidth, screenHeight }) {
+// Depends on nothing, so build it once instead of on every render.
+const RAYS = renderRays();
+
+const PARTICLE_COLORS = ['#fde68a', '#93c5fd', '#6ee7b7', '#f9a8d4', '#c4b5fd', '#fca5a5', '#fdba74'];
+const PARTICLE_SHAPES = ['\u25a0', '\u25cf', '\u25b2', '\u25c6', '\u2605'];
+
+function makeParticles(count = 28) {
+  return Array.from({ length: count }, (_, i) => ({
+    id: i,
+    color: PARTICLE_COLORS[i % PARTICLE_COLORS.length],
+    shape: PARTICLE_SHAPES[Math.floor(Math.random() * PARTICLE_SHAPES.length)],
+    fontSize: 10 + Math.random() * 10,
+    delay: Math.random() * 220,
+    startX: (Math.random() - 0.5) * 60,
+  }));
+}
+
+function Particle({ color, shape, fontSize, delay, startX, screenWidth, screenHeight }) {
   const translateY = useRef(new Animated.Value(0)).current;
   const translateX = useRef(new Animated.Value(0)).current;
   const opacity = useRef(new Animated.Value(0)).current;
   const scale = useRef(new Animated.Value(0)).current;
   const rotate = useRef(new Animated.Value(0)).current;
 
+  // Captured once. Reading these from props inside the effect would restart
+  // every particle mid-flight whenever the window dimensions change.
+  const flight = useRef({
+    endX: (Math.random() - 0.5) * screenWidth * 0.9,
+    endY: -(screenHeight * 0.55 + Math.random() * screenHeight * 0.25),
+    scaleTo: 0.6 + Math.random() * 0.8,
+    riseDuration: 1100 + Math.random() * 500,
+    spin: (Math.random() - 0.5) * 6,
+  }).current;
+
   useEffect(() => {
-    const endX = (Math.random() - 0.5) * screenWidth * 0.9;
-    const endY = -(screenHeight * 0.55 + Math.random() * screenHeight * 0.25);
-    Animated.sequence([
+    const anim = Animated.sequence([
       Animated.delay(delay),
       Animated.parallel([
         Animated.timing(opacity, { toValue: 1, duration: 180, useNativeDriver: true }),
-        Animated.spring(scale, { toValue: 0.6 + Math.random() * 0.8, friction: 4, useNativeDriver: true }),
-        Animated.timing(translateY, { toValue: endY, duration: 1100 + Math.random() * 500, easing: Easing.out(Easing.quad), useNativeDriver: true }),
-        Animated.timing(translateX, { toValue: endX, duration: 1100 + Math.random() * 500, easing: Easing.out(Easing.quad), useNativeDriver: true }),
-        Animated.timing(rotate, { toValue: (Math.random() - 0.5) * 6, duration: 1200, useNativeDriver: true }),
+        Animated.spring(scale, { toValue: flight.scaleTo, friction: 4, useNativeDriver: true }),
+        Animated.timing(translateY, { toValue: flight.endY, duration: flight.riseDuration, easing: Easing.out(Easing.quad), useNativeDriver: true }),
+        Animated.timing(translateX, { toValue: flight.endX, duration: flight.riseDuration, easing: Easing.out(Easing.quad), useNativeDriver: true }),
+        Animated.timing(rotate, { toValue: flight.spin, duration: 1200, useNativeDriver: true }),
         Animated.sequence([
           Animated.delay(700),
           Animated.timing(opacity, { toValue: 0, duration: 500, useNativeDriver: true }),
         ]),
       ]),
-    ]).start();
-  }, [delay, opacity, rotate, scale, screenHeight, screenWidth, startX, translateX, translateY]);
+    ]);
+    anim.start();
+    return () => anim.stop();
+  }, [delay, flight, opacity, rotate, scale, translateX, translateY]);
 
   const rotateDeg = rotate.interpolate({ inputRange: [-6, 6], outputRange: ['-360deg', '360deg'] });
-  const shapes = ['■', '●', '▲', '◆', '★'];
-  const shape = shapes[Math.floor(Math.random() * shapes.length)];
 
   return (
     <Animated.Text
@@ -111,7 +136,7 @@ function Particle({ color, delay, startX, screenWidth, screenHeight }) {
         bottom: 0,
         left: screenWidth / 2 + startX,
         color,
-        fontSize: 10 + Math.random() * 10,
+        fontSize,
         opacity,
         transform: [{ translateX }, { translateY }, { scale }, { rotate: rotateDeg }],
       }}>
@@ -128,10 +153,12 @@ function RingBurst({ visible }) {
     if (!visible) return;
     scale.setValue(0.3);
     opacity.setValue(0.9);
-    Animated.parallel([
+    const anim = Animated.parallel([
       Animated.timing(scale, { toValue: 2.2, duration: 700, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
       Animated.timing(opacity, { toValue: 0, duration: 700, useNativeDriver: true }),
-    ]).start();
+    ]);
+    anim.start();
+    return () => anim.stop();
   }, [opacity, scale, visible]);
 
   return (
@@ -144,7 +171,6 @@ function RingBurst({ visible }) {
         borderRadius: 90,
         borderWidth: 3,
         borderColor: '#fde68a',
-        alignSelf: 'center',
         opacity,
         transform: [{ scale }],
       }}
@@ -179,21 +205,8 @@ export default function ChapterCompleteModal({ visible, chapter, totalChapters =
   const isLastChapter = chapter >= totalChapters;
   const progressPercent = chapter / totalChapters;
 
-  const prevVisibleRef = useRef(false);
-  if (visible && !prevVisibleRef.current) {
-    prevVisibleRef.current = true;
-    setInternalVisible(true);
-    const COLORS = ['#fde68a', '#93c5fd', '#6ee7b7', '#f9a8d4', '#c4b5fd', '#fca5a5', '#fdba74'];
-    setParticles(Array.from({ length: 28 }, (_, i) => ({
-      id: i,
-      color: COLORS[i % COLORS.length],
-      delay: Math.random() * 220,
-      startX: (Math.random() - 0.5) * 60,
-    })));
-    setBurstKey((k) => k + 1);
-  } else if (!visible && prevVisibleRef.current) {
-    prevVisibleRef.current = false;
-  }
+  const exitAnimRef = useRef(null);
+  const hasOpenedRef = useRef(false);
 
   useEffect(() => {
     if (!internalVisible || reducedMotion) return;
@@ -227,7 +240,13 @@ export default function ChapterCompleteModal({ visible, chapter, totalChapters =
   }, [glowPulse, rayRotation, internalVisible, reducedMotion]);
 
   useEffect(() => {
-    if (visible && internalVisible) {
+    if (visible) {
+      // A close may still be running. Cancel it so its completion callback
+      // cannot unmount the modal in the middle of this entrance.
+      exitAnimRef.current?.stop();
+      exitAnimRef.current = null;
+      hasOpenedRef.current = true;
+
       if (reducedMotion) {
         backdropOpacity.setValue(1);
         cardScale.setValue(1);
@@ -239,9 +258,13 @@ export default function ChapterCompleteModal({ visible, chapter, totalChapters =
         messageOpacity.setValue(1);
         actionsOpacity.setValue(1);
         progressWidth.setValue(progressPercent);
+        setParticles([]);
+        setInternalVisible(true);
         return;
       }
 
+      // Reset synchronously, before the commit that mounts the modal, so the
+      // first painted frame is the start of the animation and not its end.
       backdropOpacity.setValue(0);
       cardScale.setValue(0.72);
       cardOpacity.setValue(0);
@@ -253,46 +276,65 @@ export default function ChapterCompleteModal({ visible, chapter, totalChapters =
       actionsOpacity.setValue(0);
       progressWidth.setValue(0);
 
-      Animated.parallel([
-        Animated.timing(backdropOpacity, { toValue: 1, duration: 320, useNativeDriver: true }),
-        Animated.sequence([
-          Animated.delay(80),
-          Animated.parallel([
-            Animated.spring(cardScale, { toValue: 1, friction: 7, tension: 65, useNativeDriver: true }),
-            Animated.timing(cardOpacity, { toValue: 1, duration: 280, useNativeDriver: true }),
-            Animated.timing(cardTranslateY, { toValue: 0, duration: 380, easing: Easing.out(Easing.back(1.4)), useNativeDriver: true }),
+      setParticles(makeParticles());
+      setBurstKey((k) => k + 1);
+      setInternalVisible(true);
+
+      const entrance = [
+        Animated.parallel([
+          Animated.timing(backdropOpacity, { toValue: 1, duration: 320, useNativeDriver: true }),
+          Animated.sequence([
+            Animated.delay(80),
+            Animated.parallel([
+              Animated.spring(cardScale, { toValue: 1, friction: 7, tension: 65, useNativeDriver: true }),
+              Animated.timing(cardOpacity, { toValue: 1, duration: 280, useNativeDriver: true }),
+              Animated.timing(cardTranslateY, { toValue: 0, duration: 380, easing: Easing.out(Easing.back(1.4)), useNativeDriver: true }),
+            ]),
           ]),
         ]),
-      ]).start();
-
-      Animated.sequence([Animated.delay(260), Animated.spring(iconBounce, { toValue: 1, friction: 4, tension: 80, useNativeDriver: true })]).start();
-      Animated.sequence([Animated.delay(380), Animated.parallel([
-        Animated.timing(titleOpacity, { toValue: 1, duration: 300, useNativeDriver: true }),
-        Animated.timing(titleTranslateY, { toValue: 0, duration: 300, easing: Easing.out(Easing.quad), useNativeDriver: true }),
-      ])]).start();
-      Animated.sequence([Animated.delay(520), Animated.timing(messageOpacity, { toValue: 1, duration: 340, useNativeDriver: true })]).start();
-      Animated.sequence([Animated.delay(680), Animated.timing(actionsOpacity, { toValue: 1, duration: 300, useNativeDriver: true })]).start();
-      Animated.sequence([Animated.delay(500), Animated.timing(progressWidth, { toValue: progressPercent, duration: 700, easing: Easing.out(Easing.cubic), useNativeDriver: false })]).start();
-    } else if (!visible && internalVisible) {
-      if (reducedMotion) {
-        setInternalVisible(false);
-        return;
-      }
-      Animated.parallel([
-        Animated.timing(backdropOpacity, { toValue: 0, duration: 240, useNativeDriver: true }),
-        Animated.timing(cardOpacity, { toValue: 0, duration: 200, useNativeDriver: true }),
-        Animated.timing(cardScale, { toValue: 0.88, duration: 220, useNativeDriver: true }),
-      ]).start(() => setInternalVisible(false));
+        Animated.sequence([Animated.delay(260), Animated.spring(iconBounce, { toValue: 1, friction: 4, tension: 80, useNativeDriver: true })]),
+        Animated.sequence([Animated.delay(380), Animated.parallel([
+          Animated.timing(titleOpacity, { toValue: 1, duration: 300, useNativeDriver: true }),
+          Animated.timing(titleTranslateY, { toValue: 0, duration: 300, easing: Easing.out(Easing.quad), useNativeDriver: true }),
+        ])]),
+        Animated.sequence([Animated.delay(520), Animated.timing(messageOpacity, { toValue: 1, duration: 340, useNativeDriver: true })]),
+        Animated.sequence([Animated.delay(680), Animated.timing(actionsOpacity, { toValue: 1, duration: 300, useNativeDriver: true })]),
+        Animated.sequence([Animated.delay(500), Animated.timing(progressWidth, { toValue: progressPercent, duration: 700, easing: Easing.out(Easing.cubic), useNativeDriver: false })]),
+      ];
+      entrance.forEach((a) => a.start());
+      return () => entrance.forEach((a) => a.stop());
     }
+
+    // Nothing to close on first mount.
+    if (!hasOpenedRef.current) return;
+
+    if (reducedMotion) {
+      setInternalVisible(false);
+      setParticles([]);
+      return;
+    }
+
+    const exit = Animated.parallel([
+      Animated.timing(backdropOpacity, { toValue: 0, duration: 240, useNativeDriver: true }),
+      Animated.timing(cardOpacity, { toValue: 0, duration: 200, useNativeDriver: true }),
+      Animated.timing(cardScale, { toValue: 0.88, duration: 220, useNativeDriver: true }),
+    ]);
+    exitAnimRef.current = exit;
+    exit.start(({ finished }) => {
+      // An interrupted close still fires this callback, with finished === false.
+      if (!finished) return;
+      exitAnimRef.current = null;
+      setInternalVisible(false);
+      setParticles([]);
+    });
+    return () => exit.stop();
   }, [
     actionsOpacity,
     backdropOpacity,
     cardOpacity,
     cardScale,
     cardTranslateY,
-    glowPulse,
     iconBounce,
-    internalVisible,
     messageOpacity,
     progressPercent,
     progressWidth,
@@ -338,13 +380,6 @@ export default function ChapterCompleteModal({ visible, chapter, totalChapters =
                 backgroundColor: dark ? 'rgba(37,99,235,0.09)' : 'rgba(219,234,254,0.5)'
               }} />
 
-              <View pointerEvents="none" style={StyleSheet.absoluteFill}>
-                {!reducedMotion && particles.map((p) => (
-                  <Particle key={p.id} color={p.color} delay={p.delay} startX={p.startX} screenWidth={cardMaxWidth} screenHeight={screenHeight} />
-                ))}
-                {!reducedMotion && <RingBurst key={burstKey} visible={visible} />}
-              </View>
-
               <Animated.View pointerEvents="none" style={[styles.iconGlow, { backgroundColor: dark ? 'rgba(251,191,36,0.13)' : 'rgba(251,191,36,0.18)', transform: [{ scale: glowPulse }] }]} />
 
               <View style={[styles.chapterBadge, { backgroundColor: dark ? '#1e3a5f' : '#dbeafe' }]}>
@@ -372,6 +407,8 @@ export default function ChapterCompleteModal({ visible, chapter, totalChapters =
                   opacity: glowOpacity,
                 }} />
 
+                {!reducedMotion && <RingBurst key={burstKey} visible={visible} />}
+
                 {/* Rotating Sunburst Rays */}
                 <Animated.View pointerEvents="none" style={{
                   position: 'absolute',
@@ -382,7 +419,7 @@ export default function ChapterCompleteModal({ visible, chapter, totalChapters =
                   transform: [{ rotate: rayRotateInterpolate }],
                 }}>
                   <Svg width="240" height="240" viewBox="0 0 240 240">
-                    {renderRays()}
+                    {RAYS}
                   </Svg>
                 </Animated.View>
 
@@ -610,6 +647,25 @@ export default function ChapterCompleteModal({ visible, chapter, totalChapters =
 
             </Animated.View>
           </TouchableWithoutFeedback>
+
+          {/* Outside the card: styles.card sets overflow:'hidden', which was
+              clipping the burst a few hundred pixels into its flight. */}
+          {!reducedMotion && particles.length > 0 && (
+            <View pointerEvents="none" style={StyleSheet.absoluteFill}>
+              {particles.map((p) => (
+                <Particle
+                  key={`${burstKey}-${p.id}`}
+                  color={p.color}
+                  shape={p.shape}
+                  fontSize={p.fontSize}
+                  delay={p.delay}
+                  startX={p.startX}
+                  screenWidth={screenWidth}
+                  screenHeight={screenHeight}
+                />
+              ))}
+            </View>
+          )}
         </Animated.View>
       </TouchableWithoutFeedback>
     </Modal>

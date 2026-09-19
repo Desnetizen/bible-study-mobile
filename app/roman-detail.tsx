@@ -3,7 +3,10 @@ import OutlineScrubber from '@/components/OutlineScrubber';
 import ReadTabContent from '@/components/ReadTabContent';
 import { extractHeadings } from '@/data/extractHeadings';
 import { romanContext } from '@/data/romanContext';
+import { romanExplore } from '@/data/romanExplore';
 import { keyPlaces as romanKeyPlaces, morePlaces as romanMorePlaces } from '@/data/romanPlaces';
+import { romanPlacesContent } from '@/data/romanPlacesContent';
+import ExploreDetailModal from '@/components/ExploreDetailModal';
 import GeographicOverviewCard from '@/components/GeographicOverviewCard';
 import HorizontalPlaceCard from '@/components/HorizontalPlaceCard';
 import ImageModal from '@/components/ImageModal';
@@ -55,11 +58,19 @@ const TIMELINE_NODES = [
 // ─── Explore Cards Data ─────────────────────────────────────────────────────────
 
 const EXPLORE_CARDS = [
-  { id: 'daniels-visions-rome', title: "DANIEL'S VISIONS & ROME", subtitle: 'The iron legs and feet of mixed clay', icon: BookOpen, image: require('../assets/Places/Rome.jpg') },
-  { id: 'rome-crucifixion', title: 'ROME & THE CRUCIFIXION', subtitle: 'Pilate, the cross, and prophetic timing', icon: Flame, image: require('../assets/Places/Rome.jpg') },
-  { id: 'seventy-weeks', title: 'THE SEVENTY WEEKS', subtitle: "Daniel's countdown to the Messiah", icon: Clock, image: require('../assets/Places/Rome.jpg') },
-  { id: 'destruction-jerusalem', title: 'THE DESTRUCTION OF JERUSALEM', subtitle: 'Titus, AD 70, and the end of the temple', icon: BuildingIcon, image: require('../assets/Places/Rome.jpg') },
+  { id: 'daniels-visions-rome', title: "DANIEL'S VISIONS & ROME", subtitle: 'The iron legs and feet of mixed clay', icon: BookOpen, image: require('../assets/Places/Rome.jpg'), content: romanExplore['daniels-visions-rome'] },
+  { id: 'rome-crucifixion', title: 'ROME & THE CRUCIFIXION', subtitle: 'Pilate, the cross, and prophetic timing', icon: Flame, image: require('../assets/Places/Rome.jpg'), content: romanExplore['rome-crucifixion'] },
+  { id: 'seventy-weeks', title: 'THE SEVENTY WEEKS', subtitle: "Daniel's countdown to the Messiah", icon: Clock, image: require('../assets/Places/Rome.jpg'), content: romanExplore['seventy-weeks'] },
+  { id: 'destruction-jerusalem', title: 'THE DESTRUCTION OF JERUSALEM', subtitle: 'Titus, AD 70, and the end of the temple', icon: BuildingIcon, image: require('../assets/Places/Rome.jpg'), content: romanExplore['destruction-jerusalem'] },
 ];
+
+const PLACE_CARDS = [...romanKeyPlaces, ...romanMorePlaces].map((place) => ({
+  id: place.id,
+  title: place.name.toUpperCase(),
+  subtitle: place.role,
+  image: place.image,
+  content: (romanPlacesContent as Record<string, string>)[place.id],
+}));
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -425,17 +436,17 @@ export default function RomanDetailScreen() {
         images={[require('../assets/Maps/roman-empire.jpg')]}
         accentColor={ACCENT}
       />
-      <ImageModal
+      <ExploreDetailModal
         visible={exploreModalVisible}
         onClose={() => setExploreModalVisible(false)}
-        images={EXPLORE_CARDS.map((c) => c.image)}
+        cards={EXPLORE_CARDS}
         initialIndex={exploreModalIndex}
         accentColor={ACCENT}
       />
-      <ImageModal
+      <ExploreDetailModal
         visible={placesModalVisible}
         onClose={() => setPlacesModalVisible(false)}
-        images={[...romanKeyPlaces.map((p) => p.image), ...romanMorePlaces.map((p) => p.image)]}
+        cards={PLACE_CARDS}
         initialIndex={placesModalIndex}
         accentColor={ACCENT}
       />

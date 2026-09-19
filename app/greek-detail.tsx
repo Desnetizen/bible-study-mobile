@@ -2,7 +2,10 @@ import OutlineScrubber from '@/components/OutlineScrubber';
 import ReadTabContent from '@/components/ReadTabContent';
 import { extractHeadings } from '@/data/extractHeadings';
 import { greekContext } from '@/data/greekContext';
+import { greekExplore } from '@/data/greekExplore';
 import { keyPlaces as greekKeyPlaces, morePlaces as greekMorePlaces } from '@/data/greekPlaces';
+import { greekPlacesContent } from '@/data/greekPlacesContent';
+import ExploreDetailModal from '@/components/ExploreDetailModal';
 import GeographicOverviewCard from '@/components/GeographicOverviewCard';
 import HorizontalPlaceCard from '@/components/HorizontalPlaceCard';
 import ImageModal from '@/components/ImageModal';
@@ -55,11 +58,19 @@ const TIMELINE_NODES = [
 // ─── Explore Cards Data ─────────────────────────────────────────────────────────
 
 const EXPLORE_CARDS = [
-  { id: 'daniels-visions-greece', title: "DANIEL'S VISIONS & GREECE", subtitle: 'The bronze belly and thighs identified', icon: BookOpen, image: require('../assets/Places/Athens.jpg') },
-  { id: 'antiochus-epiphanes', title: 'ANTIOCHUS EPIPHANES', subtitle: 'The "little horn" who desecrated the temple', icon: Flame, image: require('../assets/Places/Athens.jpg') },
-  { id: 'extrabiblical-evidence', title: 'EXTRABIBLICAL EVIDENCE', subtitle: 'Greek and Maccabean historical sources', icon: Compass, image: require('../assets/Places/Athens.jpg') },
-  { id: 'theological-significance', title: 'THEOLOGICAL SIGNIFICANCE', subtitle: "Hellenism's clash with covenant faith", icon: Feather, image: require('../assets/Places/Athens.jpg') },
+  { id: 'daniels-visions-greece', title: "DANIEL'S VISIONS & GREECE", subtitle: 'The bronze belly and thighs identified', icon: BookOpen, image: require('../assets/Places/Athens.jpg'), content: greekExplore['daniels-visions-greece'] },
+  { id: 'antiochus-epiphanes', title: 'ANTIOCHUS EPIPHANES', subtitle: 'The "little horn" who desecrated the temple', icon: Flame, image: require('../assets/Places/Athens.jpg'), content: greekExplore['antiochus-epiphanes'] },
+  { id: 'extrabiblical-evidence', title: 'EXTRABIBLICAL EVIDENCE', subtitle: 'Greek and Maccabean historical sources', icon: Compass, image: require('../assets/Places/Athens.jpg'), content: greekExplore['extrabiblical-evidence'] },
+  { id: 'theological-significance', title: 'THEOLOGICAL SIGNIFICANCE', subtitle: "Hellenism's clash with covenant faith", icon: Feather, image: require('../assets/Places/Athens.jpg'), content: greekExplore['theological-significance'] },
 ];
+
+const PLACE_CARDS = [...greekKeyPlaces, ...greekMorePlaces].map((place) => ({
+  id: place.id,
+  title: place.name.toUpperCase(),
+  subtitle: place.role,
+  image: place.image,
+  content: (greekPlacesContent as Record<string, string>)[place.id],
+}));
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -425,17 +436,17 @@ export default function GreekDetailScreen() {
         images={[require('../assets/Maps/greek-empire-under-alexander-map.jpg')]}
         accentColor={ACCENT}
       />
-      <ImageModal
+      <ExploreDetailModal
         visible={exploreModalVisible}
         onClose={() => setExploreModalVisible(false)}
-        images={EXPLORE_CARDS.map((c) => c.image)}
+        cards={EXPLORE_CARDS}
         initialIndex={exploreModalIndex}
         accentColor={ACCENT}
       />
-      <ImageModal
+      <ExploreDetailModal
         visible={placesModalVisible}
         onClose={() => setPlacesModalVisible(false)}
-        images={[...greekKeyPlaces.map((p) => p.image), ...greekMorePlaces.map((p) => p.image)]}
+        cards={PLACE_CARDS}
         initialIndex={placesModalIndex}
         accentColor={ACCENT}
       />

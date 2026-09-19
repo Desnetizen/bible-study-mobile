@@ -35,7 +35,12 @@ function TopicCard({ topic }) {
 
 export default function TopicGrid({ topics }) {
   return (
-    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.row}>
+    <ScrollView
+  horizontal
+  showsHorizontalScrollIndicator={false}
+  style={{ flexGrow: 0 }}
+  contentContainerStyle={styles.row}
+>
       {topics.map((topic) => (
         <TopicCard key={topic.id} topic={topic} />
       ))}
@@ -44,7 +49,7 @@ export default function TopicGrid({ topics }) {
 }
 
 const styles = StyleSheet.create({
-  row: { gap: 10, paddingHorizontal: 16, paddingVertical: 4 },
+  row: { gap: 10, paddingHorizontal: 16, paddingVertical: 4, alignItems: 'flex-start' },
   card: {
     width: 96,
     borderRadius: 14,

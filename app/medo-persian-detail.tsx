@@ -3,7 +3,10 @@ import OutlineScrubber from '@/components/OutlineScrubber';
 import ReadTabContent from '@/components/ReadTabContent';
 import { extractHeadings } from '@/data/extractHeadings';
 import { medoPersianContext } from '@/data/medoPersianContext';
+import { medoPersianExplore } from '@/data/medoPersianExplore';
 import { keyPlaces, morePlaces } from '@/data/medoPersianPlaces';
+import { medoPersianPlacesContent } from '@/data/medoPersianPlacesContent';
+import ExploreDetailModal from '@/components/ExploreDetailModal';
 import GeographicOverviewCard from '@/components/GeographicOverviewCard';
 import HorizontalPlaceCard from '@/components/HorizontalPlaceCard';
 import ImageModal from '@/components/ImageModal';
@@ -55,11 +58,19 @@ const TIMELINE_NODES = [
 // ─── Explore Cards Data ─────────────────────────────────────────────────────────
 
 const EXPLORE_CARDS = [
-  { id: 'daniels-visions', title: "DANIEL'S VISIONS", subtitle: 'Five visions spanning the Persian century', icon: BookOpen, image: require('../assets/Aesthetics/Daniel-Visions.png') },
-  { id: 'cyrus-named-prophecy', title: 'CYRUS: THE NAMED PROPHECY', subtitle: 'A king named 150 years before his birth', icon: Feather, image: require('../assets/Places/Ancient Susa.png') },
-  { id: 'extrabiblical-evidence', title: 'EXTRABIBLICAL EVIDENCE', subtitle: 'Confirmation from Persian records', icon: Compass, image: require('../assets/Places/Ancient Susa.png') },
-  { id: 'return-grace', title: 'THE RETURN: GRACE THROUGH AN ALIEN EMPIRE', subtitle: 'Why a pagan king set Israel free', icon: Users, image: require('../assets/Places/Ancient Susa.png') },
+  { id: 'daniels-visions', title: "DANIEL'S VISIONS", subtitle: 'Five visions spanning the Persian century', icon: BookOpen, image: require('../assets/Aesthetics/Daniel-Visions.png'), content: medoPersianExplore['daniels-visions'] },
+  { id: 'cyrus-named-prophecy', title: 'CYRUS: THE NAMED PROPHECY', subtitle: 'A king named 150 years before his birth', icon: Feather, image: require('../assets/Places/Ancient Susa.png'), content: medoPersianExplore['cyrus-named-prophecy'] },
+  { id: 'extrabiblical-evidence', title: 'EXTRABIBLICAL EVIDENCE', subtitle: 'Confirmation from Persian records', icon: Compass, image: require('../assets/Places/Ancient Susa.png'), content: medoPersianExplore['extrabiblical-evidence'] },
+  { id: 'return-grace', title: 'THE RETURN: GRACE THROUGH AN ALIEN EMPIRE', subtitle: 'Why a pagan king set Israel free', icon: Users, image: require('../assets/Places/Ancient Susa.png'), content: medoPersianExplore['return-grace'] },
 ];
+
+const PLACE_CARDS = [...keyPlaces, ...morePlaces].map((place) => ({
+  id: place.id,
+  title: place.name.toUpperCase(),
+  subtitle: place.role,
+  image: place.image,
+  content: (medoPersianPlacesContent as Record<string, string>)[place.id],
+}));
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -425,17 +436,17 @@ export default function MedoPersianDetailScreen() {
         images={[require('../assets/Maps/medo-persian.jpg')]}
         accentColor={ACCENT}
       />
-      <ImageModal
+      <ExploreDetailModal
         visible={exploreModalVisible}
         onClose={() => setExploreModalVisible(false)}
-        images={EXPLORE_CARDS.map((c) => c.image)}
+        cards={EXPLORE_CARDS}
         initialIndex={exploreModalIndex}
         accentColor={ACCENT}
       />
-      <ImageModal
+      <ExploreDetailModal
         visible={placesModalVisible}
         onClose={() => setPlacesModalVisible(false)}
-        images={[...keyPlaces.map((p) => p.image), ...morePlaces.map((p) => p.image)]}
+        cards={PLACE_CARDS}
         initialIndex={placesModalIndex}
         accentColor={ACCENT}
       />

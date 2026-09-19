@@ -134,7 +134,12 @@ function CategorySection({ category, videos }) {
           <Text style={styles.sectionSubtitle}>{category.description}</Text>
         </View>
       </View>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.sectionRow}>
+      <ScrollView
+  horizontal
+  showsHorizontalScrollIndicator={false}
+  style={{ flexGrow: 0 }}
+  contentContainerStyle={styles.sectionRow}
+>
         {videos.map((video) => (
           <VideoPosterCard key={video.id} video={video} />
         ))}
@@ -177,7 +182,12 @@ export default function StudyVideoLibraryScreen() {
         </View>
       </View>
 
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterRow}>
+      <ScrollView
+  horizontal
+  showsHorizontalScrollIndicator={false}
+  style={{ flexGrow: 0 }}
+  contentContainerStyle={styles.filterRow}
+>
         <TouchableOpacity
           onPress={() => setActiveCategory('all')}
           style={[styles.filterChip, activeCategory === 'all' && styles.filterChipActive]}
@@ -255,7 +265,7 @@ const styles = StyleSheet.create({
   headerEyebrow: { color: '#E8A838', fontFamily: 'Inter', fontSize: 10, fontWeight: '800', letterSpacing: 1.1 },
   headerTitle: { color: '#FFFFFF', fontFamily: 'Cinzel', fontSize: 22, fontWeight: '700' },
 
-  filterRow: { gap: 8, paddingHorizontal: 16, paddingBottom: 12 },
+  filterRow: { gap: 8, paddingHorizontal: 16, paddingBottom: 12, alignItems: 'flex-start' },
   filterChip: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -289,7 +299,7 @@ const styles = StyleSheet.create({
   },
   sectionTitle: { color: '#FFFFFF', fontFamily: 'Inter', fontSize: 15, fontWeight: '700' },
   sectionSubtitle: { color: '#64748b', fontFamily: 'Inter', fontSize: 11, marginTop: 1 },
-  sectionRow: { gap: 12, paddingHorizontal: 16 },
+  sectionRow: { gap: 12, paddingHorizontal: 16, alignItems: 'flex-start' },
   filteredDescription: {
     color: '#94A3B8',
     fontFamily: 'Inter',
