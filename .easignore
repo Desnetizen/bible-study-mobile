@@ -1,0 +1,123 @@
+# Dependencies
+node_modules/**
+
+# Build outputs
+dist/**
+build/**
+.expo/**
+.expo-shared/**
+
+# IDE and editor files
+.vscode/**
+.idea/**
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Testing
+coverage/**
+.nyc_output/**
+
+# Documentation
+docs/**
+*.md
+!README.md
+
+# Scripts
+scripts/**
+
+# Asset sources (optimized versions will be used)
+assets-optimized/**
+
+# TypeScript cache
+*.tsbuildinfo
+
+# Misc
+*.orig
+*.bak
+.turbo/**
+
+# Exclude ALL unused asset folders
+assets/animations/**
+assets/grace-presentation/**
+assets/bible-connection/**
+assets/chapter Completed/**
+assets/Chapters/**
+assets/badges/**
+assets/Characters/**
+
+# Exclude Aesthetics (keep only 3 used files)
+assets/Aesthetics/**
+
+# Exclude Maps (keep only 5 used files)
+assets/Maps/**
+
+# Exclude Places (keep only 7 used files)
+assets/Places/**
+
+# Keep ONLY essential images and icons
+!assets/images/**
+!assets/Icons/**
+
+# Explicitly allow the specific used assets
+!assets/Aesthetics/Bible.jpg
+!assets/Aesthetics/Daniel-Visions.png
+!assets/Aesthetics/isreal-Idolotary.png
+!assets/Maps/roman-empire.jpg
+!assets/Maps/neo-babylon-empire.png
+!assets/Maps/greek-empire-under-alexander-map.jpg
+!assets/Maps/pre_Exile.png
+!assets/Maps/medo-persian.jpg
+!assets/Places/Rome.jpg
+!assets/Places/Babylon.png
+!assets/Places/Athens.jpg
+!assets/Places/Canaanite Lands.jpg
+!assets/Places/Ancient Jerusalem.jpg
+!assets/Places/Ancient Susa.png
+!assets/bible-connection/logo.png
+!assets/bible-connection/splash-bg.png
+!assets/Chapters/daniel-chapter-1.png
+!assets/Chapters/daniel-chapter-2.png
+!assets/Chapters/daniel-chapter-3.png
+!assets/Chapters/daniel-chapter-4.png
+!assets/Chapters/daniel-chapter-5.png
+!assets/Chapters/daniel-chapter-6.png
+!assets/Chapters/daniel-chapter-7.png
+!assets/Chapters/daniel-chapter-8.png
+!assets/Chapters/daniel-chapter-9.png
+!assets/Chapters/daniel-chapter-10.png
+!assets/Chapters/daniel-chapter-12.png
+!assets/Places/Ancient Jerusalem.jpg
+!assets/Places/Babylon.png
+!assets/Places/Egypt (2).png
+!assets/Places/Sinai.jpg
+!assets/Places/Rome.jpg
+!assets/Places/Shushan(Susa).jpg
+!assets/Places/Ur of the Chaldeans.png
+!assets/Places/ziggurat in Babylon.png
+!assets/Places/Athens.jpg
+!assets/Places/Ancient ninevah.png
+!assets/Places/Ancient Susa.png
+!assets/Places/Canaanite Lands.jpg
+!assets/Characters/Arioch.png
+!assets/Characters/Azariah.jpg
+!assets/Characters/Belshazzar.png
+!assets/Characters/Cyrus the Great.png
+!assets/Characters/Daniel.jpeg
+!assets/Characters/Darius the Mede.png
+!assets/Characters/Gabriel.png
+!assets/Characters/Hananiah.jpg
+!assets/Characters/Melzar.png
+!assets/Characters/Michael.png
+!assets/Characters/Mishael.png
+!assets/Characters/Nebuchadnezzar II.png
+!assets/Characters/Young Daniel.jpg

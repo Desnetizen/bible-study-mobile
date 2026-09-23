@@ -1,0 +1,44 @@
+{
+  "cli": {
+    "version": ">= 16.0.1",
+    "appVersionSource": "remote"
+  },
+  "build": {
+    "preview": {
+      "android": {
+        "buildType": "apk",
+        "gradleCommand": ":app:assembleRelease"
+      },
+      "distribution": "internal",
+      "env": {
+        "GRADLE_OPTS": "-Xmx6g -XX:MaxMetaspaceSize=2g -Dorg.gradle.daemon=true -Dorg.gradle.parallel=true -Dorg.gradle.configureondemand=true -Dorg.gradle.jvmargs=-Xmx6g",
+        "JAVA_TOOL_OPTIONS": "-Xmx6g",
+        "GRADLE_VERBOSE": "true"
+      },
+      "channel": "preview"
+    },
+    "production": {
+      "android": {
+        "buildType": "app-bundle",
+        "gradleCommand": ":app:bundleRelease",
+        "resourceClass": "medium"
+      },
+      "ios": {
+        "resourceClass": "medium"
+      },
+      "env": {
+        "NODE_ENV": "production",
+        "EXPO_NO_TELEMETRY": "1"
+      },
+      "autoIncrement": true,
+      "channel": "production"
+    }
+  },
+  "submit": {
+    "production": {
+      "android": {
+        "track": "internal"
+      }
+    }
+  }
+}
