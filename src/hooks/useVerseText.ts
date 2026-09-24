@@ -43,37 +43,37 @@ function normalizeText(text: string): string {
 }
 
 export function useVerseText(reference: VerseReference | null): VerseTextState {
-  const [state, setState] = useState<VerseTextState>(IDLE_STATE);
+  const refKey = reference
+    ? `${reference.book}:${reference.chapter}:${reference.verse ?? ''}-${reference.endVerse ?? ''}`
+    : null;
+
+  const definedText = reference
+    ? getDefinedVerseText(
+        reference.book,
+        reference.chapter,
+        reference.verse,
+        reference.endVerse,
+      )
+    : null;
+
+  const [asyncState, setAsyncState] = useState<{
+    key: string | null;
+    state: VerseTextState;
+  }>({
+    key: null,
+    state: IDLE_STATE,
+  });
+
   const requestIdRef = useRef(0);
 
   useEffect(() => {
-    if (!reference) {
-      setState(IDLE_STATE);
+    if (!reference || definedText != null) {
       return;
     }
 
-    const defined = getDefinedVerseText(
-      reference.book,
-      reference.chapter,
-      reference.verse,
-      reference.endVerse,
-    );
-
-    if (defined != null) {
-      setState({
-        text: normalizeText(defined),
-        verses: null,
-        translationId: null,
-        translationLabel: null,
-        loading: false,
-        error: null,
-      });
-      return;
-    }
-
+    const currentKey = refKey;
     const requestId = ++requestIdRef.current;
     const controller = new AbortController();
-    setState({ text: null, verses: null, translationId: null, translationLabel: null, loading: true, error: null });
 
     const url = `${VERSE_API_ROOT}/${buildReferenceQuery(reference)}?translation=${DEFAULT_TRANSLATION}`;
 
@@ -86,13 +86,16 @@ export function useVerseText(reference: VerseReference | null): VerseTextState {
         if (requestIdRef.current !== requestId) return;
         const text = typeof data?.text === 'string' ? normalizeText(data.text) : null;
         if (!text) {
-          setState({
-            text: null,
-            verses: null,
-            translationId: null,
-            translationLabel: null,
-            loading: false,
-            error: 'Verse not found.',
+          setAsyncState({
+            key: currentKey,
+            state: {
+              text: null,
+              verses: null,
+              translationId: null,
+              translationLabel: null,
+              loading: false,
+              error: 'Verse not found.',
+            },
           });
           return;
         }
@@ -103,30 +106,61 @@ export function useVerseText(reference: VerseReference | null): VerseTextState {
               )
               .map((v: { verse: number; text: string }) => ({ verse: v.verse, text: normalizeText(v.text) }))
           : null;
-        setState({
-          text,
-          verses,
-          translationId: typeof data?.translation_id === 'string' ? data.translation_id : null,
-          translationLabel: typeof data?.translation_name === 'string' ? data.translation_name : null,
-          loading: false,
-          error: null,
+        setAsyncState({
+          key: currentKey,
+          state: {
+            text,
+            verses,
+            translationId: typeof data?.translation_id === 'string' ? data.translation_id : null,
+            translationLabel: typeof data?.translation_name === 'string' ? data.translation_name : null,
+            loading: false,
+            error: null,
+          },
         });
       })
       .catch((err) => {
         if (requestIdRef.current !== requestId || err?.name === 'AbortError') return;
-        setState({
-          text: null,
-          verses: null,
-          translationId: null,
-          translationLabel: null,
-          loading: false,
-          error: 'Could not load this verse.',
+        setAsyncState({
+          key: currentKey,
+          state: {
+            text: null,
+            verses: null,
+            translationId: null,
+            translationLabel: null,
+            loading: false,
+            error: 'Could not load this verse.',
+          },
         });
       });
 
     return () => controller.abort();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [reference?.book, reference?.chapter, reference?.verse, reference?.endVerse]);
+  }, [refKey, reference, definedText]);
 
-  return state;
+  if (!reference) {
+    return IDLE_STATE;
+  }
+
+  if (definedText != null) {
+    return {
+      text: normalizeText(definedText),
+      verses: null,
+      translationId: null,
+      translationLabel: null,
+      loading: false,
+      error: null,
+    };
+  }
+
+  if (asyncState.key !== refKey) {
+    return {
+      text: null,
+      verses: null,
+      translationId: null,
+      translationLabel: null,
+      loading: true,
+      error: null,
+    };
+  }
+
+  return asyncState.state;
 }

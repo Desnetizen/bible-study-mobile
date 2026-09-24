@@ -40,6 +40,7 @@ export async function withRetry<T>(
     }
 
     try {
+      // react-doctor-disable-next-line react-doctor/async-await-in-loop -- sequential retry loop requires waiting before attempting next try
       return await fn();
     } catch (err: unknown) {
       if (attempt < maxRetries && isRetryable(err)) {

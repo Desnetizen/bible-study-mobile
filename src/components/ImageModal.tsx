@@ -145,9 +145,10 @@ export default function ImageModal({
   useEffect(() => {
     if (visible && scrollRef.current) {
       setActiveIndex(initialIndex);
-      setTimeout(() => {
+      const timer = setTimeout(() => {
         scrollRef.current?.scrollTo({ x: initialIndex * SCREEN_W, animated: false });
       }, 100);
+      return () => clearTimeout(timer);
     }
   }, [visible, initialIndex]);
 

@@ -120,7 +120,9 @@ export default function LoginScreen() {
 
           <View style={styles.footer}>
             <Text style={styles.footerText}>Don&apos;t have an account? </Text>
-            <Link href={'/auth/signup' as any} style={styles.footerLink}>Sign Up</Link>
+            <Link href={'/auth/signup' as any}>
+              <Text style={styles.footerLink}>Sign Up</Text>
+            </Link>
           </View>
         </View>
       </View>

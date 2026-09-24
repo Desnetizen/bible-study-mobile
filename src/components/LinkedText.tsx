@@ -12,8 +12,8 @@ interface LinkedTextProps {
 }
 
 type Segment =
-  | { type: 'text'; content: string }
-  | { type: 'ref'; content: string; ref: VerseReference };
+  | { id: string; type: 'text'; content: string }
+  | { id: string; type: 'ref'; content: string; ref: VerseReference };
 
 export function LinkedText({ text, style, linkStyle }: LinkedTextProps) {
   const tintColor = useThemeColor({}, 'tint');
@@ -28,9 +28,10 @@ export function LinkedText({ text, style, linkStyle }: LinkedTextProps) {
 
     for (const match of matches) {
       if (match.index > lastIndex) {
-        parts.push({ type: 'text', content: text.slice(lastIndex, match.index) });
+        parts.push({ id: `t-${lastIndex}`, type: 'text', content: text.slice(lastIndex, match.index) });
       }
       parts.push({
+        id: `r-${match.index}-${match.ref}`,
         type: 'ref',
         content: match.ref,
         ref: { book: match.book, chapter: match.chapter, verse: match.verse, endVerse: match.endVerse },
@@ -39,7 +40,7 @@ export function LinkedText({ text, style, linkStyle }: LinkedTextProps) {
     }
 
     if (lastIndex < text.length) {
-      parts.push({ type: 'text', content: text.slice(lastIndex) });
+      parts.push({ id: `t-${lastIndex}`, type: 'text', content: text.slice(lastIndex) });
     }
 
     return parts;
@@ -52,11 +53,11 @@ export function LinkedText({ text, style, linkStyle }: LinkedTextProps) {
   return (
     <>
       <Text style={style}>
-        {segments.map((segment, i) => {
+        {segments.map((segment) => {
           if (segment.type === 'ref') {
             return (
               <Text
-                key={i}
+                key={segment.id}
                 style={[{ color: tintColor, textDecorationLine: 'underline' } as TextStyle, linkStyle]}
                 onPress={() => setActiveRef(segment.ref)}
               >
@@ -64,7 +65,7 @@ export function LinkedText({ text, style, linkStyle }: LinkedTextProps) {
               </Text>
             );
           }
-          return <Text key={i}>{segment.content}</Text>;
+          return <Text key={segment.id}>{segment.content}</Text>;
         })}
       </Text>
       <VerseTextModal reference={activeRef} onClose={() => setActiveRef(null)} accentColor={tintColor} />

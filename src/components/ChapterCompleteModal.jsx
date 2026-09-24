@@ -1,8 +1,7 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Animated,
   Easing,
-  Image,
   Modal,
   Pressable,
   StyleSheet,
@@ -92,11 +91,11 @@ function makeParticles(count = 28) {
 }
 
 function Particle({ color, shape, fontSize, delay, startX, screenWidth, screenHeight }) {
-  const translateY = useRef(new Animated.Value(0)).current;
-  const translateX = useRef(new Animated.Value(0)).current;
-  const opacity = useRef(new Animated.Value(0)).current;
-  const scale = useRef(new Animated.Value(0)).current;
-  const rotate = useRef(new Animated.Value(0)).current;
+  const translateY = useMemo(() => new Animated.Value(0), []);
+  const translateX = useMemo(() => new Animated.Value(0), []);
+  const opacity = useMemo(() => new Animated.Value(0), []);
+  const scale = useMemo(() => new Animated.Value(0), []);
+  const rotate = useMemo(() => new Animated.Value(0), []);
 
   // Captured once. Reading these from props inside the effect would restart
   // every particle mid-flight whenever the window dimensions change.
@@ -146,8 +145,8 @@ function Particle({ color, shape, fontSize, delay, startX, screenWidth, screenHe
 }
 
 function RingBurst({ visible }) {
-  const scale = useRef(new Animated.Value(0)).current;
-  const opacity = useRef(new Animated.Value(0)).current;
+  const scale = useMemo(() => new Animated.Value(0), []);
+  const opacity = useMemo(() => new Animated.Value(0), []);
 
   useEffect(() => {
     if (!visible) return;
@@ -184,22 +183,39 @@ export default function ChapterCompleteModal({ visible, chapter, totalChapters =
   const dark = scheme === 'dark';
   const { width: screenWidth, height: screenHeight } = useWindowDimensions();
 
-  const backdropOpacity = useRef(new Animated.Value(0)).current;
-  const cardScale = useRef(new Animated.Value(0.72)).current;
-  const cardOpacity = useRef(new Animated.Value(0)).current;
-  const cardTranslateY = useRef(new Animated.Value(40)).current;
-  const iconBounce = useRef(new Animated.Value(0)).current;
-  const titleOpacity = useRef(new Animated.Value(0)).current;
-  const titleTranslateY = useRef(new Animated.Value(16)).current;
-  const messageOpacity = useRef(new Animated.Value(0)).current;
-  const actionsOpacity = useRef(new Animated.Value(0)).current;
-  const progressWidth = useRef(new Animated.Value(0)).current;
-  const glowPulse = useRef(new Animated.Value(1)).current;
-  const rayRotation = useRef(new Animated.Value(0)).current;
+  const backdropOpacity = useMemo(() => new Animated.Value(0), []);
+  const cardScale = useMemo(() => new Animated.Value(0.72), []);
+  const cardOpacity = useMemo(() => new Animated.Value(0), []);
+  const cardTranslateY = useMemo(() => new Animated.Value(40), []);
+  const iconBounce = useMemo(() => new Animated.Value(0), []);
+  const titleOpacity = useMemo(() => new Animated.Value(0), []);
+  const titleTranslateY = useMemo(() => new Animated.Value(16), []);
+  const messageOpacity = useMemo(() => new Animated.Value(0), []);
+  const actionsOpacity = useMemo(() => new Animated.Value(0), []);
+  const progressWidth = useMemo(() => new Animated.Value(0), []);
+  const glowPulse = useMemo(() => new Animated.Value(1), []);
+  const rayRotation = useMemo(() => new Animated.Value(0), []);
 
-  const [particles, setParticles] = useState([]);
+  const [internalVisible, setInternalVisible] = useState(visible);
+  const [particles, setParticles] = useState(() => (visible && !reducedMotion ? makeParticles() : []));
   const [burstKey, setBurstKey] = useState(0);
-  const [internalVisible, setInternalVisible] = useState(false);
+  const [prevVisible, setPrevVisible] = useState(visible);
+
+  if (visible !== prevVisible) {
+    setPrevVisible(visible);
+    if (visible) {
+      setInternalVisible(true);
+      if (reducedMotion) {
+        setParticles([]);
+      } else {
+        setParticles(makeParticles());
+        setBurstKey((k) => k + 1);
+      }
+    } else if (reducedMotion) {
+      setInternalVisible(false);
+      setParticles([]);
+    }
+  }
 
   const chapterData = CHAPTER_DATA.find((d) => d.chapter === chapter) ?? CHAPTER_DATA[0];
   const isLastChapter = chapter >= totalChapters;
@@ -258,8 +274,6 @@ export default function ChapterCompleteModal({ visible, chapter, totalChapters =
         messageOpacity.setValue(1);
         actionsOpacity.setValue(1);
         progressWidth.setValue(progressPercent);
-        setParticles([]);
-        setInternalVisible(true);
         return;
       }
 
@@ -275,10 +289,6 @@ export default function ChapterCompleteModal({ visible, chapter, totalChapters =
       messageOpacity.setValue(0);
       actionsOpacity.setValue(0);
       progressWidth.setValue(0);
-
-      setParticles(makeParticles());
-      setBurstKey((k) => k + 1);
-      setInternalVisible(true);
 
       const entrance = [
         Animated.parallel([
@@ -309,8 +319,6 @@ export default function ChapterCompleteModal({ visible, chapter, totalChapters =
     if (!hasOpenedRef.current) return;
 
     if (reducedMotion) {
-      setInternalVisible(false);
-      setParticles([]);
       return;
     }
 
@@ -541,7 +549,7 @@ export default function ChapterCompleteModal({ visible, chapter, totalChapters =
                     {/* DANIEL Book Title */}
                     <Text style={{
                       color: '#f5c542',
-                      fontSize: 10,
+                      fontSize: 12,
                       fontWeight: '700',
                       letterSpacing: 1.8,
                       fontFamily: 'serif',

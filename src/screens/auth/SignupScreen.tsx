@@ -168,7 +168,9 @@ export default function SignupScreen() {
 
           <View style={styles.footer}>
             <Text style={styles.footerText}>Already have an account? </Text>
-            <Link href={'/auth/login' as any} style={styles.footerLink}>Sign In</Link>
+            <Link href={'/auth/login' as any}>
+              <Text style={styles.footerLink}>Sign In</Text>
+            </Link>
           </View>
         </View>
       </View>

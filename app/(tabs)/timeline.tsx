@@ -41,6 +41,8 @@ export default function TimelineScreen() {
   const [timelineBegun, setTimelineBegun] = useState(false);
 
   const [activeEraId, setActiveEraId] = useState(TIMELINE_ITEMS[0].id);
+  const activeEraIdRef = useRef(TIMELINE_ITEMS[0].id);
+  const scrollFrameRef = useRef<number | null>(null);
 
   const [modalVisible, setModalVisible] = useState(false);
   const [activeEvent, setActiveEvent] = useState<typeof TIMELINE_ITEMS[number]['events'][number] | null>(null);
@@ -53,8 +55,8 @@ export default function TimelineScreen() {
   // succession before a re-render lands.
   const readEventsRef = useRef<string[]>([]);
 
-  const backdropOpacity = useRef(new Animated.Value(0)).current;
-  const sheetTranslateY = useRef(new Animated.Value(800)).current;
+  const backdropOpacity = useMemo(() => new Animated.Value(0), []);
+  const sheetTranslateY = useMemo(() => new Animated.Value(800), []);
 
   const [heroLoaded, setHeroLoaded] = useState(false);
   const onHeroLoad = useCallback(() => setHeroLoaded(true), []);
@@ -62,9 +64,11 @@ export default function TimelineScreen() {
   useEffect(() => {
     const loadProgress = async () => {
       try {
-        const storedRead = await AsyncStorage.getItem(READ_EVENTS_KEY);
-        const storedLast = await AsyncStorage.getItem(LAST_READ_EVENT_KEY);
-        const storedBegun = await AsyncStorage.getItem(TIMELINE_BEGUN_KEY);
+        const [storedRead, storedLast, storedBegun] = await Promise.all([
+          AsyncStorage.getItem(READ_EVENTS_KEY),
+          AsyncStorage.getItem(LAST_READ_EVENT_KEY),
+          AsyncStorage.getItem(TIMELINE_BEGUN_KEY),
+        ]);
 
         let cleanedRead: string[] = [];
         if (storedRead) {
@@ -121,6 +125,20 @@ export default function TimelineScreen() {
     }
   }, [modalVisible, backdropOpacity, sheetTranslateY]);
 
+  useEffect(() => {
+    return () => {
+      if (scrollFrameRef.current !== null) {
+        cancelAnimationFrame(scrollFrameRef.current);
+      }
+    };
+  }, []);
+
+  const updateActiveEraId = useCallback((eraId: string) => {
+    if (eraId === activeEraIdRef.current) return;
+    activeEraIdRef.current = eraId;
+    setActiveEraId(eraId);
+  }, []);
+
   const handleScroll = (event: any) => {
     const y = event.nativeEvent.contentOffset.y;
     const offset = y + 120;
@@ -133,8 +151,11 @@ export default function TimelineScreen() {
       }
     }
 
-    if (currentEraId !== activeEraId) {
-      setActiveEraId(currentEraId);
+    if (currentEraId !== activeEraIdRef.current && scrollFrameRef.current === null) {
+      scrollFrameRef.current = requestAnimationFrame(() => {
+        scrollFrameRef.current = null;
+        updateActiveEraId(currentEraId);
+      });
     }
   };
 
@@ -142,7 +163,7 @@ export default function TimelineScreen() {
     const y = eraPositions.current[eraId];
     if (y !== undefined) {
       scrollViewRef.current?.scrollTo({ y: Math.max(0, y - 48), animated: true });
-      setActiveEraId(eraId);
+      updateActiveEraId(eraId);
 
       try {
         void Haptics.selectionAsync();
@@ -560,27 +581,6 @@ export default function TimelineScreen() {
                     <Text style={styles.connectionTitle}>Daniel Connection</Text>
                   </View>
                   <LinkedText text={activeEvent.danielConnection} style={styles.connectionText} />
-                </View>
-              )}
-
-              {activeEvent && activeEvent.historicalContext && (
-                <View style={styles.sheetSection}>
-                  <Text style={styles.sheetSectionTitle}>Historical Context</Text>
-                  <LinkedText text={activeEvent.historicalContext} style={styles.descriptionParagraph} />
-                </View>
-              )}
-
-              {activeEvent && activeEvent.historicalSignificance && (
-                <View style={styles.sheetSection}>
-                  <Text style={styles.sheetSectionTitle}>Historical Significance</Text>
-                  <LinkedText text={activeEvent.historicalSignificance} style={styles.descriptionParagraph} />
-                </View>
-              )}
-
-              {activeEvent && activeEvent.interpretiveNote && (
-                <View style={styles.sheetSection}>
-                  <Text style={styles.sheetSectionTitle}>Interpretive Note</Text>
-                  <LinkedText text={activeEvent.interpretiveNote} style={styles.descriptionParagraph} />
                 </View>
               )}
             </ScrollView>

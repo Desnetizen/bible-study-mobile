@@ -167,7 +167,7 @@ export default function ChapterStudyContent({ chapter }: ChapterStudyContentProp
   });
 
   // Bridge Reanimated scrollY → RN Animated for components expecting classic Animated.Value
-  const classicScrollY = useRef(new RNAnimated.Value(0)).current;
+  const classicScrollY = useMemo(() => new RNAnimated.Value(0), []);
   const setClassicScrollY = useCallback((v: number) => {
     classicScrollY.setValue(v);
     // eslint-disable-next-line react-hooks/exhaustive-deps

@@ -115,7 +115,9 @@ export default function ForgotPasswordScreen() {
           </Pressable>
 
           <View style={styles.footer}>
-            <Link href={'/auth/login' as any} style={styles.footerLink}>Back to Sign In</Link>
+            <Link href={'/auth/login' as any}>
+              <Text style={styles.footerLink}>Back to Sign In</Text>
+            </Link>
           </View>
         </View>
       </View>

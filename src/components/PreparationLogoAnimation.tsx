@@ -1,7 +1,7 @@
 import LottieView from 'lottie-react-native';
 import type { StyleProp, ViewStyle } from 'react-native';
 
-import { preparationLogoAnimation } from '../../assets/animations';
+import preparationLogoAnimation from '../../assets/animations/preparation-logo.json';
 
 type PreparationLogoAnimationProps = {
   autoPlay?: boolean;

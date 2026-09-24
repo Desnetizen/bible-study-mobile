@@ -32,7 +32,7 @@ export default function VideoPlayer({ video }) {
   }
 
   if (video.source.bucketFile) {
-    return <BucketPlayer bucketFile={video.source.bucketFile} />;
+    return <BucketPlayer key={video.source.bucketFile} bucketFile={video.source.bucketFile} />;
   }
 
   return <ComingSoonPlayer video={video} />;
@@ -112,11 +112,8 @@ function BucketPlayer({ bucketFile }) {
 
   useEffect(() => {
     let cancelled = false;
-    setError(null);
-    setUri(null);
 
     if (!supabase) {
-      setError('Supabase is not configured.');
       return;
     }
 
@@ -137,14 +134,20 @@ function BucketPlayer({ bucketFile }) {
     };
   }, [bucketFile, retryKey]);
 
-  if (error) {
+  const activeError = !supabase ? 'Supabase is not configured.' : error;
+
+  if (activeError) {
     return (
       <View style={styles.wrap}>
         <View style={styles.dimOverlay} />
         <View style={styles.centerContent}>
-          <Text style={styles.comingSoonSubtext}>{error}</Text>
+          <Text style={styles.comingSoonSubtext}>{activeError}</Text>
           <TouchableOpacity
-            onPress={() => setRetryKey((k) => k + 1)}
+            onPress={() => {
+              setError(null);
+              setUri(null);
+              setRetryKey((k) => k + 1);
+            }}
             style={styles.retryBtn}
             accessibilityRole="button"
           >

@@ -5,11 +5,13 @@ import { supabase } from '@/lib/supabase';
 import { AUDIO_FILES } from '@/constants/audio-files';
 
 type AudioPlayerInstance = ReturnType<typeof createAudioPlayer>;
+type AudioPlayerSubscription = ReturnType<AudioPlayerInstance['addListener']>;
 
 let activePlayer: AudioPlayerInstance | null = null;
 
 export function useChapterAudio(chapterNumber: number) {
   const playerRef = useRef<AudioPlayerInstance | null>(null);
+  const statusSubscriptionRef = useRef<AudioPlayerSubscription | null>(null);
   const filename = AUDIO_FILES[chapterNumber];
   const hasAudio = !!filename;
 
@@ -34,7 +36,7 @@ export function useChapterAudio(chapterNumber: number) {
         const p = createAudioPlayer(null);
         playerRef.current = p;
         activePlayer = p;
-        p.addListener('playbackStatusUpdate', (status: any) => {
+        statusSubscriptionRef.current = p.addListener('playbackStatusUpdate', (status: any) => {
           setCurrentTime(status.currentTime ?? 0);
           setDuration(status.duration ?? 0);
           setPlaying(status.playing ?? false);
@@ -113,6 +115,7 @@ export function useChapterAudio(chapterNumber: number) {
     return () => {
       if (playerRef.current && playerRef.current === activePlayer) {
         try {
+          statusSubscriptionRef.current?.remove();
           playerRef.current.pause();
           playerRef.current.remove();
         } catch {
@@ -120,6 +123,7 @@ export function useChapterAudio(chapterNumber: number) {
         }
         activePlayer = null;
       }
+      statusSubscriptionRef.current = null;
       playerRef.current = null;
     };
   }, []);

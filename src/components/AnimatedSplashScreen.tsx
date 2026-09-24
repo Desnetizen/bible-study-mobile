@@ -33,7 +33,10 @@ export default function AnimatedSplashScreen({
 }: AnimatedSplashScreenProps) {
   // Ref to capture latest onAnimationComplete callback (prevents stale closure)
   const onAnimationCompleteRef = useRef(onAnimationComplete);
-  onAnimationCompleteRef.current = onAnimationComplete;
+
+  useEffect(() => {
+    onAnimationCompleteRef.current = onAnimationComplete;
+  }, [onAnimationComplete]);
 
   // Guard: if isReady is already true on mount, skip entry animations
   const hasMounted = useRef(false);

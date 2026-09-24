@@ -1,4 +1,4 @@
-import { createContext, PropsWithChildren, useCallback, useContext, useMemo, useState } from 'react';
+import { createContext, PropsWithChildren, use, useCallback, useMemo, useState } from 'react';
 
 type AppReadinessContextValue = {
   appContentReady: boolean;
@@ -69,7 +69,7 @@ export function AppReadinessProvider({ children }: PropsWithChildren) {
 }
 
 export function useAppReadiness() {
-  const context = useContext(AppReadinessContext);
+  const context = use(AppReadinessContext);
 
   if (!context) {
     throw new Error('useAppReadiness must be used within AppReadinessProvider');

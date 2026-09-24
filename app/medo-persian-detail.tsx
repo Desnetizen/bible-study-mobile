@@ -87,10 +87,10 @@ export default function MedoPersianDetailScreen() {
 
   // Animations
   const scrollRef = useRef<ScrollView>(null);
-  const fadeAnim = useRef(new Animated.Value(0)).current;
-  const slideAnim = useRef(new Animated.Value(20)).current;
+  const fadeAnim = useMemo(() => new Animated.Value(0), []);
+  const slideAnim = useMemo(() => new Animated.Value(20), []);
 
-  const scrollY = useRef(new Animated.Value(0)).current;
+  const scrollY = useMemo(() => new Animated.Value(0), []);
   const scrollViewHeightRef = useRef(0);
   const scrollViewContentHeightRef = useRef(0);
   const [rootOffset, setRootOffset] = useState(0);

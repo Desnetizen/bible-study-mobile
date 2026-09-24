@@ -14,7 +14,7 @@ import {
   Crown,
   X,
 } from 'lucide-react-native';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Animated,
   Easing,
@@ -111,10 +111,10 @@ function EraCardItem({ era, index, onPress }: EraCardItemProps) {
   const num = String(index + 1).padStart(2, '0');
 
   // Stagger entry animation values
-  const animValue = useRef(new Animated.Value(0)).current;
+  const animValue = useMemo(() => new Animated.Value(0), []);
 
   // Press feedback animation values
-  const pressScale = useRef(new Animated.Value(1)).current;
+  const pressScale = useMemo(() => new Animated.Value(1), []);
 
   useEffect(() => {
     Animated.timing(animValue, {
@@ -228,7 +228,7 @@ function EraCardItem({ era, index, onPress }: EraCardItemProps) {
 export default function HistoricalContextScreen() {
   const insets = useSafeAreaInsets();
 
-  const heroOpacity = useRef(new Animated.Value(0)).current;
+  const heroOpacity = useMemo(() => new Animated.Value(0), []);
   const onHeroLoad = useCallback(() => {
     Animated.timing(heroOpacity, {
       toValue: 1,
@@ -244,8 +244,8 @@ export default function HistoricalContextScreen() {
   const [activeEvent, setActiveEvent] = useState<TimelineEvent | null>(null);
   const [activeScripture, setActiveScripture] = useState<VerseReference | null>(null);
 
-  const backdropOpacity = useRef(new Animated.Value(0)).current;
-  const sheetTranslateY = useRef(new Animated.Value(900)).current;
+  const backdropOpacity = useMemo(() => new Animated.Value(0), []);
+  const sheetTranslateY = useMemo(() => new Animated.Value(900), []);
 
   useEffect(() => {
     if (modalVisible) {

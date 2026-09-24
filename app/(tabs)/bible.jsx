@@ -1240,16 +1240,24 @@ export default function BiblePage() {
   const [highlightedVerses, setHighlightedVerses] = useState([]);
   const [navigationHighlight, setNavigationHighlight] = useState(null);
   const [crossReferenceOrigin, setCrossReferenceOrigin] = useState(null);
-  const [crossReferences, setCrossReferences] = useState([]);
-  const [crossReferencesLoading, setCrossReferencesLoading] = useState(false);
-  const [crossReferencesLoaded, setCrossReferencesLoaded] = useState(false);
+  const [crossRefState, setCrossRefState] = useState({
+    items: [],
+    loading: false,
+    loaded: false,
+  });
+  const crossReferences = crossRefState.items;
+  const crossReferencesLoading = crossRefState.loading;
+  const crossReferencesLoaded = crossRefState.loaded;
   const [storageReady, setStorageReady] = useState(false);
   const [showCompleteModal, setShowCompleteModal] = useState(false);
   const [selectedBadge, setSelectedBadge] = useState(null);
   const [toastBadges, setToastBadges] = useState([]);
   const crossReferencesCacheRef = useRef({});
   const prevCompletedRef = useRef([]);
-  const badgeHandledRef = useRef(new Set());
+  const badgeHandledRef = useRef(null);
+  if (!badgeHandledRef.current) {
+    badgeHandledRef.current = new Set();
+  }
   const pendingToastBadgesRef = useRef([]);
 
   const selectedTranslation = useMemo(
@@ -1599,9 +1607,7 @@ export default function BiblePage() {
 
   useEffect(() => {
     if (!selectedVerse || bibleBook !== DANIEL_BOOK_NAME) {
-      setCrossReferences([]);
-      setCrossReferencesLoading(false);
-      setCrossReferencesLoaded(false);
+      setCrossRefState({ items: [], loading: false, loaded: false });
       return;
     }
 
@@ -1611,16 +1617,13 @@ export default function BiblePage() {
     const cachedCrossReferences = crossReferencesCacheRef.current[cacheKey];
 
     if (cachedCrossReferences) {
-      setCrossReferences(cachedCrossReferences);
-      setCrossReferencesLoading(false);
-      setCrossReferencesLoaded(true);
+      setCrossRefState({ items: cachedCrossReferences, loading: false, loaded: true });
       return () => {
         active = false;
       };
     }
 
-    setCrossReferencesLoading(true);
-    setCrossReferencesLoaded(false);
+    setCrossRefState((prev) => ({ ...prev, loading: true, loaded: false }));
 
     void loadDanielCrossReferences(bibleChapter, selectedVerse.verse)
       .then((nextCrossReferences) => {
@@ -1629,21 +1632,14 @@ export default function BiblePage() {
         }
 
         setCacheEntry(crossReferencesCacheRef, cacheKey, nextCrossReferences);
-        setCrossReferences(nextCrossReferences);
-        setCrossReferencesLoaded(true);
+        setCrossRefState({ items: nextCrossReferences, loading: false, loaded: true });
       })
       .catch(() => {
         if (!active) {
           return;
         }
 
-        setCrossReferences([]);
-        setCrossReferencesLoaded(true);
-      })
-      .finally(() => {
-        if (active) {
-          setCrossReferencesLoading(false);
-        }
+        setCrossRefState({ items: [], loading: false, loaded: true });
       });
 
     return () => {

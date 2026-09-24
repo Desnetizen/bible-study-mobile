@@ -12,7 +12,7 @@ import {
   List,
   Scroll,
 } from 'lucide-react-native';
-import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import { createContext, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { ImageSourcePropType } from 'react-native';
 import {
   Animated,
@@ -206,7 +206,7 @@ function SubsectionView({
         (x, y) => {
           sectionPositions.current[id] = y;
         },
-        () => {}
+        () => { }
       );
     }
   }, [id, rootViewRef, sectionPositions]);
@@ -708,9 +708,9 @@ export default function ReadTabContent({
   setRootOffset,
   sectionPositions,
 }: ReadTabContentProps) {
-  const fadeAnim = useRef(new Animated.Value(0)).current;
-  const slideAnim = useRef(new Animated.Value(20)).current;
-  
+  const fadeAnim = useMemo(() => new Animated.Value(0), []);
+  const slideAnim = useMemo(() => new Animated.Value(20), []);
+
   const localSectionPositions = useRef<Record<string, number>>({});
   const actualSectionPositions = sectionPositions || localSectionPositions;
 
@@ -759,7 +759,7 @@ export default function ReadTabContent({
     const sections = contextData.sections;
 
     const abs = sections.find(s => s.id === 'abstract') ||
-                (sections[0] && !sections[0].title.match(/^[IVXLC]+\./) ? sections[0] : null);
+      (sections[0] && !sections[0].title.match(/^[IVXLC]+\./) ? sections[0] : null);
     if (abs) items.push({ id: abs.id, label: 'Abstract', number: '', fullLabel: 'Abstract' });
 
     for (const s of sections) {
@@ -982,7 +982,7 @@ export default function ReadTabContent({
             onLayout={(e) => handleSectionLayout(abstractSection.id, e)}
           >
             <View style={IS_WIDE ? styles.abstractRow : undefined}>
-               <View style={styles.abstractTextCol}>
+              <View style={styles.abstractTextCol}>
                 <Text style={[styles.abstractLabel, { color: accentColor }]}>Abstract</Text>
                 <GoldDivider double />
                 <DropCap text={firstSectionText} />

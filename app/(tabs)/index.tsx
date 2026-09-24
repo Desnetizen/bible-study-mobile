@@ -336,8 +336,9 @@ export default function HomeTabScreen() {
   );
   const heroImageOpacity = useSharedValue(1);
   const scrollY = useSharedValue(0);
-  const [currentPlaceImageIndex, setCurrentPlaceImageIndex] = useState(1);
-  const [previousPlaceImageIndex, setPreviousPlaceImageIndex] = useState(1);
+  const [placeImageIndexes, setPlaceImageIndexes] = useState({ current: 1, previous: 1 });
+  const currentPlaceImageIndex = placeImageIndexes.current;
+  const previousPlaceImageIndex = placeImageIndexes.previous;
   const [heroImageLoaded, setHeroImageLoaded] = useState(false);
   const [studyImageLoaded, setStudyImageLoaded] = useState(false);
   const [verseImageLoaded, setVerseImageLoaded] = useState(false);
@@ -407,10 +408,10 @@ export default function HomeTabScreen() {
 
   useEffect(() => {
     const intervalId = setInterval(() => {
-      setCurrentPlaceImageIndex((prevIndex) => {
-        setPreviousPlaceImageIndex(prevIndex);
-        return (prevIndex + 1) % placeImages.length;
-      });
+      setPlaceImageIndexes(({ current }) => ({
+        previous: current,
+        current: (current + 1) % placeImages.length,
+      }));
     }, 2 * 60 * 1000);
 
     return () => clearInterval(intervalId);

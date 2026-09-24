@@ -78,8 +78,11 @@ function ToastItem({
   const dismissedRef = useRef(false);
   const onDismissRef = useRef(onDismiss);
   const onPressRef = useRef(onPress);
-  onDismissRef.current = onDismiss;
-  onPressRef.current = onPress;
+
+  useEffect(() => {
+    onDismissRef.current = onDismiss;
+    onPressRef.current = onPress;
+  }, [onDismiss, onPress]);
 
   useEffect(() => {
     if (reducedMotion) {
@@ -155,19 +158,20 @@ export function BadgeEarnedToast({ badges, onComplete, onPress }: BadgeEarnedToa
   const insets = useSafeAreaInsets();
   const reducedMotion = useReducedMotion();
   const [index, setIndex] = useState(0);
+  const [prevBadges, setPrevBadges] = useState(badges);
 
-  const prevBadgesRef = useRef(badges);
-  if (badges !== prevBadgesRef.current) {
-    prevBadgesRef.current = badges;
+  if (badges !== prevBadges) {
+    setPrevBadges(badges);
     setIndex(0);
   }
 
-  const current = badges[index];
+  const safeIndex = Math.min(index, badges.length - 1);
+  const current = badges[safeIndex];
 
   if (!current) return null;
 
   const handleDismiss = () => {
-    if (index < badges.length - 1) {
+    if (safeIndex < badges.length - 1) {
       setIndex((i) => i + 1);
     } else {
       onComplete();

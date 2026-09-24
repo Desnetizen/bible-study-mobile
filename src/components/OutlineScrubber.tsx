@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -36,6 +36,16 @@ const OverlayBackground: React.FC<{ children: React.ReactNode; style: any }> = (
     </BlurView>
   );
 };
+
+function subscribeToScrollValue(scrollY: Animated.Value, onValue: (value: number) => void) {
+  const id = scrollY.addListener(({ value }) => {
+    onValue(value);
+  });
+
+  return () => {
+    scrollY.removeListener(id);
+  };
+}
 
 const OutlineScrubber: React.FC<OutlineScrubberProps> = ({
   headings,
@@ -95,16 +105,13 @@ const OutlineScrubber: React.FC<OutlineScrubberProps> = ({
   // Sync scroll values from the parent scroll container
   useEffect(() => {
     if (!scrollY) return;
-    const id = scrollY.addListener(({ value }) => {
+    return subscribeToScrollValue(scrollY, (value) => {
       scrollYVal.current = value;
       // Only track scroll changes when the user is scrolling normally
       if (!isDraggingRef.current && visible) {
         throttleScrollTracking(value);
       }
     });
-    return () => {
-      scrollY.removeListener(id);
-    };
   }, [scrollY, visible, throttleScrollTracking]);
 
   // Cleanup hide timer on unmount
@@ -152,16 +159,19 @@ const OutlineScrubber: React.FC<OutlineScrubberProps> = ({
   const resetHideTimerRef = useRef(resetHideTimer);
 
   // Keep refs in sync so the PanResponder (created once) always reads latest values
-  handleDragRef.current = handleDrag;
-  headingsRef.current = headings;
-  rootOffsetRef.current = rootOffset;
-  scrollRefRef.current = scrollRef;
-  sectionPositionsRef.current = sectionPositions;
-  resetHideTimerRef.current = resetHideTimer;
+  useEffect(() => {
+    handleDragRef.current = handleDrag;
+    headingsRef.current = headings;
+    rootOffsetRef.current = rootOffset;
+    scrollRefRef.current = scrollRef;
+    sectionPositionsRef.current = sectionPositions;
+    resetHideTimerRef.current = resetHideTimer;
+  }, [handleDrag, headings, rootOffset, scrollRef, sectionPositions, resetHideTimer]);
 
   // Gestures setup
-  const panResponder = useRef(
-    PanResponder.create({
+  const panResponder = useMemo(
+    () =>
+      PanResponder.create({
       onStartShouldSetPanResponder: () => true,
       onMoveShouldSetPanResponder: () => true,
       onPanResponderGrant: (e, gestureState) => {
@@ -214,8 +224,9 @@ const OutlineScrubber: React.FC<OutlineScrubberProps> = ({
         isDraggingRef.current = false;
         resetHideTimerRef.current();
       },
-    })
-  ).current;
+    }),
+    []
+  );
 
   // Sparse-content guard
   if (!headings || headings.length < 3) {
